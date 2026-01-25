@@ -68,4 +68,9 @@ h1, h2 {
   border-radius: 12px;
 }
 }
+@media (min-width: 768px) {
+  .image-pause img {
+    height: 420px;
+  }
+}
 
