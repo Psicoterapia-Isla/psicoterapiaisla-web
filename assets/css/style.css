@@ -112,9 +112,10 @@ section li {
     font-size: 2.5rem;
   }
   /* 🔹 IMAGEN DE ENFOQUE TERAPÉUTICO */
+/* 🔹 IMAGEN DE ENFOQUE TERAPÉUTICO */
 .image-enfoque {
   padding: 0;
-  margin: 4rem 0 2rem 0;
+  margin: 2rem 0 3rem 0;
   width: 100%;
   display: flex;
   justify-content: center;
@@ -123,10 +124,17 @@ section li {
 .image-enfoque img {
   width: 100%;
   max-width: 900px;
-  height: 180px;
+  height: 120px;          /* 🔑 mucho más baja */
   object-fit: cover;
   border-radius: 12px;
-  opacity: 0.9;
+  opacity: 0.6;           /* 🔑 baja protagonismo */
+}
+
+/* Desktop */
+@media (min-width: 768px) {
+  .image-enfoque img {
+    height: 180px;
+  }
 }
 
 /* Desktop */
