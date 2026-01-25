@@ -55,10 +55,17 @@ h1, h2 {
   justify-content: center;
 }
 
+.image-pause {
+  margin: 4rem 0;
+  width: 100%;
+  overflow: hidden;
+}
+
 .image-pause img {
   width: 100%;
-  max-width: 1100px;
-  height: auto;
+  height: 260px;              /* control de altura en móvil */
+  object-fit: cover;          /* recorte elegante, no deforma */
   border-radius: 12px;
 }
 }
+
