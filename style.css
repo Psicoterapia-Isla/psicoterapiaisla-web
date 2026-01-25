@@ -49,4 +49,16 @@ h1, h2 {
   color: #fff;
   text-decoration: none;
   border-radius: 4px;
+.image-pause {
+  margin: 4rem 0;
+  display: flex;
+  justify-content: center;
+}
+
+.image-pause img {
+  width: 100%;
+  max-width: 1100px;
+  height: auto;
+  border-radius: 12px;
+}
 }
