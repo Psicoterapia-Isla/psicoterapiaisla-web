@@ -1,99 +1,116 @@
-:root {
-  --verde-principal: #2f6f68;
-  --verde-suave: #a9c7bf;
-  --rosa-acento: #e6b7c2;
-  --beige-fondo: #f6f7f5;
-  --gris-texto: #1f2d2b;
-  --gris-secundario: #6b7c78;
-}
-
+/* RESET BÁSICO */
 * {
   box-sizing: border-box;
+  margin: 0;
+  padding: 0;
 }
 
+/* TIPOGRAFÍA Y BASE */
 body {
-  margin: 0;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-  background: var(--beige-fondo);
-  color: var(--gris-texto);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+               Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+  background-color: #f7f6f2;
+  color: #1f2f2a;
   line-height: 1.6;
 }
 
+/* NAVEGACIÓN */
 header {
-  padding: 32px 24px;
-  max-width: 1100px;
-  margin: auto;
+  padding: 1.5rem 2rem;
+}
+
+nav {
+  display: flex;
+  gap: 1.5rem;
 }
 
 nav a {
-  margin-right: 16px;
   text-decoration: none;
-  color: var(--gris-secundario);
+  color: #6f7f79;
   font-size: 0.95rem;
 }
 
-section {
-  max-width: 1100px;
-  margin: auto;
-  padding: 72px 24px;
+/* HERO */
+.hero {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2rem;
+  padding: 3rem 2rem;
 }
 
-h1, h2 {
-  font-weight: 500;
+.hero-text h1 {
+  font-size: 2rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+}
+
+.hero-text p {
+  max-width: 480px;
+  margin-bottom: 1.5rem;
 }
 
 .cta {
   display: inline-block;
-  margin-top: 24px;
-  padding: 14px 28px;
-  background: var(--verde-principal);
-  color: #fff;
-  text-decoration: none;
+  background-color: #2f6f64;
+  color: #ffffff;
+  padding: 0.75rem 1.5rem;
   border-radius: 6px;
+  text-decoration: none;
+  font-size: 0.9rem;
 }
 
-/* HERO */
-
-.hero {
-  display: grid;
-  grid-template-columns: 1.1fr 0.9fr;
-  gap: 56px;
-  align-items: center;
-  padding-top: 80px;
-  padding-bottom: 80px;
-}
-
-.hero-text h1 {
-  font-size: 2.6rem;
-  line-height: 1.25;
-  margin-bottom: 24px;
-}
-
-.hero-text p {
-  font-size: 1.1rem;
-  max-width: 520px;
-}
-
+/* IMAGEN HERO */
 .hero-image img {
   width: 100%;
-  height: auto;
+  max-width: 420px;
   border-radius: 12px;
-  object-fit: cover;
 }
 
-/* MÓVIL */
+/* SECCIÓN TEXTO */
+section {
+  padding: 3rem 2rem;
+}
 
-@media (max-width: 768px) {
+section h2 {
+  font-size: 1.2rem;
+  margin-bottom: 1rem;
+}
+
+section ul {
+  list-style: disc;
+  padding-left: 1.2rem;
+}
+
+section li {
+  margin-bottom: 0.5rem;
+}
+
+/* 🔹 IMAGEN DE PAUSA (ESTA ES LA CLAVE) */
+.image-pause {
+  width: 100%;
+  margin: 3rem 0;
+  overflow: hidden;
+}
+
+.image-pause img {
+  width: 100%;
+  height: 240px;
+  object-fit: cover;
+  border-radius: 12px;
+}
+
+/* DESKTOP */
+@media (min-width: 768px) {
   .hero {
-    grid-template-columns: 1fr;
-    gap: 32px;
-  }
-
-  .hero-image {
-    order: -1;
+    grid-template-columns: 1fr 1fr;
+    align-items: center;
   }
 
   .hero-text h1 {
-    font-size: 2rem;
+    font-size: 2.5rem;
+  }
+
+  .image-pause img {
+    height: 380px;
   }
 }
