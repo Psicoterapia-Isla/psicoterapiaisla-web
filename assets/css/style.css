@@ -85,9 +85,9 @@ section li {
   margin-bottom: 0.5rem;
 }
 
-/* 🔹 IMAGEN DE PAUSA (CORREGIDA) */
+/* 🔹 IMAGEN DE PAUSA */
 .image-pause {
-  padding: 0;              /* 🔑 anula el padding de section */
+  padding: 0;
   margin: 3rem 0;
   width: 100%;
   overflow: hidden;
@@ -101,17 +101,6 @@ section li {
   border-radius: 12px;
 }
 
-/* DESKTOP */
-@media (min-width: 768px) {
-  .hero {
-    grid-template-columns: 1fr 1fr;
-    align-items: center;
-  }
-
-  .hero-text h1 {
-    font-size: 2.5rem;
-  }
-  /* 🔹 IMAGEN DE ENFOQUE TERAPÉUTICO */
 /* 🔹 IMAGEN DE ENFOQUE TERAPÉUTICO */
 .image-enfoque {
   padding: 0;
@@ -124,27 +113,29 @@ section li {
 .image-enfoque img {
   width: 100%;
   max-width: 900px;
-  height: 120px;          /* 🔑 mucho más baja */
+  height: 120px;        /* 🔑 ALTURA REAL EN MÓVIL */
   object-fit: cover;
   border-radius: 12px;
-  opacity: 0.6;           /* 🔑 baja protagonismo */
+  opacity: 0.55;
 }
 
-/* Desktop */
+/* DESKTOP */
 @media (min-width: 768px) {
-  .image-enfoque img {
-    height: 180px;
-  }
-}
 
-/* Desktop */
-@media (min-width: 768px) {
-  .image-enfoque img {
-    height: 260px;
+  .hero {
+    grid-template-columns: 1fr 1fr;
+    align-items: center;
   }
-}
+
+  .hero-text h1 {
+    font-size: 2.5rem;
+  }
 
   .image-pause img {
     height: 360px;
+  }
+
+  .image-enfoque img {
+    height: 180px;     /* 🔑 ALTURA CONTROLADA EN DESKTOP */
   }
 }
