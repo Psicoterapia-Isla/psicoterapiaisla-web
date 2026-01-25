@@ -76,3 +76,17 @@ h1, h2 {
   border-radius: 12px;
   object-fit: cover;
 }
+@media (max-width: 768px) {
+  .hero {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+
+  .hero-image {
+    order: -1;
+  }
+
+  .hero-text h1 {
+    font-size: 2rem;
+  }
+}
