@@ -66,7 +66,7 @@ nav a {
   border-radius: 12px;
 }
 
-/* SECCIÓN TEXTO */
+/* SECCIONES DE TEXTO */
 section {
   padding: 3rem 2rem;
 }
@@ -85,16 +85,18 @@ section li {
   margin-bottom: 0.5rem;
 }
 
-/* 🔹 IMAGEN DE PAUSA (ESTA ES LA CLAVE) */
+/* 🔹 IMAGEN DE PAUSA (CORREGIDA) */
 .image-pause {
-  width: 100%;
+  padding: 0;              /* 🔑 anula el padding de section */
   margin: 3rem 0;
+  width: 100%;
   overflow: hidden;
 }
 
 .image-pause img {
+  display: block;
   width: 100%;
-  height: 240px;
+  height: 220px;
   object-fit: cover;
   border-radius: 12px;
 }
@@ -111,6 +113,6 @@ section li {
   }
 
   .image-pause img {
-    height: 380px;
+    height: 360px;
   }
 }
