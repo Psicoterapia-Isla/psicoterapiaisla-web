@@ -1,28 +1,28 @@
-// ⚠️ RELLENA CON TUS DATOS
-const SUPABASE_URL = "https://TU-PROYECTO.supabase.co";
-const SUPABASE_KEY = "TU_PUBLIC_ANON_KEY";
+import { app } from "./firebase.js";
+import {
+  getAuth,
+  signInWithEmailAndPassword,
+  onAuthStateChanged,
+  signOut
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-const supabase = supabaseJs.createClient(
-  SUPABASE_URL,
-  SUPABASE_KEY
-);
+export const auth = getAuth(app);
 
-const form = document.getElementById("login-form");
+// LOGIN
+export async function login(email, password) {
+  return signInWithEmailAndPassword(auth, email, password);
+}
 
-form.addEventListener("submit", async (e) => {
-  e.preventDefault();
+// LOGOUT
+export async function logout() {
+  return signOut(auth);
+}
 
-  const email = document.getElementById("email").value;
-  const password = document.getElementById("password").value;
-
-  const { error } = await supabase.auth.signInWithPassword({
-    email,
-    password
+// PROTEGER PÁGINAS
+export function requireAuth() {
+  onAuthStateChanged(auth, (user) => {
+    if (!user) {
+      window.location.href = "/app/login.html";
+    }
   });
-
-  if (error) {
-    alert("Acceso incorrecto");
-  } else {
-    window.location.href = "/app/index.html";
-  }
-});
+}
