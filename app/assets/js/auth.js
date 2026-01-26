@@ -1,28 +1,25 @@
-import { app } from "./firebase.js";
-import {
-  getAuth,
-  signInWithEmailAndPassword,
-  onAuthStateChanged,
-  signOut
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { 
+  getAuth, 
+  onAuthStateChanged 
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-export const auth = getAuth(app);
+const firebaseConfig = {
+  apiKey: "TU_API_KEY",
+  authDomain: "psicoterapia-isla-app.firebaseapp.com",
+  projectId: "psicoterapia-isla-app",
+  storageBucket: "psicoterapia-isla-app.appspot.com",
+  messagingSenderId: "824485435208",
+  appId: "1:824485435208:web:..."
+};
 
-// LOGIN
-export async function login(email, password) {
-  return signInWithEmailAndPassword(auth, email, password);
-}
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
 
-// LOGOUT
-export async function logout() {
-  return signOut(auth);
-}
-
-// PROTEGER PÁGINAS
 export function requireAuth() {
   onAuthStateChanged(auth, (user) => {
     if (!user) {
-      window.location.href = "/app/login.html";
+      window.location.href = "/login.html";
     }
   });
 }
