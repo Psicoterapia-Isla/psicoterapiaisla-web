@@ -192,3 +192,46 @@ footer {
   width: 100% !important;
   border: none !important;
 }
+/* =========================
+   HEADER & NAVEGACIÓN
+   ========================= */
+
+header {
+  padding: 1.5rem 2rem;
+}
+
+nav {
+  display: flex;
+  flex-wrap: wrap;                 /* 🔑 permite que el menú baje de línea */
+  gap: 1.2rem;
+  row-gap: 0.5rem;
+  align-items: center;
+}
+
+/* Enlaces del menú */
+nav a {
+  text-decoration: none;
+  color: #6f7f79;
+  font-size: 0.95rem;
+  white-space: nowrap;             /* evita cortes raros en "Quiénes somos" */
+}
+
+/* Hover sutil */
+nav a:hover {
+  color: #2f6f64;
+}
+
+/* =========================
+   AJUSTES MÓVIL
+   ========================= */
+
+@media (max-width: 640px) {
+  nav {
+    justify-content: center;        /* centra el menú en móvil */
+    font-size: 0.9rem;
+  }
+
+  nav a {
+    padding: 0.2rem 0;
+  }
+}
