@@ -4,8 +4,6 @@
   <meta charset="UTF-8">
   <title>Acceso pacientes | Psicoterapia Isla</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-  <!-- CSS APP -->
   <link rel="stylesheet" href="assets/css/app.css">
 </head>
 
@@ -15,9 +13,7 @@
     <div class="login-box">
 
       <h1>Espacio terapéutico</h1>
-      <p class="login-subtitle">
-        Acceso privado para pacientes
-      </p>
+      <p class="login-subtitle">Acceso privado para pacientes</p>
 
       <form id="login-form">
         <label>
@@ -42,31 +38,26 @@
     </div>
   </main>
 
-  <!-- JS de autenticación -->
-  <script src="assets/js/auth.js"></script>
+  <!-- SOLO ESTE SCRIPT -->
+  <script type="module">
+    import { login } from "./assets/js/auth.js";
+
+    const form = document.getElementById("login-form");
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("password").value;
+
+      try {
+        await login(email, password);
+        window.location.href = "index.html";
+      } catch (error) {
+        alert("Credenciales incorrectas");
+      }
+    });
+  </script>
 
 </body>
 </html>
-<script type="module">
-  import { login } from "./assets/js/auth.js";
-
-  const form = document.getElementById("login-form");
-
-  form.addEventListener("submit", async (e) => {
-    e.preventDefault();
-
-    const email = document.getElementById("email").value;
-    const password = document.getElementById("password").value;
-
-    try {
-      await login(email, password);
-      window.location.href = "index.html";
-    } catch (error) {
-      alert("Credenciales incorrectas");
-    }
-  });
-</script>
-<script type="module">
-  import { requireAuth } from "./assets/js/auth.js";
-  requireAuth();
-</script>
