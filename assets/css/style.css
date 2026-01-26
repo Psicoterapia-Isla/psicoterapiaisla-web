@@ -315,3 +315,26 @@ nav a:hover {
     height: 240px;
   }
 }
+/* ===== FIX HERO DESKTOP ===== */
+
+.hero {
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+/* Asegura que texto e imagen no se separen al hacer zoom */
+.hero-text,
+.hero-image {
+  width: 100%;
+}
+
+/* Imagen bien contenida */
+.hero-image {
+  display: flex;
+  justify-content: center;
+}
+
+.hero-image img {
+  width: 100%;
+  max-width: 420px;
+}
