@@ -259,3 +259,40 @@ nav a:hover {
     align-items: center;
   }
 }
+/* =========================
+   MEJORA VISUAL DESKTOP
+   ========================= */
+
+@media (min-width: 1024px) {
+
+  header {
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  nav {
+    justify-content: flex-start;
+  }
+
+  .hero {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 5rem 2rem;
+    gap: 4rem;
+  }
+
+  .content,
+  .closing {
+    max-width: 900px;
+    margin: 0 auto;
+  }
+
+  .hero-text h1 {
+    font-size: 3rem;
+    line-height: 1.2;
+  }
+
+  .hero-text p {
+    font-size: 1.05rem;
+  }
+}
