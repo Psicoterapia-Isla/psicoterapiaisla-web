@@ -235,3 +235,27 @@ nav a:hover {
     padding: 0.2rem 0;
   }
 }
+/* ===== CONTENEDOR GENERAL ===== */
+
+.section {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 80px 32px;
+}
+
+/* Texto */
+.section p,
+.section li {
+  max-width: 680px;
+  line-height: 1.7;
+}
+
+/* Bloques a dos columnas en desktop */
+@media (min-width: 1024px) {
+  .two-columns {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 64px;
+    align-items: center;
+  }
+}
