@@ -1,32 +1,92 @@
-<nav class="app-menu">
-  <a href="../index.html">Inicio</a>
-  <a href="../diario.html">Diario</a>
-  <a href="../ejercicio.html">Ejercicios</a>
-  <a href="../login.html">Salir</a>
-</nav>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Registro emocional | Psicoterapia Isla</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="../assets/css/app.css">
+</head>
 
-<h1>Registro emocional</h1>
+<body class="app-body">
 
-<p>
-Este ejercicio te ayuda a poner palabras a lo que sientes,
-sin juzgarte ni intentar cambiar nada.
-Registrar es observar.
-</p>
+  <nav class="app-menu">
+    <a href="../index.html">Inicio</a>
+    <a href="../diario.html">Diario</a>
+    <a href="../ejercicio.html">Ejercicios</a>
+    <a href="../login.html">Salir</a>
+  </nav>
 
-<label>¿Qué emoción o emociones están más presentes hoy?</label>
-<textarea></textarea>
+  <main class="app-container">
 
-<label>¿Dónde las notas en el cuerpo?</label>
-<textarea></textarea>
+    <header>
+      <h1>Registro emocional</h1>
+      <p>
+        Este ejercicio te invita a poner palabras a tu experiencia emocional
+        tal como es ahora. No se trata de analizar ni de cambiar nada.
+        Registrar es observar con respeto.
+      </p>
+    </header>
 
-<label>¿Qué estaba ocurriendo justo antes de que aparecieran?</label>
-<textarea></textarea>
+    <!-- BLOQUE 1 -->
+    <section>
+      <h2>1. Emociones presentes</h2>
 
-<label>¿Qué necesitarías ahora mismo?</label>
-<textarea></textarea>
+      <label for="emociones-presentes">
+        ¿Qué emoción o emociones están más presentes en este momento?
+      </label>
+      <textarea
+        id="emociones-presentes"
+        placeholder="Puedes usar palabras, sensaciones o incluso decir “no lo sé”.">
+      </textarea>
+    </section>
 
-<button>Guardar</button>
-<p class="legal-note">
-Este ejercicio no sustituye a la terapia ni a la atención de urgencias.
-Si te sientes en riesgo, contacta con servicios de emergencia.
-</p>
+    <!-- BLOQUE 2 -->
+    <section>
+      <h2>2. Registro corporal</h2>
+
+      <label for="registro-corporal">
+        ¿Dónde notas estas emociones en el cuerpo, si es que las notas?
+      </label>
+      <textarea
+        id="registro-corporal"
+        placeholder="No hace falta que sea claro ni preciso. Cualquier referencia es válida.">
+      </textarea>
+    </section>
+
+    <!-- BLOQUE 3 -->
+    <section>
+      <h2>3. Contexto</h2>
+
+      <label for="contexto-emocional">
+        ¿Qué estaba ocurriendo justo antes de que aparecieran estas emociones?
+      </label>
+      <textarea
+        id="contexto-emocional"
+        placeholder="Puede ser algo externo, un pensamiento, una interacción o nada concreto.">
+      </textarea>
+    </section>
+
+    <!-- BLOQUE 4 -->
+    <section>
+      <h2>4. Necesidad actual</h2>
+
+      <label for="necesidad-actual">
+        Si estas emociones pudieran pedir algo ahora mismo, ¿qué necesitarían?
+      </label>
+      <textarea
+        id="necesidad-actual"
+        placeholder="No es un compromiso, solo una escucha.">
+      </textarea>
+    </section>
+
+    <button type="button">Guardar registro</button>
+
+    <p class="legal-note">
+      Este ejercicio no sustituye la terapia ni es un canal de urgencias.
+      Si te sientes en riesgo, contacta con el 112 o con servicios de emergencia.
+    </p>
+
+  </main>
+
+</body>
+</html>
