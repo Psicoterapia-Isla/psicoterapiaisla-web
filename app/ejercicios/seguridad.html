@@ -18,23 +18,29 @@
 
   <main class="app-container">
 
-    <h1>Sentirme a salvo</h1>
-
-    <p>
-      Este ejercicio está pensado para ayudarte a identificar y construir
-      pequeñas señales de seguridad. No es necesario que te sientas bien.
-      Puedes parar en cualquier momento.
-    </p>
+    <header>
+      <h1>Sentirme a salvo</h1>
+      <p>
+        Este ejercicio está pensado para ayudarte a identificar señales de
+        seguridad en el presente. No es necesario que te relajes ni que te
+        sientas bien. Responde solo aquello que te resulte posible ahora.
+      </p>
+    </header>
 
     <!-- BLOQUE 1 -->
     <section>
       <h2>1. Seguridad externa</h2>
       <p>
-        Observa tu entorno. No busques calma, solo señales de que ahora mismo
-        no estás en peligro.
+        Observa el entorno que te rodea. No busques calma, solo señales
+        objetivas de que ahora mismo no hay peligro.
       </p>
+
+      <label for="seguridad-externa">
+        ¿Qué ves, oyes o notas a tu alrededor que indique que este momento es seguro?
+      </label>
       <textarea
-        placeholder="¿Dónde estás ahora? ¿Qué ves u oyes que te indique que este momento es seguro?">
+        id="seguridad-externa"
+        placeholder="Por ejemplo: el lugar en el que estás, sonidos neutros, objetos estables…">
       </textarea>
     </section>
 
@@ -44,8 +50,13 @@
       <p>
         El cuerpo suele registrar la seguridad antes que la mente.
       </p>
+
+      <label for="seguridad-corporal">
+        ¿Hay alguna parte de tu cuerpo que esté un poco menos tensa o más apoyada?
+      </label>
       <textarea
-        placeholder="¿Hay alguna parte de tu cuerpo que esté un poco menos tensa? ¿Notas algún punto de apoyo?">
+        id="seguridad-corporal"
+        placeholder="No hace falta que sea todo el cuerpo. Puede ser algo muy pequeño.">
       </textarea>
     </section>
 
@@ -53,10 +64,15 @@
     <section>
       <h2>3. Seguridad relacional</h2>
       <p>
-        A veces la seguridad viene de una persona, un animal o un recuerdo.
+        A veces la sensación de seguridad viene de un vínculo, presente o recordado.
       </p>
+
+      <label for="seguridad-relacional">
+        ¿Hay alguna persona, animal, recuerdo o presencia que te haga sentir mínimamente protegido/a?
+      </label>
       <textarea
-        placeholder="¿Hay alguien o algo que te haga sentir mínimamente protegido/a? ¿Qué tiene de especial?">
+        id="seguridad-relacional"
+        placeholder="Puedes describirlo o simplemente nombrarlo.">
       </textarea>
     </section>
 
@@ -64,10 +80,15 @@
     <section>
       <h2>4. Recurso personal</h2>
       <p>
-        Piensa en algo pequeño y realista que puedas hacer hoy para cuidarte.
+        Pensamos ahora en algo concreto y realista que pueda ayudarte hoy.
       </p>
+
+      <label for="recurso-personal">
+        ¿Qué acción pequeña podría aumentar un poco tu sensación de seguridad hoy?
+      </label>
       <textarea
-        placeholder="¿Qué acción concreta podría aumentar un poco tu sensación de seguridad hoy?">
+        id="recurso-personal"
+        placeholder="Algo posible, no perfecto. Incluso algo muy breve.">
       </textarea>
     </section>
 
@@ -75,17 +96,18 @@
     <section>
       <h2>Material opcional</h2>
       <p>
-        Puedes subir una imagen, foto o documento que represente seguridad
-        para ti.
+        Si lo deseas, puedes subir una imagen, foto o documento que represente
+        seguridad para ti.
       </p>
-      <input type="file">
+
+      <input type="file" id="archivo-seguridad">
     </section>
 
-    <button>Guardar ejercicio</button>
+    <button type="button">Guardar ejercicio</button>
 
     <p class="legal-note">
       Este ejercicio no sustituye la terapia ni es un canal de urgencias.
-      Si te sientes en riesgo, contacta con el 112.
+      Si te sientes en riesgo, contacta con el 112 o con servicios de emergencia.
     </p>
 
   </main>
