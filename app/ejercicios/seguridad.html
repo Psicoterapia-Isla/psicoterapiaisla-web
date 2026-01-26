@@ -1,32 +1,94 @@
-<nav class="app-menu">
-  <a href="../index.html">Inicio</a>
-  <a href="../diario.html">Diario</a>
-  <a href="../ejercicio.html">Ejercicios</a>
-  <a href="../login.html">Salir</a>
-</nav>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Sentirme a salvo | Psicoterapia Isla</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="../assets/css/app.css">
+</head>
 
-<h1>Sentirme a salvo</h1>
+<body class="app-body">
 
-<p>
-Este ejercicio está pensado para ayudarte a identificar qué te genera
-sensación de seguridad. No busca forzar recuerdos ni emociones.
-Responde solo aquello que te resulte posible ahora.
-</p>
+  <nav class="app-menu">
+    <a href="../index.html">Inicio</a>
+    <a href="../diario.html">Diario</a>
+    <a href="../ejercicio.html">Ejercicios</a>
+    <a href="../login.html">Salir</a>
+  </nav>
 
-<label>¿En qué momentos o lugares te sientes más a salvo?</label>
-<textarea></textarea>
+  <main class="app-container">
 
-<label>¿Hay personas, animales u objetos que te aporten calma?</label>
-<textarea></textarea>
+    <h1>Sentirme a salvo</h1>
 
-<label>¿Qué notas en tu cuerpo cuando te sientes segura?</label>
-<textarea></textarea>
+    <p>
+      Este ejercicio está pensado para ayudarte a identificar y construir
+      pequeñas señales de seguridad. No es necesario que te sientas bien.
+      Puedes parar en cualquier momento.
+    </p>
 
-<label>Si quieres, puedes subir una imagen que represente seguridad para ti:</label>
-<input type="file">
+    <!-- BLOQUE 1 -->
+    <section>
+      <h2>1. Seguridad externa</h2>
+      <p>
+        Observa tu entorno. No busques calma, solo señales de que ahora mismo
+        no estás en peligro.
+      </p>
+      <textarea
+        placeholder="¿Dónde estás ahora? ¿Qué ves u oyes que te indique que este momento es seguro?">
+      </textarea>
+    </section>
 
-<button>Guardar</button>
-<p class="legal-note">
-Este ejercicio no sustituye a la terapia ni a la atención de urgencias.
-Si te sientes en riesgo, contacta con servicios de emergencia.
-</p>
+    <!-- BLOQUE 2 -->
+    <section>
+      <h2>2. Seguridad corporal</h2>
+      <p>
+        El cuerpo suele registrar la seguridad antes que la mente.
+      </p>
+      <textarea
+        placeholder="¿Hay alguna parte de tu cuerpo que esté un poco menos tensa? ¿Notas algún punto de apoyo?">
+      </textarea>
+    </section>
+
+    <!-- BLOQUE 3 -->
+    <section>
+      <h2>3. Seguridad relacional</h2>
+      <p>
+        A veces la seguridad viene de una persona, un animal o un recuerdo.
+      </p>
+      <textarea
+        placeholder="¿Hay alguien o algo que te haga sentir mínimamente protegido/a? ¿Qué tiene de especial?">
+      </textarea>
+    </section>
+
+    <!-- BLOQUE 4 -->
+    <section>
+      <h2>4. Recurso personal</h2>
+      <p>
+        Piensa en algo pequeño y realista que puedas hacer hoy para cuidarte.
+      </p>
+      <textarea
+        placeholder="¿Qué acción concreta podría aumentar un poco tu sensación de seguridad hoy?">
+      </textarea>
+    </section>
+
+    <!-- ARCHIVO OPCIONAL -->
+    <section>
+      <h2>Material opcional</h2>
+      <p>
+        Puedes subir una imagen, foto o documento que represente seguridad
+        para ti.
+      </p>
+      <input type="file">
+    </section>
+
+    <button>Guardar ejercicio</button>
+
+    <p class="legal-note">
+      Este ejercicio no sustituye la terapia ni es un canal de urgencias.
+      Si te sientes en riesgo, contacta con el 112.
+    </p>
+
+  </main>
+
+</body>
+</html>
