@@ -1,20 +1,26 @@
-/* RESET */
+/* =========================
+   RESET GLOBAL
+   ========================= */
 * {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
 }
 
-/* BASE */
+/* =========================
+   BASE APP
+   ========================= */
 body.app-body {
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
                Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", sans-serif;
-  background-color: #f7f6f2;
+  background-color: #f4f6f5;
   color: #1f2f2a;
   min-height: 100vh;
 }
 
-/* LOGIN */
+/* =========================
+   LOGIN
+   ========================= */
 .login-container {
   min-height: 100vh;
   display: flex;
@@ -28,8 +34,8 @@ body.app-body {
   max-width: 420px;
   background: #ffffff;
   padding: 2.5rem;
-  border-radius: 12px;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.05);
+  border-radius: 14px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.06);
 }
 
 .login-box h1 {
@@ -53,17 +59,22 @@ form label {
 form input {
   width: 100%;
   margin-top: 0.4rem;
-  padding: 0.7rem;
-  border-radius: 6px;
+  padding: 0.7rem 0.8rem;
+  border-radius: 8px;
   border: 1px solid #dcdcdc;
   font-size: 0.95rem;
 }
 
+form input:focus {
+  outline: none;
+  border-color: #2f6f64;
+}
+
 form button {
   width: 100%;
-  margin-top: 1rem;
-  padding: 0.8rem;
-  border-radius: 6px;
+  margin-top: 1.2rem;
+  padding: 0.85rem;
+  border-radius: 8px;
   border: none;
   background-color: #2f6f64;
   color: white;
@@ -79,21 +90,12 @@ form button:hover {
   margin-top: 2rem;
   font-size: 0.75rem;
   color: #6f7f79;
-  line-height: 1.4;
-}
-/* Reset básico */
-* {
-  box-sizing: border-box;
+  line-height: 1.5;
 }
 
-body {
-  margin: 0;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-  background: #f4f6f5;
-  color: #2e2e2e;
-}
-
-/* Barra superior */
+/* =========================
+   BARRA DE NAVEGACIÓN APP
+   ========================= */
 .app-menu {
   display: flex;
   gap: 1.5rem;
@@ -106,59 +108,131 @@ body {
   text-decoration: none;
   color: #2e2e2e;
   font-weight: 500;
+  font-size: 0.95rem;
 }
 
 .app-menu a:hover {
-  text-decoration: underline;
+  color: #2f6f64;
 }
 
-/* Contenedor principal */
+/* =========================
+   CONTENEDOR PRINCIPAL
+   ========================= */
 .app-container {
-  max-width: 700px;
+  max-width: 760px;
   margin: 3rem auto;
-  background: #ffffff;
   padding: 2.5rem;
-  border-radius: 12px;
+}
+
+/* Tarjeta base */
+.card {
+  background: #ffffff;
+  padding: 2.2rem;
+  border-radius: 14px;
   box-shadow: 0 8px 30px rgba(0,0,0,0.05);
 }
 
-/* Títulos */
+/* =========================
+   TIPOGRAFÍA
+   ========================= */
 h1 {
-  margin-top: 0;
   font-size: 1.8rem;
+  margin-bottom: 0.8rem;
+}
+
+h2 {
+  font-size: 1.3rem;
+  margin-bottom: 0.6rem;
 }
 
 p {
   line-height: 1.6;
+  color: #3f4f4a;
 }
 
-/* Inputs */
-textarea,
-input[type="file"] {
+p + p {
+  margin-top: 0.6rem;
+}
+
+/* =========================
+   ENLACES INTERNOS
+   ========================= */
+a {
+  color: #2f6f64;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+/* =========================
+   DIARIO Y EJERCICIOS
+   ========================= */
+textarea {
   width: 100%;
+  min-height: 180px;
+  margin-top: 1rem;
+  padding: 1rem;
+  border-radius: 10px;
+  border: 1px solid #ccc;
+  font-family: inherit;
+  font-size: 0.95rem;
+}
+
+textarea:focus {
+  outline: none;
+  border-color: #2f6f64;
+}
+
+input[type="file"] {
   margin-top: 1rem;
 }
 
-textarea {
-  min-height: 160px;
-  padding: 1rem;
-  border-radius: 8px;
-  border: 1px solid #ccc;
-  font-family: inherit;
-}
-
-/* Botones */
+/* =========================
+   BOTONES
+   ========================= */
 button {
   margin-top: 1.5rem;
-  padding: 0.7rem 1.4rem;
+  padding: 0.75rem 1.6rem;
   border: none;
-  border-radius: 8px;
+  border-radius: 10px;
   background: #5b7c7a;
   color: white;
-  font-size: 1rem;
+  font-size: 0.95rem;
   cursor: pointer;
 }
 
 button:hover {
   background: #496664;
+}
+
+/* =========================
+   LISTA DE EJERCICIOS
+   ========================= */
+.exercise-list {
+  margin-top: 1.2rem;
+  padding-left: 1.2rem;
+}
+
+.exercise-list li {
+  margin-bottom: 0.6rem;
+}
+
+/* =========================
+   RESPONSIVE
+   ========================= */
+@media (max-width: 640px) {
+  .app-container {
+    margin: 1.5rem 1rem;
+    padding: 0;
+  }
+
+  .card {
+    padding: 1.8rem;
+  }
+
+  .app-menu {
+    justify-content: center;
+    flex-wrap: wrap;
+  }
 }
