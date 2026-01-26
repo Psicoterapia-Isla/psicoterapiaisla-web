@@ -1,261 +1,107 @@
-/* RESET */
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Psicoterapia Isla</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
 
-/* BASE */
-body {
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-               Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
-  background-color: #f7f6f2;
-  color: #1f2f2a;
-  line-height: 1.6;
-}
+<body>
 
-/* NAV */
-header {
-  padding: 1.5rem 2rem;
-}
+<header>
+  <nav>
+    <a href="#inicio">Inicio</a>
+    <a href="#enfoque">Enfoque</a>
+    <a href="#servicios">Servicios</a>
+    <a href="#blog">Blog</a>
+    <a href="#quienes-somos">Quiénes somos</a>
+    <a href="#contacto">Contacto</a>
+    <a href="#reserva">Reserva</a>
+  </nav>
+</header>
 
-nav {
-  display: flex;
-  gap: 1.5rem;
-}
+<!-- HERO -->
+<section class="hero" id="inicio">
+  <div class="hero-text">
+    <h1>Psicoterapia especializada en trauma, apego y violencia sexual</h1>
+    <p>
+      Un espacio seguro, profesional y respetuoso para acompañarte en tu proceso
+      terapéutico, desde el cuidado, la escucha y el respeto a tu historia.
+    </p>
+    <a href="#reserva" class="cta">Reservar sesión</a>
+  </div>
 
-nav a {
-  text-decoration: none;
-  color: #6f7f79;
-  font-size: 0.95rem;
-}
+  <div class="hero-image">
+    <img src="img/consulta.jpg" alt="Consulta terapéutica">
+  </div>
+</section>
 
-/* HERO */
-.hero {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 2rem;
-  padding: 3rem 2rem;
-}
+<!-- PARA QUIÉN ES -->
+<section class="section">
+  <h2>Este espacio es para ti si:</h2>
+  <ul>
+    <li>Te cuesta poner límites sin sentir culpa.</li>
+    <li>Has vivido experiencias de abuso, violencia o relaciones que dejaron huella.</li>
+    <li>Convives con ansiedad, hipervigilancia o bloqueo emocional.</li>
+    <li>Sientes que has normalizado el malestar durante demasiado tiempo.</li>
+    <li>Buscas un acompañamiento terapéutico serio, humano y sin juicios.</li>
+  </ul>
+</section>
 
-.hero-text h1 {
-  font-size: 2rem;
-  font-weight: 600;
-  margin-bottom: 1rem;
-}
+<!-- IMAGEN PAUSA -->
+<section class="image-pause">
+  <img src="img/pausa.jpg" alt="">
+</section>
 
-.hero-text p {
-  max-width: 520px;
-  margin-bottom: 1.5rem;
-}
+<!-- ENFOQUE -->
+<section class="section" id="enfoque">
+  <h2>Un enfoque centrado en el trauma y el apego</h2>
+  <p>
+    El trauma no siempre viene de un único hecho. A veces se construye en el silencio,
+    en la repetición, en lo que no se pudo decir o en lo que se sostuvo en soledad.
+  </p>
+  <p>
+    En Psicoterapia Isla trabajamos desde un enfoque integrador, con perspectiva de género
+    y basado en la evidencia, respetando tus tiempos y tus límites.
+  </p>
+  <p>
+    Aquí no tienes que demostrar fortaleza. Puedes llegar cansada, confundida o sin palabras.
+    El proceso empieza exactamente ahí.
+  </p>
+</section>
 
-.cta {
-  display: inline-block;
-  background-color: #2f6f64;
-  color: #ffffff;
-  padding: 0.75rem 1.5rem;
-  border-radius: 6px;
-  text-decoration: none;
-  font-size: 0.9rem;
-}
+<!-- IMAGEN ENFOQUE -->
+<section class="image-enfoque">
+  <img src="img/enfoque.jpg" alt="">
+</section>
 
-/* HERO IMAGE */
-.hero-image img {
-  width: 100%;
-  max-width: 420px;
-  border-radius: 12px;
-}
+<!-- QUÉ SE TRABAJA -->
+<section class="section">
+  <h2>¿Qué puedes trabajar en terapia?</h2>
+  <ul>
+    <li>Procesos de trauma complejo y violencia sexual.</li>
+    <li>Dificultades en los vínculos y estilos de apego.</li>
+    <li>Ansiedad, miedo persistente y sensación de amenaza.</li>
+    <li>Desconexión corporal o bloqueo emocional.</li>
+    <li>Autoexigencia, culpa y dificultad para priorizarte.</li>
+    <li>Reconstrucción de la seguridad y la autoestima.</li>
+  </ul>
+</section>
 
-/* CONTENT */
-.content {
-  padding: 3rem 2rem;
-  max-width: 900px;
-}
+<!-- CIERRE -->
+<section class="closing" id="reserva">
+  <h2>No tienes que poder con todo sola</h2>
+  <p>
+    Pedir ayuda no es rendirse. Es una forma de cuidado.
+    Si sientes que este espacio puede ser para ti, estaré aquí para acompañarte.
+  </p>
+  <a href="#" class="cta">Reservar sesión</a>
+</section>
 
-.content h2 {
-  font-size: 1.25rem;
-  margin-bottom: 1rem;
-}
+<footer>
+  <p>© Psicoterapia Isla · Atención psicológica especializada</p>
+</footer>
 
-.content p {
-  margin-bottom: 1rem;
-  max-width: 720px;
-}
-
-.content ul {
-  list-style: disc;
-  padding-left: 1.2rem;
-}
-
-.content li {
-  margin-bottom: 0.6rem;
-}
-
-/* IMAGE PAUSE */
-.image-pause {
-  padding: 0;
-  margin: 3rem 0;
-  width: 100%;
-  overflow: hidden;
-}
-
-.image-pause img {
-  display: block;
-  width: 100%;
-  height: 220px;
-  object-fit: cover;
-  border-radius: 12px;
-}
-
-/* IMAGE ENFOQUE */
-.image-enfoque {
-  padding: 0;
-  margin: 2rem 0 3rem 0;
-  width: 100%;
-  display: flex;
-  justify-content: center;
-}
-
-.image-enfoque img {
-  width: 100%;
-  max-width: 900px;
-  height: 120px;
-  object-fit: cover;
-  border-radius: 12px;
-  opacity: 0.55;
-}
-
-/* CLOSING */
-.closing {
-  padding: 3rem 2rem 4rem;
-  max-width: 900px;
-}
-
-.closing h2 {
-  font-size: 1.4rem;
-  margin-bottom: 1rem;
-}
-
-.closing p {
-  max-width: 640px;
-  margin-bottom: 1.5rem;
-}
-
-/* FOOTER */
-footer {
-  padding: 2rem;
-  font-size: 0.8rem;
-  color: #6f7f79;
-}
-
-/* DESKTOP */
-@media (min-width: 768px) {
-  .hero {
-    grid-template-columns: 1fr 1fr;
-    align-items: center;
-  }
-
-  .hero-text h1 {
-    font-size: 2.5rem;
-  }
-
-  .image-pause img {
-    height: 360px;
-  }
-
-  .image-enfoque img {
-    height: 180px;
-  }
-}
-/* BLOG */
-.blog-hero {
-  padding: 3rem 2rem 2rem 2rem;
-  max-width: 900px;
-}
-
-.blog-hero h1 {
-  font-size: 1.8rem;
-  margin-bottom: 1rem;
-}
-
-.blog-hero p {
-  max-width: 600px;
-  color: #5f6f69;
-}
-
-.blog-feed {
-  padding: 1rem 2rem 4rem 2rem;
-}
-
-/* Ajuste fino del widget para que no parezca externo */
-.blog-feed iframe {
-  width: 100% !important;
-  border: none !important;
-}
-/* =========================
-   HEADER & NAVEGACIÓN
-   ========================= */
-
-header {
-  padding: 1.5rem 2rem;
-}
-
-nav {
-  display: flex;
-  flex-wrap: wrap;                 /* 🔑 permite que el menú baje de línea */
-  gap: 1.2rem;
-  row-gap: 0.5rem;
-  align-items: center;
-}
-
-/* Enlaces del menú */
-nav a {
-  text-decoration: none;
-  color: #6f7f79;
-  font-size: 0.95rem;
-  white-space: nowrap;             /* evita cortes raros en "Quiénes somos" */
-}
-
-/* Hover sutil */
-nav a:hover {
-  color: #2f6f64;
-}
-
-/* =========================
-   AJUSTES MÓVIL
-   ========================= */
-
-@media (max-width: 640px) {
-  nav {
-    justify-content: center;        /* centra el menú en móvil */
-    font-size: 0.9rem;
-  }
-
-  nav a {
-    padding: 0.2rem 0;
-  }
-}
-/* ===== CONTENEDOR GENERAL ===== */
-
-.section {
-  max-width: 1100px;
-  margin: 0 auto;
-  padding: 80px 32px;
-}
-
-/* Texto */
-.section p,
-.section li {
-  max-width: 680px;
-  line-height: 1.7;
-}
-
-/* Bloques a dos columnas en desktop */
-@media (min-width: 1024px) {
-  .two-columns {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 64px;
-    align-items: center;
-  }
-}
+</body>
+</html>
