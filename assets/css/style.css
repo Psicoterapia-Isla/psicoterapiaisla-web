@@ -167,3 +167,28 @@ footer {
     height: 180px;
   }
 }
+/* BLOG */
+.blog-hero {
+  padding: 3rem 2rem 2rem 2rem;
+  max-width: 900px;
+}
+
+.blog-hero h1 {
+  font-size: 1.8rem;
+  margin-bottom: 1rem;
+}
+
+.blog-hero p {
+  max-width: 600px;
+  color: #5f6f69;
+}
+
+.blog-feed {
+  padding: 1rem 2rem 4rem 2rem;
+}
+
+/* Ajuste fino del widget para que no parezca externo */
+.blog-feed iframe {
+  width: 100% !important;
+  border: none !important;
+}
