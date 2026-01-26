@@ -81,3 +81,84 @@ form button:hover {
   color: #6f7f79;
   line-height: 1.4;
 }
+/* Reset básico */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  background: #f4f6f5;
+  color: #2e2e2e;
+}
+
+/* Barra superior */
+.app-menu {
+  display: flex;
+  gap: 1.5rem;
+  padding: 1rem 2rem;
+  background: #ffffff;
+  border-bottom: 1px solid #e2e2e2;
+}
+
+.app-menu a {
+  text-decoration: none;
+  color: #2e2e2e;
+  font-weight: 500;
+}
+
+.app-menu a:hover {
+  text-decoration: underline;
+}
+
+/* Contenedor principal */
+.app-container {
+  max-width: 700px;
+  margin: 3rem auto;
+  background: #ffffff;
+  padding: 2.5rem;
+  border-radius: 12px;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.05);
+}
+
+/* Títulos */
+h1 {
+  margin-top: 0;
+  font-size: 1.8rem;
+}
+
+p {
+  line-height: 1.6;
+}
+
+/* Inputs */
+textarea,
+input[type="file"] {
+  width: 100%;
+  margin-top: 1rem;
+}
+
+textarea {
+  min-height: 160px;
+  padding: 1rem;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  font-family: inherit;
+}
+
+/* Botones */
+button {
+  margin-top: 1.5rem;
+  padding: 0.7rem 1.4rem;
+  border: none;
+  border-radius: 8px;
+  background: #5b7c7a;
+  color: white;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #496664;
+}
