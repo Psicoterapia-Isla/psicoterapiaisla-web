@@ -1,23 +1,17 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+// Firebase Auth desde CDN (UNA sola vez)
 import {
   getAuth,
   signInWithEmailAndPassword,
-  onAuthStateChanged
+  onAuthStateChanged,
+  signOut
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-const firebaseConfig = {
-  apiKey: "AIzaSyDfxdzl39Ne4XdT9WgSlz3iSliyg-xBR84",
-  authDomain: "psicoterapia-isla-app.firebaseapp.com",
-  projectId: "psicoterapia-isla-app",
-  storageBucket: "psicoterapia-isla-app.appspot.com",
-  messagingSenderId: "824485435208",
-  appId: "1:824485435208:web:XXXXXXXX"
-};
+import { app } from "./firebase.js";
 
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
+// Auth SIEMPRE desde la misma app
+export const auth = getAuth(app);
 
-// ✅ ESTA FUNCIÓN FALTABA
+// LOGIN
 export async function login(email, password) {
   const userCredential = await signInWithEmailAndPassword(
     auth,
@@ -27,14 +21,16 @@ export async function login(email, password) {
   return userCredential.user;
 }
 
-// ✅ PROTECCIÓN DE PÁGINAS
+// PROTECCIÓN DE PÁGINAS
 export function requireAuth() {
   onAuthStateChanged(auth, (user) => {
     if (!user) {
-      window.location.href = "login.html";
+      window.location.href = "../login.html";
     }
   });
 }
-import { getAuth } from "firebase/auth";
 
-export const auth = getAuth();
+// LOGOUT (ESTO TE FALTABA)
+export function logout() {
+  return signOut(auth);
+}
