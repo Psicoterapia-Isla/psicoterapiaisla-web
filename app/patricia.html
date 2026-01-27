@@ -17,13 +17,21 @@
 
   <main class="app-container">
 
-    <h1>Vista clínica – registros</h1>
-    <p>
-      Aquí se muestran los ejercicios registrados por los pacientes.
-      Esta vista es solo de lectura.
-    </p>
+    <h1>Vista clínica</h1>
+    <p>Registros enviados por pacientes. Vista solo de lectura.</p>
 
-    <div id="entries"></div>
+    <!-- FILTRO -->
+    <label for="filtro-ejercicio"><strong>Filtrar por ejercicio:</strong></label>
+    <select id="filtro-ejercicio">
+      <option value="todos">Todos</option>
+      <option value="registro_emocional">Registro emocional</option>
+      <option value="sentirme_a_salvo">Sentirme a salvo</option>
+      <option value="autocompasion">Autocompasión</option>
+      <option value="limites">Límites</option>
+      <option value="recursos_internos">Recursos internos</option>
+    </select>
+
+    <div id="registros" style="margin-top:2rem;"></div>
 
   </main>
 
@@ -39,7 +47,10 @@
 
     requireAuth();
 
-    const container = document.getElementById("entries");
+    const contenedor = document.getElementById("registros");
+    const filtro = document.getElementById("filtro-ejercicio");
+
+    let todosLosRegistros = [];
 
     const q = query(
       collection(db, "entries"),
@@ -48,27 +59,59 @@
 
     const snapshot = await getDocs(q);
 
-    if (snapshot.empty) {
-      container.innerHTML = "<p>No hay registros todavía.</p>";
+    snapshot.forEach(doc => {
+      todosLosRegistros.push(doc.data());
+    });
+
+    function render(registros) {
+      contenedor.innerHTML = "";
+
+      if (registros.length === 0) {
+        contenedor.innerHTML = "<p>No hay registros.</p>";
+        return;
+      }
+
+      registros.forEach(r => {
+        const bloque = document.createElement("section");
+        bloque.style.border = "1px solid #ddd";
+        bloque.style.borderRadius = "8px";
+        bloque.style.padding = "1.5rem";
+        bloque.style.marginBottom = "1.5rem";
+
+        let respuestasHTML = "";
+        for (const campo in r) {
+          if (
+            ["exercise", "uid", "email", "createdAt"].includes(campo)
+          ) continue;
+
+          respuestasHTML += `
+            <p><strong>${campo.replaceAll("_"," ")}:</strong><br>${r[campo]}</p>
+          `;
+        }
+
+        bloque.innerHTML = `
+          <h2>${r.exercise}</h2>
+          <p><strong>Paciente:</strong> ${r.email || r.uid}</p>
+          <p><strong>Fecha:</strong> ${
+            r.createdAt?.toDate().toLocaleString() || "—"
+          }</p>
+          ${respuestasHTML}
+        `;
+
+        contenedor.appendChild(bloque);
+      });
     }
 
-    snapshot.forEach(doc => {
-      const data = doc.data();
+    render(todosLosRegistros);
 
-      const block = document.createElement("section");
-      block.style.marginBottom = "2rem";
-      block.style.padding = "1.5rem";
-      block.style.border = "1px solid #ddd";
-      block.style.borderRadius = "8px";
-
-      block.innerHTML = `
-        <h2>${data.exercise}</h2>
-        <p><strong>Paciente:</strong> ${data.email || data.uid}</p>
-        <p><strong>Fecha:</strong> ${data.createdAt?.toDate().toLocaleString() || "—"}</p>
-        <pre>${JSON.stringify(data.answers || data, null, 2)}</pre>
-      `;
-
-      container.appendChild(block);
+    filtro.addEventListener("change", () => {
+      if (filtro.value === "todos") {
+        render(todosLosRegistros);
+      } else {
+        render(
+          todosLosRegistros.filter(r => r.exercise === filtro.value)
+        );
+      }
     });
   </script>
 
