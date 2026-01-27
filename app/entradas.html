@@ -1,92 +1,57 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8">
-  <title>Mis entradas | Psicoterapia Isla</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="https://psicoterapiaisla.com/app/assets/css/app.css">
-</head>
+<script type="module">
+  import { db, auth } from "../assets/js/firebase.js";
+  import { requireAuth } from "../assets/js/auth.js";
+  import {
+    collection,
+    query,
+    where,
+    orderBy,
+    getDocs
+  } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-<body class="app-body">
+  requireAuth();
 
-  <nav class="app-menu">
-    <a href="/app/index.html">Inicio</a>
-    <a href="/app/ejercicio.html">Ejercicios</a>
-    <a href="/app/diario.html">Diario</a>
-    <a href="/app/login.html">Salir</a>
-  </nav>
+  const container = document.getElementById("entries-list");
 
-  <main class="app-container">
-    <h1>Mis entradas</h1>
+  async function loadEntries(user) {
+    console.log("LOAD ENTRIES USER:", user.uid);
 
-    <!-- AQUÍ SE PINTAN -->
-    <div id="entries-list"></div>
-  </main>
+    const q = query(
+      collection(db, "entries"),
+      where("uid", "==", user.uid),
+      orderBy("createdAt", "desc")
+    );
 
-  <script type="module">
-import { db, auth } from "/app/assets/js/firebase.js";
-import { requireAuth } from "/app/assets/js/auth.js";
-import {
-  collection,
-  getDocs,
-  query,
-  orderBy
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    const snapshot = await getDocs(q);
 
-requireAuth();
+    if (snapshot.empty) {
+      container.innerHTML = "<p>No hay entradas todavía.</p>";
+      return;
+    }
 
-const container = document.getElementById("entries-list");
+    container.innerHTML = "";
 
-async function loadEntries(user) {
-  const q = query(
-    collection(db, "entries"),
-    orderBy("createdAt", "desc")
-  );
+    snapshot.forEach(doc => {
+      const data = doc.data();
 
-  const snapshot = await getDocs(q);
+      const div = document.createElement("div");
+      div.className = "entry-card";
 
-  container.innerHTML = "";
+      div.innerHTML = `
+        <h3>${data.type}</h3>
+        <small>${data.createdAt?.toDate().toLocaleString()}</small>
+        <pre>${JSON.stringify(data.data, null, 2)}</pre>
+        <hr>
+      `;
 
-  if (snapshot.empty) {
-    container.innerHTML = "<p>No hay entradas todavía.</p>";
-    return;
+      container.appendChild(div);
+    });
   }
 
-  snapshot.forEach(doc => {
-    const entry = doc.data();
-
-    // 🔑 SOPORTE DOBLE FORMATO
-    const content = entry.data || entry.answers || {};
-    const type = entry.type || entry.exercise || "entrada";
-    const date = entry.createdAt?.toDate
-      ? entry.createdAt.toDate().toLocaleString()
-      : "";
-
-    const div = document.createElement("div");
-    div.className = "entry-card";
-
-    div.innerHTML = `
-      <h3>${type}</h3>
-      <small>${date}</small>
-      <pre>${JSON.stringify(content, null, 2)}</pre>
-      <hr>
-    `;
-
-    container.appendChild(div);
+  auth.onAuthStateChanged(user => {
+    console.log("AUTH STATE:", user);
+    if (user) {
+      loadEntries(user);
+    }
   });
-}
-}
-
-// Safari-safe
-auth.onAuthStateChanged(user => {
-  console.log("AUTH STATE:", user);
-  if (user) {
-    loadEntries(user);
-  } else {
-    console.log("NO USER");
-  }
-});
 </script>
-
-</body>
-</html>
