@@ -90,6 +90,22 @@
     </p>
 
   </main>
+<script type="module">
+  import { saveExercise } from "../assets/js/firebase.js";
+  import { requireAuth } from "../assets/js/auth.js";
 
+  requireAuth();
+
+  document.querySelector("button").addEventListener("click", async () => {
+    await saveExercise("limites", {
+      situaciones: document.getElementById("situaciones").value,
+      miedo: document.getElementById("miedo").value,
+      reaccion_corporal: document.getElementById("reaccion-corporal").value,
+      limite_posible: document.getElementById("limite-posible").value
+    });
+
+    alert("Ejercicio guardado");
+  });
+</script>
 </body>
 </html>
