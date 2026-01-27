@@ -1,4 +1,4 @@
-// Firebase Auth desde CDN (UNA sola vez)
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import {
   getAuth,
   signInWithEmailAndPassword,
@@ -6,31 +6,35 @@ import {
   signOut
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-import { app } from "./firebase.js";
+const firebaseConfig = {
+  apiKey: "AIzaSyDfxdzL39Ne4XdT9WgSLz3iSliyg-xBR84",
+  authDomain: "psicoterapia-isla-app.firebaseapp.com",
+  projectId: "psicoterapia-isla-app",
+  storageBucket: "psicoterapia-isla-app.appspot.com",
+  messagingSenderId: "824485435208",
+  appId: "1:824485435208:web:79d2a122d975e2b5cf857d"
+};
 
-// Auth SIEMPRE desde la misma app
+const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 
 // LOGIN
 export async function login(email, password) {
-  const userCredential = await signInWithEmailAndPassword(
-    auth,
-    email,
-    password
-  );
-  return userCredential.user;
+  const cred = await signInWithEmailAndPassword(auth, email, password);
+  return cred.user;
 }
 
 // PROTECCIÓN DE PÁGINAS
 export function requireAuth() {
   onAuthStateChanged(auth, (user) => {
     if (!user) {
-      window.location.href = "../login.html";
+      window.location.href = "/app/login.html";
     }
   });
 }
 
-// LOGOUT (ESTO TE FALTABA)
-export function logout() {
-  return signOut(auth);
+// LOGOUT
+export async function logout() {
+  await signOut(auth);
+  window.location.href = "/app/login.html";
 }
