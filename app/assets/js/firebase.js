@@ -26,3 +26,16 @@ export const app = initializeApp(firebaseConfig);
 // 🔴 TODO sale de la MISMA app
 export const auth = getAuth(app);
 export const db = getFirestore(app);
+// Guardar ejercicios / diario (USADO POR diario.html)
+export async function saveExercise(type, data) {
+  if (!auth.currentUser) {
+    throw new Error("Usuario no autenticado");
+  }
+
+  return addDoc(collection(db, "entries"), {
+    uid: auth.currentUser.uid,
+    type,              // "diario", "ejercicio", etc.
+    ...data,           // texto, respuestas, etc.
+    createdAt: serverTimestamp()
+  });
+}
