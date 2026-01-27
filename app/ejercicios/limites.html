@@ -30,59 +30,54 @@
     <!-- BLOQUE 1 -->
     <section>
       <h2>1. Situaciones difíciles</h2>
-      <p>
-        Piensa en contextos concretos, no en personas.
-      </p>
+      <p>Piensa en contextos concretos, no en personas.</p>
       <textarea
-        placeholder="¿En qué situaciones te resulta más difícil poner límites? (por ejemplo: en el trabajo, con la familia, en relaciones íntimas, con personas autoritarias…)">
+        id="situaciones"
+        placeholder="¿En qué situaciones te resulta más difícil poner límites?">
       </textarea>
     </section>
 
     <!-- BLOQUE 2 -->
     <section>
       <h2>2. Miedos asociados</h2>
-      <p>
-        Muchas dificultades con los límites tienen sentido a partir del miedo.
-      </p>
+      <p>Muchas dificultades con los límites tienen sentido a partir del miedo.</p>
       <textarea
-        placeholder="¿Qué temes que pueda ocurrir si pones un límite? (rechazo, conflicto, culpa, abandono, enfado del otro…)">
+        id="miedo"
+        placeholder="¿Qué temes que pueda ocurrir si pones un límite?">
       </textarea>
     </section>
 
     <!-- BLOQUE 3 -->
     <section>
       <h2>3. Señales corporales</h2>
-      <p>
-        El cuerpo suele detectar la invasión antes que la mente.
-      </p>
+      <p>El cuerpo suele detectar la invasión antes que la mente.</p>
       <textarea
-        placeholder="¿Qué notas en tu cuerpo cuando alguien cruza un límite? (tensión, bloqueo, cansancio, rabia, desconexión…)">
+        id="reaccion-corporal"
+        placeholder="¿Qué notas en tu cuerpo cuando alguien cruza un límite?">
       </textarea>
     </section>
 
     <!-- BLOQUE 4 -->
     <section>
       <h2>4. Límite posible</h2>
-      <p>
-        No tiene que ser un gran cambio.
-      </p>
+      <p>No tiene que ser un gran cambio.</p>
       <textarea
-        placeholder="Imagina un límite pequeño, realista y seguro para ti. ¿Cuál podría ser?">
+        id="limite-posible"
+        placeholder="Imagina un límite pequeño, realista y seguro para ti.">
       </textarea>
     </section>
 
     <!-- BLOQUE 5 -->
     <section>
       <h2>5. Autorización interna</h2>
-      <p>
-        A veces el primer límite es interno.
-      </p>
+      <p>A veces el primer límite es interno.</p>
       <textarea
-        placeholder="¿Qué te ayudaría a darte permiso para respetar ese límite, aunque no lo pongas aún?">
+        id="autorizacion-interna"
+        placeholder="¿Qué te ayudaría a darte permiso para respetar ese límite?">
       </textarea>
     </section>
 
-    <button>Guardar ejercicio</button>
+    <button id="guardar">Guardar ejercicio</button>
 
     <p class="legal-note">
       Este ejercicio no sustituye la terapia ni es un canal de urgencias.
@@ -90,22 +85,30 @@
     </p>
 
   </main>
-<script type="module">
-  import { saveExercise } from "../assets/js/firebase.js";
-  import { requireAuth } from "../assets/js/auth.js";
 
-  requireAuth();
+  <script type="module">
+    import { saveExercise } from "../assets/js/firebase.js";
+    import { requireAuth } from "../assets/js/auth.js";
 
-  document.querySelector("button").addEventListener("click", async () => {
-    await saveExercise("limites", {
-      situaciones: document.getElementById("situaciones").value,
-      miedo: document.getElementById("miedo").value,
-      reaccion_corporal: document.getElementById("reaccion-corporal").value,
-      limite_posible: document.getElementById("limite-posible").value
+    requireAuth();
+
+    document.getElementById("guardar").addEventListener("click", async () => {
+      try {
+        await saveExercise("limites", {
+          situaciones: document.getElementById("situaciones").value,
+          miedo: document.getElementById("miedo").value,
+          reaccion_corporal: document.getElementById("reaccion-corporal").value,
+          limite_posible: document.getElementById("limite-posible").value,
+          autorizacion_interna: document.getElementById("autorizacion-interna").value
+        });
+
+        alert("Ejercicio guardado");
+      } catch (error) {
+        console.error(error);
+        alert("Error al guardar el ejercicio");
+      }
     });
+  </script>
 
-    alert("Ejercicio guardado");
-  });
-</script>
 </body>
 </html>
