@@ -94,11 +94,17 @@
       });
     }
 
-    auth.onAuthStateChanged(user => {
-      if (user) {
-        loadEntries(user);
-      }
-    });
+    console.log("AUTH CURRENT USER:", auth.currentUser);
+
+auth.onAuthStateChanged(user => {
+  console.log("AUTH STATE CHANGED:", user);
+
+  if (user) {
+    loadEntries(user);
+  } else {
+    container.innerHTML = "<p>No hay sesión activa.</p>";
+  }
+});
   </script>
 
 </body>
