@@ -78,13 +78,14 @@ async function loadEntries(user) {
 }
 
 // Safari-safe
-if (auth.currentUser) {
-  loadEntries(auth.currentUser);
-} else {
-  auth.onAuthStateChanged(user => {
-    if (user) loadEntries(user);
-  });
-}
+auth.onAuthStateChanged(user => {
+  console.log("AUTH STATE:", user);
+  if (user) {
+    loadEntries(user);
+  } else {
+    console.log("NO USER");
+  }
+});
 </script>
 
 </body>
