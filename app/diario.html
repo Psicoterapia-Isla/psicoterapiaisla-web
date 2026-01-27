@@ -4,70 +4,75 @@
   <meta charset="UTF-8">
   <title>Diario terapéutico</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-  <!-- CSS (ruta corregida) -->
-  <link rel="stylesheet" href="./assets/css/app.css">
+  <link rel="stylesheet" href="assets/css/app.css">
 </head>
 
 <body class="app-body">
 
-  <nav class="app-menu">
-    <a href="index.html">Inicio</a>
-    <a href="diario.html">Diario</a>
-    <a href="ejercicio.html">Ejercicios</a>
-    <a href="login.html">Salir</a>
-  </nav>
+<!-- MENÚ DINÁMICO -->
+<nav id="app-menu" class="app-menu"></nav>
 
-  <div class="app-container">
-    <div class="card">
+<div class="app-container">
+  <div class="card">
 
-      <h1>Diario terapéutico</h1>
-      <p>Puedes escribir libremente. No hay forma correcta de hacerlo.</p>
+    <h1>Diario terapéutico</h1>
+    <p>Puedes escribir libremente. No hay forma correcta de hacerlo.</p>
 
-      <textarea id="diario-texto" placeholder="Escribe aquí..."></textarea>
-      <button id="guardar-diario">Guardar</button>
+    <textarea id="diario-texto" placeholder="Escribe aquí..."></textarea>
+    <button id="guardar-diario">Guardar</button>
 
-    </div>
   </div>
+</div>
 
-  <!-- SCRIPT (rutas corregidas) -->
-  <script type="module">
+<script type="module">
   import { requireAuth } from "./assets/js/auth.js";
+  import { loadMenu } from "./assets/js/menu.js";
   import { db, auth } from "./assets/js/firebase.js";
   import {
     collection,
     addDoc,
-    serverTimestamp
+    serverTimestamp,
+    getDoc,
+    doc
   } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-  await requireAuth();
+  requireAuth();
 
-  const button = document.getElementById("guardar-diario");
-  const textarea = document.getElementById("diario-texto");
+  (async () => {
+    // 1️⃣ Obtener rol y cargar menú
+    const userDoc = await getDoc(doc(db, "users", auth.currentUser.uid));
+    const role = userDoc.data()?.role || "patient";
+    loadMenu(role);
 
-  button.addEventListener("click", async () => {
-    const texto = textarea.value.trim();
+    // 2️⃣ Referencias DOM
+    const button = document.getElementById("guardar-diario");
+    const textarea = document.getElementById("diario-texto");
 
-    if (!texto) {
-      alert("El diario está vacío");
-      return;
-    }
+    // 3️⃣ Guardar diario
+    button.addEventListener("click", async () => {
+      const texto = textarea.value.trim();
 
-    try {
-      await addDoc(collection(db, "entries"), {
-        uid: auth.currentUser.uid,
-        type: "diario",
-        texto,
-        createdAt: serverTimestamp()
-      });
+      if (!texto) {
+        alert("El diario está vacío");
+        return;
+      }
 
-      alert("Diario guardado");
-      textarea.value = "";
-    } catch (e) {
-      console.error(e);
-      alert("Error al guardar el diario");
-    }
-  });
+      try {
+        await addDoc(collection(db, "entries"), {
+          uid: auth.currentUser.uid,
+          tipo: "diario",          // 🔴 CLAVE: coherente con la vista terapeuta
+          texto,
+          createdAt: serverTimestamp()
+        });
+
+        alert("Diario guardado");
+        textarea.value = "";
+      } catch (e) {
+        console.error(e);
+        alert("Error al guardar el diario");
+      }
+    });
+  })();
 </script>
 
 </body>
