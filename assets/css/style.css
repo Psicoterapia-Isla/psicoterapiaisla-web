@@ -190,3 +190,13 @@ footer {
     height: 180px;
   }
 }
+/* TIPOGRAFÍA DE MARCA */
+body {
+  font-family: "Inter", system-ui, -apple-system, sans-serif;
+}
+
+h1, h2, h3 {
+  font-family: "Playfair Display", Georgia, serif;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
