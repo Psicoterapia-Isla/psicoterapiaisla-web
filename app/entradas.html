@@ -77,11 +77,11 @@ const FIELD_LABELS = {
       div.className = "entry-card";
 
       div.innerHTML = `
-        <h3>${data.type}</h3>
-        <small>${data.createdAt?.toDate().toLocaleString()}</small>
-        <pre>${JSON.stringify(data.data, null, 2)}</pre>
-        <hr>
-      `;
+  <h3>${LABELS[data.type] || data.type}</h3>
+  <small>${data.createdAt?.toDate().toLocaleString()}</small>
+  ${fieldsHtml}
+  <hr>
+`;
 
       container.appendChild(div);
     });
