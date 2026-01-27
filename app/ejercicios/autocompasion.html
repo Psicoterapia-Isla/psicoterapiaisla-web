@@ -29,10 +29,9 @@
     <!-- BLOQUE 1 -->
     <section>
       <h2>1. Exigencia</h2>
-      <p>
-        Observa sin juzgarte.
-      </p>
+      <p>Observa sin juzgarte.</p>
       <textarea
+        id="exigencia"
         placeholder="¿En qué te estás exigiendo demasiado últimamente? ¿Qué te dices cuando algo no sale como esperabas?">
       </textarea>
     </section>
@@ -40,10 +39,9 @@
     <!-- BLOQUE 2 -->
     <section>
       <h2>2. Mirada externa</h2>
-      <p>
-        Imagina que una persona querida estuviera viviendo lo mismo que tú.
-      </p>
+      <p>Imagina que una persona querida estuviera viviendo lo mismo que tú.</p>
       <textarea
+        id="mirada-externa"
         placeholder="¿Qué le dirías? ¿Qué tono usarías con ella?">
       </textarea>
     </section>
@@ -51,10 +49,9 @@
     <!-- BLOQUE 3 -->
     <section>
       <h2>3. Cambio de diálogo interno</h2>
-      <p>
-        No hace falta creerte la frase al 100%. Basta con probar.
-      </p>
+      <p>No hace falta creerte la frase al 100%. Basta con probar.</p>
       <textarea
+        id="frase-compasiva"
         placeholder="¿Qué frase más amable podrías empezar a decirte a ti?">
       </textarea>
     </section>
@@ -62,15 +59,14 @@
     <!-- BLOQUE 4 -->
     <section>
       <h2>4. Gesto compasivo</h2>
-      <p>
-        La autocompasión también puede ser una acción pequeña.
-      </p>
+      <p>La autocompasión también puede ser una acción pequeña.</p>
       <textarea
+        id="gesto-compasivo"
         placeholder="¿Qué gesto concreto de cuidado podrías ofrecerte hoy?">
       </textarea>
     </section>
 
-    <button>Guardar ejercicio</button>
+    <button id="guardar">Guardar ejercicio</button>
 
     <p class="legal-note">
       Este ejercicio no sustituye la terapia ni es un canal de urgencias.
@@ -78,22 +74,30 @@
     </p>
 
   </main>
-<script type="module">
-  import { saveExercise } from "../assets/js/firebase.js";
-  import { requireAuth } from "../assets/js/auth.js";
 
-  requireAuth();
+  <!-- JS -->
+  <script type="module">
+    import { saveExercise } from "../assets/js/firebase.js";
+    import { requireAuth } from "../assets/js/auth.js";
 
-  document.querySelector("button").addEventListener("click", async () => {
-    await saveExercise("autocompasion", {
-      exigencia: document.getElementById("exigencia").value,
-      mirada_externa: document.getElementById("mirada-externa").value,
-      frase_compasiva: document.getElementById("frase-compasiva").value,
-      gesto_compasivo: document.getElementById("gesto-compasivo").value
+    requireAuth();
+
+    document.getElementById("guardar").addEventListener("click", async () => {
+      try {
+        await saveExercise("autocompasion", {
+          exigencia: document.getElementById("exigencia").value,
+          mirada_externa: document.getElementById("mirada-externa").value,
+          frase_compasiva: document.getElementById("frase-compasiva").value,
+          gesto_compasivo: document.getElementById("gesto-compasivo").value
+        });
+
+        alert("Ejercicio guardado");
+      } catch (e) {
+        alert("Error al guardar el ejercicio");
+        console.error(e);
+      }
     });
+  </script>
 
-    alert("Ejercicio guardado");
-  });
-</script>
 </body>
 </html>
