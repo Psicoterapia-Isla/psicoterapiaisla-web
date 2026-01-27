@@ -24,52 +24,76 @@
   </main>
 
   <script type="module">
-  import { db, auth } from "../assets/js/firebase.js";
-  import {
-    collection,
-    query,
-    where,
-    orderBy,
-    getDocs
-  } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { db, auth } from "../assets/js/firebase.js";
+import { requireAuth } from "../assets/js/auth.js";
+import {
+  collection,
+  getDocs,
+  query,
+  orderBy
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-  const container = document.getElementById("entries-list");
+requireAuth();
 
-  auth.onAuthStateChanged(async (user) => {
-    if (!user) {
-      window.location.href = "/app/login.html";
-      return;
-    }
+const container = document.getElementById("entries-list");
 
-    const q = query(
-      collection(db, "entries"),
-      where("userId", "==", user.uid),
-      orderBy("createdAt", "desc")
+async function loadEntries(user) {
+  container.innerHTML = "";
+
+  // 1️⃣ Obtener todos los ejercicios del usuario
+  const exercisesSnap = await getDocs(
+    collection(db, "users", user.uid, "exercises")
+  );
+
+  if (exercisesSnap.empty) {
+    container.innerHTML = "<p>No hay entradas todavía.</p>";
+    return;
+  }
+
+  // 2️⃣ Para cada ejercicio, leer sus respuestas
+  for (const exerciseDoc of exercisesSnap.docs) {
+    const exerciseKey = exerciseDoc.id;
+
+    const answersSnap = await getDocs(
+      query(
+        collection(
+          db,
+          "users",
+          user.uid,
+          "exercises",
+          exerciseKey,
+          "answers"
+        ),
+        orderBy("createdAt", "desc")
+      )
     );
 
-    const snapshot = await getDocs(q);
+    answersSnap.forEach(doc => {
+      const data = doc.data();
 
-    if (snapshot.empty) {
-      container.innerHTML = "<p>No hay entradas todavía.</p>";
-      return;
-    }
+      const div = document.createElement("div");
+      div.className = "entry-card";
 
-    snapshot.forEach(doc => {
-  const data = doc.data();
+      div.innerHTML = `
+        <h3>${exerciseKey}</h3>
+        <small>${data.createdAt?.toDate().toLocaleString()}</small>
+        <pre>${JSON.stringify(data.data, null, 2)}</pre>
+        <hr>
+      `;
 
-  const div = document.createElement("div");
-  div.className = "entry-card";
+      container.appendChild(div);
+    });
+  }
+}
 
-  div.innerHTML = `
-    <h3>${data.exercise}</h3>
-    <small>${data.createdAt?.toDate().toLocaleString()}</small>
-    <pre>${JSON.stringify(data.answers, null, 2)}</pre>
-    <hr>
-  `;
-
-  container.appendChild(div);
-});
+// Safari-safe
+if (auth.currentUser) {
+  loadEntries(auth.currentUser);
+} else {
+  auth.onAuthStateChanged(user => {
+    if (user) loadEntries(user);
   });
+}
 </script>
 
 </body>
