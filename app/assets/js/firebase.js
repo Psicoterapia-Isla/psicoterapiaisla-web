@@ -1,12 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import {
-  getFirestore,
-  addDoc,
-  collection,
-  serverTimestamp
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
-import { auth } from "./auth.js";
+import { getAuth } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { getFirestore } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDfxdzL39Ne4XdT9WgSLz3iSliyg-xBR84",
@@ -17,20 +11,6 @@ const firebaseConfig = {
   appId: "1:824485435208:web:79d2a122d975e2b5cf857d"
 };
 
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-
-export async function saveExercise(type, data) {
-  const user = auth.currentUser;
-
-  if (!user) {
-    throw new Error("Usuario no autenticado");
-  }
-
-  return await addDoc(collection(db, "entries"), {
-    uid: user.uid,
-    exercise: type,
-    data,
-    createdAt: serverTimestamp()
-  });
-}
+export const app = initializeApp(firebaseConfig);
+export const auth = getAuth(app);
+export const db = getFirestore(app);
