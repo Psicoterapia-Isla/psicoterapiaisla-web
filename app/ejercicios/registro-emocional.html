@@ -87,6 +87,22 @@
     </p>
 
   </main>
+<script type="module">
+  import { saveExercise } from "../assets/js/firebase.js";
+  import { requireAuth } from "../assets/js/auth.js";
 
+  requireAuth();
+
+  document.querySelector("button").addEventListener("click", async () => {
+    await saveExercise("registro_emocional", {
+      emociones: document.getElementById("emociones").value,
+      cuerpo: document.getElementById("cuerpo").value,
+      desencadenante: document.getElementById("desencadenante").value,
+      necesidad: document.getElementById("necesidad").value
+    });
+
+    alert("Registro guardado");
+  });
+</script>
 </body>
 </html>
