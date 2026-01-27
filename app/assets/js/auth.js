@@ -24,13 +24,13 @@ export async function login(email, password) {
   return await signInWithEmailAndPassword(auth, email, password);
 }
 
-// LOGOUT (lo usaremos luego)
+// LOGOUT
 export async function logout() {
   await signOut(auth);
   window.location.href = "login.html";
 }
 
-// PROTECCIÓN
+// PROTECCIÓN DE PÁGINAS
 export function requireAuth() {
   onAuthStateChanged(auth, (user) => {
     if (!user) {
