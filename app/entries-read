@@ -1,0 +1,35 @@
+// app/assets/js/entries-read.js
+
+import { db, auth } from "./firebase.js";
+import {
+  collection,
+  query,
+  where,
+  orderBy,
+  getDocs
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+/**
+ * Devuelve todas las entradas del usuario actual
+ * ordenadas por fecha (más recientes primero)
+ */
+export async function getMyEntries() {
+  const user = auth.currentUser;
+
+  if (!user) {
+    throw new Error("Usuario no autenticado");
+  }
+
+  const q = query(
+    collection(db, "entries"),
+    where("uid", "==", user.uid),
+    orderBy("createdAt", "desc")
+  );
+
+  const snapshot = await getDocs(q);
+
+  return snapshot.docs.map(doc => ({
+    id: doc.id,
+    ...doc.data()
+  }));
+}
