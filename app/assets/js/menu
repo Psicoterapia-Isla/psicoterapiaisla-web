@@ -1,0 +1,24 @@
+import { auth } from "./firebase.js";
+import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+export function loadMenu(role = "patient") {
+  const nav = document.createElement("nav");
+  nav.className = "app-menu";
+
+  let links = `
+    <a href="index.html">Inicio</a>
+    <a href="diario.html">Nuevo diario</a>
+    <a href="mis-entradas.html">Mi diario</a>
+  `;
+
+  if (role === "therapist") {
+    links += `
+      <a href="diario-terapeuta.html">Diarios pacientes</a>
+    `;
+  }
+
+  links += `<a href="login.html">Salir</a>`;
+
+  nav.innerHTML = links;
+  document.body.prepend(nav);
+}
