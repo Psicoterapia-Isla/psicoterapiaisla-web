@@ -17,3 +17,23 @@ export const app = initializeApp(firebaseConfig);
 
 // Inicializar Firestore
 export const db = getFirestore(app);
+import { getFirestore, addDoc, collection, serverTimestamp } 
+  from "firebase/firestore";
+import { auth } from "./auth.js";
+
+const db = getFirestore();
+
+export async function saveExercise(type, data) {
+  const user = auth.currentUser;
+
+  if (!user) {
+    throw new Error("Usuario no autenticado");
+  }
+
+  return await addDoc(collection(db, "entries"), {
+    uid: user.uid,
+    exercise: type,
+    data,
+    createdAt: serverTimestamp()
+  });
+}
