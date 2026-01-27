@@ -24,7 +24,7 @@ export async function login(email, password) {
   return cred.user;
 }
 
-// PROTECCIÓN DE PÁGINAS
+// PROTEGER PÁGINAS
 export function requireAuth() {
   onAuthStateChanged(auth, (user) => {
     if (!user) {
