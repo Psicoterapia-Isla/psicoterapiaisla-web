@@ -100,6 +100,21 @@
     </p>
 
   </main>
+<script type="module">
+  import { saveExercise } from "../assets/js/firebase.js";
+  import { requireAuth } from "../assets/js/auth.js";
 
+  requireAuth();
+
+  document.querySelector("button").addEventListener("click", async () => {
+    await saveExercise("recursos_internos", {
+      recurso: document.getElementById("recurso").value,
+      cuando_usarlo: document.getElementById("cuando-usarlo").value,
+      sensacion: document.getElementById("sensacion").value
+    });
+
+    alert("Ejercicio guardado");
+  });
+</script>
 </body>
 </html>
