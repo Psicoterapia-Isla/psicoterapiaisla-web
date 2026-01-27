@@ -1,4 +1,7 @@
+// app/assets/js/firebase.js
+
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getAuth } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { getFirestore } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -11,5 +14,9 @@ const firebaseConfig = {
   measurementId: "G-9W5Y8BP8DE"
 };
 
-const app = initializeApp(firebaseConfig);
+// 🔴 UNA SOLA INICIALIZACIÓN
+export const app = initializeApp(firebaseConfig);
+
+// 🔴 TODO sale de la MISMA app
+export const auth = getAuth(app);
 export const db = getFirestore(app);
