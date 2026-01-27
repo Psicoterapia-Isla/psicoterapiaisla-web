@@ -20,10 +20,15 @@ export const auth = getAuth(app);
 
 // LOGIN
 export async function login(email, password) {
-  return await signInWithEmailAndPassword(auth, email, password);
+  const userCredential = await signInWithEmailAndPassword(
+    auth,
+    email,
+    password
+  );
+  return userCredential.user;
 }
 
-// PROTECCIÓN DE PÁGINAS
+// PROTEGER PÁGINAS
 export function requireAuth() {
   onAuthStateChanged(auth, (user) => {
     if (!user) {
