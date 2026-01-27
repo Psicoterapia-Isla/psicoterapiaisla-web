@@ -5,7 +5,6 @@
   <title>Diario terapéutico</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <!-- CSS -->
   <link rel="stylesheet" href="assets/css/app.css">
 </head>
 
@@ -24,16 +23,12 @@
       <h1>Diario terapéutico</h1>
       <p>Puedes escribir libremente. No hay forma correcta de hacerlo.</p>
 
-      <!-- IMPORTANTE: id -->
       <textarea id="diario-texto" placeholder="Escribe aquí..."></textarea>
-
-      <!-- IMPORTANTE: id -->
       <button id="guardar-diario">Guardar</button>
 
     </div>
   </div>
 
-  <!-- SCRIPT ÚNICO Y CORRECTO -->
   <script type="module">
     import { requireAuth } from "./assets/js/auth.js";
     import { saveExercise } from "./assets/js/firebase.js";
@@ -41,9 +36,10 @@
     requireAuth();
 
     const button = document.getElementById("guardar-diario");
+    const textarea = document.getElementById("diario-texto");
 
     button.addEventListener("click", async () => {
-      const texto = document.getElementById("diario-texto").value.trim();
+      const texto = textarea.value.trim();
 
       if (!texto) {
         alert("El diario está vacío");
@@ -55,10 +51,10 @@
           texto
         });
 
-        alert("Diario guardado");
-        document.getElementById("diario-texto").value = "";
+        alert("Diario guardado correctamente");
+        textarea.value = "";
       } catch (error) {
-        console.error(error);
+        console.error("Error guardando diario:", error);
         alert("Error al guardar el diario");
       }
     });
