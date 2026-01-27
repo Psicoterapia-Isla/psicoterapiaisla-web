@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Entradas guardadas | Psicoterapia Isla</title>
+  <title>Mis entradas | Psicoterapia Isla</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="assets/css/app.css">
 </head>
@@ -11,66 +11,48 @@
 
   <nav class="app-menu">
     <a href="index.html">Inicio</a>
-    <a href="diario.html">Diario</a>
     <a href="ejercicio.html">Ejercicios</a>
-    <a href="entradas.html">Entradas</a>
+    <a href="diario.html">Diario</a>
     <a href="login.html">Salir</a>
   </nav>
 
   <main class="app-container">
-    <h1>Entradas guardadas</h1>
-
-    <div id="lista-entradas">
-      <p>Cargando entradas…</p>
-    </div>
+    <h1>Mis entradas</h1>
+    <div id="lista-entradas"></div>
   </main>
 
   <script type="module">
-    import { db, auth } from "./assets/js/firebase.js";
     import { requireAuth } from "./assets/js/auth.js";
-    import {
-      collection,
-      query,
-      orderBy,
-      getDocs
-    } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getMyEntries } from "./assets/js/entries-read.js";
 
     requireAuth();
 
-    const contenedor = document.getElementById("lista-entradas");
+    const container = document.getElementById("lista-entradas");
 
-    async function cargarEntradas() {
-      const q = query(
-        collection(db, "entries"),
-        orderBy("createdAt", "desc")
-      );
+    try {
+      const entries = await getMyEntries();
 
-      const snapshot = await getDocs(q);
-
-      if (snapshot.empty) {
-        contenedor.innerHTML = "<p>No hay entradas guardadas.</p>";
-        return;
+      if (entries.length === 0) {
+        container.innerHTML = "<p>No hay entradas todavía.</p>";
       }
 
-      contenedor.innerHTML = "";
-
-      snapshot.forEach(doc => {
-        const data = doc.data();
-
+      entries.forEach(entry => {
         const div = document.createElement("div");
-        div.className = "card";
+        div.className = "entry";
 
         div.innerHTML = `
-          <h3>${data.type}</h3>
-          <pre>${JSON.stringify(data.data, null, 2)}</pre>
-          <small>${data.createdAt?.toDate().toLocaleString() ?? ""}</small>
+          <h3>${entry.type}</h3>
+          <small>${entry.createdAt?.toDate().toLocaleString()}</small>
+          <pre>${JSON.stringify(entry.data, null, 2)}</pre>
         `;
 
-        contenedor.appendChild(div);
+        container.appendChild(div);
       });
-    }
 
-    cargarEntradas();
+    } catch (e) {
+      console.error(e);
+      container.innerHTML = "<p>Error al cargar las entradas.</p>";
+    }
   </script>
 
 </body>
