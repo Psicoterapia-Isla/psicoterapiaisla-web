@@ -114,3 +114,20 @@
 
 </body>
 </html>
+<script type="module">
+  import { saveExercise } from "../assets/js/firebase.js";
+  import { requireAuth } from "../assets/js/auth.js";
+
+  requireAuth();
+
+  document.querySelector("button").addEventListener("click", async () => {
+    await saveExercise("sentirme_a_salvo", {
+      seguridad_externa: document.getElementById("seguridad_externa").value,
+      seguridad_corporal: document.getElementById("seguridad_corporal").value,
+      seguridad_relacional: document.getElementById("seguridad_relacional").value,
+      recurso_personal: document.getElementById("recurso_personal").value
+    });
+
+    alert("Ejercicio guardado");
+  });
+</script>
