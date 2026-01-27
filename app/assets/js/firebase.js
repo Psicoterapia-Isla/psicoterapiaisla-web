@@ -5,7 +5,7 @@ import { getAuth } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth
 import { getFirestore } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyDfxdzL39Ne4XdT9WgSLz3iSliyg-xBR84",
+  apiKey: "AIzaSyDfxdzl39Ne4XdT9WgSlz3iSliyg-xBR84",
   authDomain: "psicoterapia-isla-app.firebaseapp.com",
   projectId: "psicoterapia-isla-app",
   storageBucket: "psicoterapia-isla-app.firebasestorage.app",
