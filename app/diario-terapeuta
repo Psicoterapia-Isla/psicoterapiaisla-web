@@ -3,15 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <title>Diarios pacientes</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="assets/css/app.css">
 </head>
+
 <body class="app-body">
 
-<nav class="app-menu">
-  <a href="index.html">Inicio</a>
-  <a href="diario-terapeuta.html">Diarios</a>
-  <a href="login.html">Salir</a>
-</nav>
+<!-- MENÚ DINÁMICO -->
+<nav id="app-menu" class="app-menu"></nav>
 
 <div class="app-container">
   <div class="card">
@@ -22,33 +21,62 @@
 
 <script type="module">
   import { requireAuth } from "./assets/js/auth.js";
+  import { loadMenu } from "./assets/js/menu.js";
   import { auth, db } from "./assets/js/firebase.js";
   import {
-    collection, query, where, orderBy, getDocs
+    collection,
+    query,
+    where,
+    orderBy,
+    getDocs,
+    getDoc,
+    doc
   } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
   requireAuth();
 
-  const q = query(
-    collection(db, "entries"),
-    where("tipo", "==", "diario"),
-    orderBy("createdAt", "desc")
-  );
+  (async () => {
+    // 1️⃣ Obtener rol del usuario
+    const userDoc = await getDoc(doc(db, "users", auth.currentUser.uid));
+    const role = userDoc.data()?.role || "patient";
 
-  const snap = await getDocs(q);
-  const container = document.getElementById("entries");
+    // 2️⃣ Cargar menú según rol
+    loadMenu(role);
 
-  snap.forEach(doc => {
-    const d = doc.data();
-    container.innerHTML += `
-      <div class="entry">
-        <small><strong>Paciente:</strong> ${d.uid}</small><br>
-        <small>${d.createdAt?.toDate().toLocaleString()}</small>
-        <p>${d.texto}</p>
-        <hr>
-      </div>
-    `;
-  });
+    // 🔒 Seguridad extra: solo terapeuta
+    if (role !== "therapist") {
+      alert("Acceso no autorizado");
+      window.location.href = "index.html";
+      return;
+    }
+
+    // 3️⃣ Consulta de diarios
+    const q = query(
+      collection(db, "entries"),
+      where("tipo", "==", "diario"),
+      orderBy("createdAt", "desc")
+    );
+
+    const snap = await getDocs(q);
+    const container = document.getElementById("entries");
+
+    if (snap.empty) {
+      container.innerHTML = "<p>No hay diarios todavía.</p>";
+      return;
+    }
+
+    snap.forEach(docSnap => {
+      const d = docSnap.data();
+      container.innerHTML += `
+        <div class="entry">
+          <small><strong>Paciente:</strong> ${d.uid}</small><br>
+          <small>${d.createdAt?.toDate().toLocaleString() || ""}</small>
+          <p>${d.texto}</p>
+          <hr>
+        </div>
+      `;
+    });
+  })();
 </script>
 
 </body>
