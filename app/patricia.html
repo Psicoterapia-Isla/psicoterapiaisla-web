@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Vista clínica | Psicoterapia Isla</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="assets/css/app.css">
+</head>
+
+<body class="app-body">
+
+  <nav class="app-menu">
+    <a href="index.html">Inicio</a>
+    <a href="patricia.html">Vista clínica</a>
+    <a href="login.html">Salir</a>
+  </nav>
+
+  <main class="app-container">
+
+    <h1>Vista clínica – registros</h1>
+    <p>
+      Aquí se muestran los ejercicios registrados por los pacientes.
+      Esta vista es solo de lectura.
+    </p>
+
+    <div id="entries"></div>
+
+  </main>
+
+  <script type="module">
+    import { requireAuth } from "./assets/js/auth.js";
+    import { db } from "./assets/js/firebase.js";
+    import {
+      collection,
+      query,
+      orderBy,
+      getDocs
+    } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+    requireAuth();
+
+    const container = document.getElementById("entries");
+
+    const q = query(
+      collection(db, "entries"),
+      orderBy("createdAt", "desc")
+    );
+
+    const snapshot = await getDocs(q);
+
+    if (snapshot.empty) {
+      container.innerHTML = "<p>No hay registros todavía.</p>";
+    }
+
+    snapshot.forEach(doc => {
+      const data = doc.data();
+
+      const block = document.createElement("section");
+      block.style.marginBottom = "2rem";
+      block.style.padding = "1.5rem";
+      block.style.border = "1px solid #ddd";
+      block.style.borderRadius = "8px";
+
+      block.innerHTML = `
+        <h2>${data.exercise}</h2>
+        <p><strong>Paciente:</strong> ${data.email || data.uid}</p>
+        <p><strong>Fecha:</strong> ${data.createdAt?.toDate().toLocaleString() || "—"}</p>
+        <pre>${JSON.stringify(data.answers || data, null, 2)}</pre>
+      `;
+
+      container.appendChild(block);
+    });
+  </script>
+
+</body>
+</html>
