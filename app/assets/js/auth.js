@@ -1,18 +1,9 @@
-import {
-  signInWithEmailAndPassword,
-  onAuthStateChanged,
-  signOut
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-
 import { auth } from "./firebase.js";
+import { signInWithEmailAndPassword, onAuthStateChanged } 
+  from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
 export async function login(email, password) {
-  const userCredential = await signInWithEmailAndPassword(
-    auth,
-    email,
-    password
-  );
-  return userCredential.user;
+  return await signInWithEmailAndPassword(auth, email, password);
 }
 
 export function requireAuth() {
@@ -21,8 +12,4 @@ export function requireAuth() {
       window.location.href = "/app/login.html";
     }
   });
-}
-
-export function logout() {
-  return signOut(auth);
 }
