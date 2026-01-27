@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Mi diario</title>
+  <link rel="stylesheet" href="assets/css/app.css">
+</head>
+<body class="app-body">
+
+<nav class="app-menu">
+  <a href="index.html">Inicio</a>
+  <a href="diario.html">Nuevo diario</a>
+  <a href="mis-entradas.html">Mi diario</a>
+  <a href="login.html">Salir</a>
+</nav>
+
+<div class="app-container">
+  <div class="card">
+    <h1>Mi diario terapéutico</h1>
+    <div id="entries"></div>
+  </div>
+</div>
+
+<script type="module">
+  import { requireAuth } from "./assets/js/auth.js";
+  import { auth, db } from "./assets/js/firebase.js";
+  import {
+    collection, query, where, orderBy, getDocs
+  } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+  requireAuth();
+
+  const q = query(
+    collection(db, "entries"),
+    where("uid", "==", auth.currentUser.uid),
+    where("tipo", "==", "diario"),
+    orderBy("createdAt", "desc")
+  );
+
+  const snap = await getDocs(q);
+  const container = document.getElementById("entries");
+
+  if (snap.empty) {
+    container.innerHTML = "<p>No hay entradas todavía.</p>";
+  } else {
+    snap.forEach(doc => {
+      const d = doc.data();
+      container.innerHTML += `
+        <div class="entry">
+          <small>${d.createdAt?.toDate().toLocaleString()}</small>
+          <p>${d.texto}</p>
+        </div>
+      `;
+    });
+  }
+</script>
+
+</body>
+</html>
