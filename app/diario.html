@@ -5,7 +5,8 @@
   <title>Diario terapéutico</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <link rel="stylesheet" href="assets/css/app.css">
+  <!-- CSS (ruta corregida) -->
+  <link rel="stylesheet" href="../assets/css/app.css">
 </head>
 
 <body class="app-body">
@@ -29,9 +30,10 @@
     </div>
   </div>
 
+  <!-- SCRIPT (rutas corregidas) -->
   <script type="module">
-    import { requireAuth } from "./assets/js/auth.js";
-    import { saveExercise } from "./assets/js/firebase.js";
+    import { requireAuth } from "../assets/js/auth.js";
+    import { saveExercise } from "../assets/js/firebase.js";
 
     requireAuth();
 
@@ -47,14 +49,11 @@
       }
 
       try {
-        await saveExercise("diario", {
-          texto
-        });
-
+        await saveExercise("diario", { texto });
         alert("Diario guardado correctamente");
         textarea.value = "";
       } catch (error) {
-        console.error("Error guardando diario:", error);
+        console.error("Error al guardar diario:", error);
         alert("Error al guardar el diario");
       }
     });
