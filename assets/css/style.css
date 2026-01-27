@@ -210,3 +210,16 @@ h1, h2, h3 {
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&display=swap" rel="stylesheet">
+/* FORZAR TIPOGRAFÍA EN TODOS LOS TÍTULOS */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+.hero-text h1,
+.blog-hero h1,
+.content h2,
+.closing h2 {
+  font-family: "Archivo Black", sans-serif !important;
+}
