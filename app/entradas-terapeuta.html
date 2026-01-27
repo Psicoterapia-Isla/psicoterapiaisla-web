@@ -2,128 +2,39 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Entradas pacientes | Psicoterapia Isla</title>
+  <title>Vista terapeuta | Psicoterapia Isla</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="assets/css/app.css">
+  <link rel="stylesheet" href="/app/assets/css/app.css">
 </head>
 
 <body class="app-body">
 
 <nav class="app-menu">
-  <a href="index.html">Inicio</a>
-  <a href="entradas-terapeuta.html">Entradas pacientes</a>
-  <a href="login.html">Salir</a>
+  <a href="/app/index.html">Inicio</a>
+  <a href="/app/entradas.html">Vista paciente</a>
+  <a href="/app/login.html">Salir</a>
 </nav>
 
 <main class="app-container">
-  <h1>Entradas de pacientes</h1>
+  <h1>Entradas – Vista terapeuta</h1>
 
-  <!-- FILTROS -->
-  <section>
-    <label>
-      Usuario (UID):
-      <input type="text" id="filtro-uid" placeholder="UID del paciente">
-    </label>
-
-    <label>
-      Desde:
-      <input type="date" id="fecha-desde">
-    </label>
-
-    <label>
-      Hasta:
-      <input type="date" id="fecha-hasta">
-    </label>
-
-    <button id="filtrar">Filtrar</button>
-  </section>
+  <!-- filtros -->
+  <div class="filters">
+    <input type="text" id="filter-uid" placeholder="UID del paciente">
+    <select id="filter-type">
+      <option value="">Todos los ejercicios</option>
+      <option value="registro_emocional">Registro emocional</option>
+      <option value="sentirme_a_salvo">Sentirme a salvo</option>
+    </select>
+    <button id="apply-filters">Filtrar</button>
+  </div>
 
   <hr>
 
-  <div id="resultados">
-    <p>Introduce filtros y pulsa Filtrar</p>
-  </div>
+  <div id="entries-list"></div>
 </main>
 
-<script type="module">
-  import { db, auth } from "./assets/js/firebase.js";
-  import { requireAuth } from "./assets/js/auth.js";
-  import {
-    collection,
-    query,
-    where,
-    orderBy,
-    getDocs,
-    Timestamp
-  } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
-  const TERAPEUTA_UID = "PEGA_AQUI_TU_UID";
-
-  requireAuth();
-
-  auth.onAuthStateChanged(user => {
-    if (!user || user.uid !== TERAPEUTA_UID) {
-      alert("Acceso solo para terapeuta");
-      window.location.href = "index.html";
-    }
-  });
-
-  document.getElementById("filtrar").addEventListener("click", cargarEntradas);
-
-  async function cargarEntradas() {
-    const uid = document.getElementById("filtro-uid").value.trim();
-    const desde = document.getElementById("fecha-desde").value;
-    const hasta = document.getElementById("fecha-hasta").value;
-    const contenedor = document.getElementById("resultados");
-
-    let q = collection(db, "entries");
-    let filtros = [];
-
-    if (uid) {
-      filtros.push(where("uid", "==", uid));
-    }
-
-    if (desde) {
-      filtros.push(where("createdAt", ">=", Timestamp.fromDate(new Date(desde))));
-    }
-
-    if (hasta) {
-      filtros.push(
-        where(
-          "createdAt",
-          "<=",
-          Timestamp.fromDate(new Date(hasta + "T23:59:59"))
-        )
-      );
-    }
-
-    const finalQuery = query(q, ...filtros, orderBy("createdAt", "desc"));
-
-    const snap = await getDocs(finalQuery);
-
-    contenedor.innerHTML = "";
-
-    if (snap.empty) {
-      contenedor.innerHTML = "<p>No hay resultados.</p>";
-      return;
-    }
-
-    snap.forEach(doc => {
-      const d = doc.data();
-      const div = document.createElement("div");
-      div.className = "card";
-
-      div.innerHTML = `
-        <h3>${d.type}</h3>
-        <small>Paciente: ${d.uid}</small><br>
-        <small>${d.createdAt.toDate().toLocaleString()}</small>
-        <pre>${JSON.stringify(d.data, null, 2)}</pre>
-      `;
-
-      contenedor.appendChild(div);
-    });
-  }
-</script>
+<script type="module" src="/app/assets/js/entradas-terapeuta.js"></script>
 
 </body>
 </html>
