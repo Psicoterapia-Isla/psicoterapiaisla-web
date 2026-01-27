@@ -30,7 +30,6 @@
     <!-- BLOQUE 1 -->
     <section>
       <h2>1. Emociones presentes</h2>
-
       <label for="emociones-presentes">
         ¿Qué emoción o emociones están más presentes en este momento?
       </label>
@@ -43,7 +42,6 @@
     <!-- BLOQUE 2 -->
     <section>
       <h2>2. Registro corporal</h2>
-
       <label for="registro-corporal">
         ¿Dónde notas estas emociones en el cuerpo, si es que las notas?
       </label>
@@ -56,7 +54,6 @@
     <!-- BLOQUE 3 -->
     <section>
       <h2>3. Contexto</h2>
-
       <label for="contexto-emocional">
         ¿Qué estaba ocurriendo justo antes de que aparecieran estas emociones?
       </label>
@@ -69,7 +66,6 @@
     <!-- BLOQUE 4 -->
     <section>
       <h2>4. Necesidad actual</h2>
-
       <label for="necesidad-actual">
         Si estas emociones pudieran pedir algo ahora mismo, ¿qué necesitarían?
       </label>
@@ -79,7 +75,7 @@
       </textarea>
     </section>
 
-    <button type="button">Guardar registro</button>
+    <button id="guardar">Guardar registro</button>
 
     <p class="legal-note">
       Este ejercicio no sustituye la terapia ni es un canal de urgencias.
@@ -87,22 +83,29 @@
     </p>
 
   </main>
-<script type="module">
-  import { saveExercise } from "../assets/js/firebase.js";
-  import { requireAuth } from "../assets/js/auth.js";
 
-  requireAuth();
+  <script type="module">
+    import { saveExercise } from "../assets/js/firebase.js";
+    import { requireAuth } from "../assets/js/auth.js";
 
-  document.querySelector("button").addEventListener("click", async () => {
-    await saveExercise("registro_emocional", {
-      emociones: document.getElementById("emociones").value,
-      cuerpo: document.getElementById("cuerpo").value,
-      desencadenante: document.getElementById("desencadenante").value,
-      necesidad: document.getElementById("necesidad").value
+    requireAuth();
+
+    document.getElementById("guardar").addEventListener("click", async () => {
+      try {
+        await saveExercise("registro_emocional", {
+          emociones_presentes: document.getElementById("emociones-presentes").value,
+          registro_corporal: document.getElementById("registro-corporal").value,
+          contexto_emocional: document.getElementById("contexto-emocional").value,
+          necesidad_actual: document.getElementById("necesidad-actual").value
+        });
+
+        alert("Registro guardado");
+      } catch (error) {
+        console.error(error);
+        alert("Error al guardar el registro");
+      }
     });
+  </script>
 
-    alert("Registro guardado");
-  });
-</script>
 </body>
 </html>
