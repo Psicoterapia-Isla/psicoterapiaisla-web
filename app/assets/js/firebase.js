@@ -1,39 +1,43 @@
-// Import Firebase SDKs
+// Firebase SDKs (CDN, una sola vez)
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getAuth } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import {
+  getFirestore,
+  addDoc,
+  collection,
+  serverTimestamp
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 // Configuración Firebase
 const firebaseConfig = {
   apiKey: "AIzaSyDfxdzL39Ne4XdT9WgSLz3iSliyg-xBR84",
   authDomain: "psicoterapia-isla-app.firebaseapp.com",
   projectId: "psicoterapia-isla-app",
-  storageBucket: "psicoterapia-isla-app.firebasestorage.app",
+  storageBucket: "psicoterapia-isla-app.appspot.com",
   messagingSenderId: "824485435208",
   appId: "1:824485435208:web:79d2a122d975e2b5cf857d"
 };
 
-// Inicializar Firebase
+// Inicializar Firebase UNA SOLA VEZ
 export const app = initializeApp(firebaseConfig);
 
-// Inicializar Firestore
+// Auth y Firestore desde la MISMA app
+export const auth = getAuth(app);
 export const db = getFirestore(app);
-import { getFirestore, addDoc, collection, serverTimestamp } 
-  from "firebase/firestore";
-import { auth } from "./auth.js";
 
-const db = getFirestore();
-
-export async function saveExercise(type, data) {
+// Guardar ejercicios
+export async function saveExercise(exercise, data) {
   const user = auth.currentUser;
 
   if (!user) {
     throw new Error("Usuario no autenticado");
   }
 
-  return await addDoc(collection(db, "entries"), {
+  await addDoc(collection(db, "entries"), {
+    exercise,
+    ...data,              // ← MUY IMPORTANTE
     uid: user.uid,
-    exercise: type,
-    data,
+    email: user.email,
     createdAt: serverTimestamp()
   });
 }
