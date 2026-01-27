@@ -43,7 +43,7 @@
 
     const q = query(
       collection(db, "entries"),
-      where("uid", "==", user.uid),
+      where("userId", "==", user.uid),
       orderBy("createdAt", "desc")
     );
 
@@ -55,20 +55,20 @@
     }
 
     snapshot.forEach(doc => {
-      const data = doc.data();
+  const data = doc.data();
 
-      const div = document.createElement("div");
-      div.className = "entry-card";
+  const div = document.createElement("div");
+  div.className = "entry-card";
 
-      div.innerHTML = `
-        <h3>${data.type}</h3>
-        <small>${data.createdAt?.toDate().toLocaleString()}</small>
-        <pre>${JSON.stringify(data.data, null, 2)}</pre>
-        <hr>
-      `;
+  div.innerHTML = `
+    <h3>${data.exercise}</h3>
+    <small>${data.createdAt?.toDate().toLocaleString()}</small>
+    <pre>${JSON.stringify(data.answers, null, 2)}</pre>
+    <hr>
+  `;
 
-      container.appendChild(div);
-    });
+  container.appendChild(div);
+});
   });
 </script>
 
