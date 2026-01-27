@@ -78,6 +78,22 @@
     </p>
 
   </main>
+<script type="module">
+  import { saveExercise } from "../assets/js/firebase.js";
+  import { requireAuth } from "../assets/js/auth.js";
 
+  requireAuth();
+
+  document.querySelector("button").addEventListener("click", async () => {
+    await saveExercise("autocompasion", {
+      exigencia: document.getElementById("exigencia").value,
+      mirada_externa: document.getElementById("mirada-externa").value,
+      frase_compasiva: document.getElementById("frase-compasiva").value,
+      gesto_compasivo: document.getElementById("gesto-compasivo").value
+    });
+
+    alert("Ejercicio guardado");
+  });
+</script>
 </body>
 </html>
