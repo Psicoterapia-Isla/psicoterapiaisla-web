@@ -39,25 +39,29 @@
   </main>
 
   <!-- SOLO ESTE SCRIPT -->
-  <script type="module">
-    import { login } from "../assets/js/auth.js";
+<script type="module">
+  import { login } from "../assets/js/auth.js";
 
-    const form = document.getElementById("login-form");
+  const button = document.getElementById("login-btn");
 
-    form.addEventListener("submit", async (e) => {
-      e.preventDefault();
+  button.addEventListener("click", async () => {
+    const email = document.getElementById("email").value.trim();
+    const password = document.getElementById("password").value.trim();
 
-      const email = document.getElementById("email").value;
-      const password = document.getElementById("password").value;
+    if (!email || !password) {
+      alert("Completa email y contraseña");
+      return;
+    }
 
-      try {
-        await login(email, password);
-        window.location.href = "/app/index.html";
-      } catch (error) {
-        alert("Credenciales incorrectas");
-      }
-    });
-  </script>
+    try {
+      await login(email, password);
+      window.location.href = "/app/index.html";
+    } catch (error) {
+      console.error(error);
+      alert("Credenciales incorrectas");
+    }
+  });
+</script>
 
 </body>
 </html>
