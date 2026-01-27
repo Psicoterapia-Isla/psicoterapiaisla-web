@@ -26,7 +26,7 @@
       <option value="registro_emocional">Registro emocional</option>
       <option value="sentirme_a_salvo">Sentirme a salvo</option>
     </select>
-    <button id="apply-filters">Filtrar</button>
+    <button id="filter-btn">Filtrar</button>
   </div>
 
   <hr>
@@ -34,7 +34,60 @@
   <div id="entries-list"></div>
 </main>
 
-<script type="module" src="/app/assets/js/entradas-terapeuta.js"></script>
+<script type="module" src="/app/assets/js/entradas-terapeuta.js">
+
+  const filterUidInput = document.getElementById("filter-uid");
+const filterTypeSelect = document.getElementById("filter-type");
+const filterBtn = document.getElementById("filter-btn");
+
+filterBtn.addEventListener("click", () => {
+  const uid = filterUidInput.value.trim();
+  const type = filterTypeSelect.value;
+
+  loadEntriesFiltered(uid, type);
+});
+  async function loadEntriesFiltered(uid, type) {
+  container.innerHTML = "<p>Cargando…</p>";
+
+  let constraints = [];
+
+  if (uid) {
+    constraints.push(where("uid", "==", uid));
+  }
+
+  if (type) {
+    constraints.push(where("type", "==", type));
+  }
+
+  constraints.push(orderBy("createdAt", "desc"));
+
+  const q = query(collection(db, "entries"), ...constraints);
+  const snapshot = await getDocs(q);
+
+  if (snapshot.empty) {
+    container.innerHTML = "<p>No hay resultados.</p>";
+    return;
+  }
+
+  container.innerHTML = "";
+
+  snapshot.forEach(doc => {
+    const data = doc.data();
+
+    const div = document.createElement("div");
+    div.className = "entry-card";
+
+    div.innerHTML = `
+      <h3>${data.type}</h3>
+      <small>${data.createdAt?.toDate().toLocaleString()}</small>
+      <pre>${JSON.stringify(data.data, null, 2)}</pre>
+      <hr>
+    `;
+
+    container.appendChild(div);
+  });
+}
+</script>
 
 </body>
 </html>
