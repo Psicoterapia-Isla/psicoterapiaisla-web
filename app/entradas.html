@@ -1,3 +1,28 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Mis entradas | Psicoterapia Isla</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="https://psicoterapiaisla.com/app/assets/css/app.css">
+</head>
+
+<body class="app-body">
+
+  <nav class="app-menu">
+    <a href="/app/index.html">Inicio</a>
+    <a href="/app/ejercicio.html">Ejercicios</a>
+    <a href="/app/diario.html">Diario</a>
+    <a href="/app/login.html">Salir</a>
+  </nav>
+
+  <main class="app-container">
+    <h1>Mis entradas</h1>
+
+    <!-- AQUÍ SE PINTAN -->
+    <div id="entries-list"></div>
+  </main>
+
 <script type="module">
   import { db, auth } from "./assets/js/firebase.js";
   import { requireAuth } from "./assets/js/auth.js";
