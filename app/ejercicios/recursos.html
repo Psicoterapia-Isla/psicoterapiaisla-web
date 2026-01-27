@@ -34,6 +34,7 @@
         sostener algo difícil.
       </p>
       <textarea
+        id="momentos-capacidad"
         placeholder="¿Recuerdas algún momento en el que hayas salido adelante, aunque no fuera perfecto?">
       </textarea>
     </section>
@@ -41,11 +42,10 @@
     <!-- BLOQUE 2 -->
     <section>
       <h2>2. Cualidades personales</h2>
-      <p>
-        No tienen que ser grandes virtudes.
-      </p>
+      <p>No tienen que ser grandes virtudes.</p>
       <textarea
-        placeholder="¿Qué cualidades tuyas te han ayudado en otros momentos (por ejemplo: constancia, sensibilidad, sentido del humor, intuición)?">
+        id="cualidades"
+        placeholder="¿Qué cualidades tuyas te han ayudado en otros momentos?">
       </textarea>
     </section>
 
@@ -56,6 +56,7 @@
         A veces el recurso no es un pensamiento, sino una sensación.
       </p>
       <textarea
+        id="recursos-corporales"
         placeholder="¿Hay algún gesto, postura, respiración o estímulo que te ayude a regularte un poco?">
       </textarea>
     </section>
@@ -67,6 +68,7 @@
         No todos los recursos están disponibles todo el tiempo.
       </p>
       <textarea
+        id="apoyos-actuales"
         placeholder="De todo lo anterior, ¿qué sientes que sí está accesible para ti ahora mismo?">
       </textarea>
     </section>
@@ -78,11 +80,12 @@
         Puedes elegir uno de tus recursos para recordarlo más adelante.
       </p>
       <textarea
-        placeholder="¿Cómo podrías recordarte este recurso cuando lo necesites? (una palabra, imagen, gesto, nota…)">
+        id="anclaje"
+        placeholder="¿Cómo podrías recordarte este recurso cuando lo necesites?">
       </textarea>
     </section>
 
-    <!-- ARCHIVO OPCIONAL -->
+    <!-- ARCHIVO OPCIONAL (no se guarda aún) -->
     <section>
       <h2>Material opcional</h2>
       <p>
@@ -92,7 +95,7 @@
       <input type="file">
     </section>
 
-    <button>Guardar ejercicio</button>
+    <button id="guardar">Guardar ejercicio</button>
 
     <p class="legal-note">
       Este ejercicio no sustituye la terapia ni es un canal de urgencias.
@@ -100,21 +103,30 @@
     </p>
 
   </main>
-<script type="module">
-  import { saveExercise } from "../assets/js/firebase.js";
-  import { requireAuth } from "../assets/js/auth.js";
 
-  requireAuth();
+  <script type="module">
+    import { saveExercise } from "../assets/js/firebase.js";
+    import { requireAuth } from "../assets/js/auth.js";
 
-  document.querySelector("button").addEventListener("click", async () => {
-    await saveExercise("recursos_internos", {
-      recurso: document.getElementById("recurso").value,
-      cuando_usarlo: document.getElementById("cuando-usarlo").value,
-      sensacion: document.getElementById("sensacion").value
+    requireAuth();
+
+    document.getElementById("guardar").addEventListener("click", async () => {
+      try {
+        await saveExercise("recursos_internos", {
+          momentos_capacidad: document.getElementById("momentos-capacidad").value,
+          cualidades: document.getElementById("cualidades").value,
+          recursos_corporales: document.getElementById("recursos-corporales").value,
+          apoyos_actuales: document.getElementById("apoyos-actuales").value,
+          anclaje: document.getElementById("anclaje").value
+        });
+
+        alert("Ejercicio guardado");
+      } catch (error) {
+        console.error(error);
+        alert("Error al guardar el ejercicio");
+      }
     });
+  </script>
 
-    alert("Ejercicio guardado");
-  });
-</script>
 </body>
 </html>
