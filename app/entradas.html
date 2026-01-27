@@ -38,52 +38,44 @@ requireAuth();
 const container = document.getElementById("entries-list");
 
 async function loadEntries(user) {
-  container.innerHTML = "";
-
-  // 1️⃣ Obtener todos los ejercicios del usuario
-  const exercisesSnap = await getDocs(
-    collection(db, "users", user.uid, "exercises")
+  const q = query(
+    collection(db, "entries"),
+    where("uid", "==", user.uid),
+    orderBy("createdAt", "desc")
   );
 
-  if (exercisesSnap.empty) {
+  const snapshot = await getDocs(q);
+
+  container.innerHTML = "";
+
+  if (snapshot.empty) {
     container.innerHTML = "<p>No hay entradas todavía.</p>";
     return;
   }
 
-  // 2️⃣ Para cada ejercicio, leer sus respuestas
-  for (const exerciseDoc of exercisesSnap.docs) {
-    const exerciseKey = exerciseDoc.id;
+  snapshot.forEach(doc => {
+    const entry = doc.data();
 
-    const answersSnap = await getDocs(
-      query(
-        collection(
-          db,
-          "users",
-          user.uid,
-          "exercises",
-          exerciseKey,
-          "answers"
-        ),
-        orderBy("createdAt", "desc")
-      )
-    );
+    // 🔑 SOPORTE DOBLE FORMATO
+    const content = entry.data || entry.answers || {};
+    const type = entry.type || entry.exercise || "entrada";
+    const date = entry.createdAt?.toDate
+      ? entry.createdAt.toDate().toLocaleString()
+      : "";
 
-    answersSnap.forEach(doc => {
-      const data = doc.data();
+    const div = document.createElement("div");
+    div.className = "entry-card";
 
-      const div = document.createElement("div");
-      div.className = "entry-card";
+    div.innerHTML = `
+      <h3>${type}</h3>
+      <small>${date}</small>
+      <pre>${JSON.stringify(content, null, 2)}</pre>
+      <hr>
+    `;
 
-      div.innerHTML = `
-        <h3>${exerciseKey}</h3>
-        <small>${data.createdAt?.toDate().toLocaleString()}</small>
-        <pre>${JSON.stringify(data.data, null, 2)}</pre>
-        <hr>
-      `;
-
-      container.appendChild(div);
-    });
-  }
+    container.appendChild(div);
+  });
+}
 }
 
 // Safari-safe
