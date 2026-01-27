@@ -5,17 +5,25 @@ import {
   serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-export async function saveExercise(type, data) {
+export async function saveExercise(exerciseKey, data) {
   const user = auth.currentUser;
 
   if (!user) {
     throw new Error("Usuario no autenticado");
   }
 
-  return await addDoc(collection(db, "entries"), {
-    uid: user.uid,
-    type,
-    data,
-    createdAt: serverTimestamp()
-  });
+  return await addDoc(
+    collection(
+      db,
+      "users",
+      user.uid,
+      "exercises",
+      exerciseKey,
+      "answers"
+    ),
+    {
+      data,
+      createdAt: serverTimestamp()
+    }
+  );
 }
