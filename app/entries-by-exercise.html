@@ -26,17 +26,25 @@
     collection,
     query,
     orderBy,
+    where,
     getDocs,
+    addDoc,
+    updateDoc,
     doc,
-    getDoc
+    getDoc,
+    serverTimestamp
   } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-  // Auth
+  // ======================
+  // AUTH
+  // ======================
   await requireAuth();
 
   const container = document.getElementById("exercises");
 
-  // Traer entradas
+  // ======================
+  // TRAER ENTRADAS
+  // ======================
   const q = query(
     collection(db, "entries"),
     orderBy("createdAt", "desc")
@@ -48,7 +56,9 @@
     container.innerHTML = "<p>No hay respuestas todavía.</p>";
   }
 
-  // Cache de alias para no pedirlos mil veces
+  // ======================
+  // CACHE ALIAS
+  // ======================
   const aliasCache = {};
 
   async function getAlias(uid) {
@@ -65,18 +75,22 @@
     return alias;
   }
 
-  // Agrupar por ejercicio
+  // ======================
+  // AGRUPAR POR EJERCICIO
+  // ======================
   const grouped = {};
 
   for (const docSnap of snap.docs) {
-    const entry = docSnap.data();
+    const entry = { _id: docSnap.id, ...docSnap.data() };
     const type = entry.type;
 
     if (!grouped[type]) grouped[type] = [];
     grouped[type].push(entry);
   }
 
-  // Pintar
+  // ======================
+  // PINTAR
+  // ======================
   for (const type of Object.keys(grouped)) {
     const block = document.createElement("div");
     block.className = "exercise-card";
@@ -85,6 +99,7 @@
 
     for (const entry of grouped[type]) {
       const alias = await getAlias(entry.uid);
+      const noteId = `note-${entry._id}`;
 
       html += `
         <hr>
@@ -102,11 +117,72 @@
           </p>
         `;
       }
+
+      html += `
+        <div class="therapist-note">
+          <label><strong>Notas del terapeuta</strong></label>
+          <textarea id="${noteId}" rows="4" placeholder="Escribe aquí la nota clínica..."></textarea>
+          <button
+            class="save-note"
+            data-entry="${entry._id}"
+            data-uid="${entry.uid}"
+            data-exercise="${entry.type}">
+            Guardar nota
+          </button>
+        </div>
+      `;
     }
 
     block.innerHTML = html;
     container.appendChild(block);
   }
+
+  // ======================
+  // GUARDAR / ACTUALIZAR NOTAS
+  // ======================
+  document.querySelectorAll(".save-note").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const entryId = btn.dataset.entry;
+      const uid = btn.dataset.uid;
+      const exercise = btn.dataset.exercise;
+      const textarea = document.getElementById(`note-${entryId}`);
+      const noteText = textarea.value.trim();
+
+      if (!noteText) {
+        alert("La nota está vacía");
+        return;
+      }
+
+      const q = query(
+        collection(db, "therapist_notes"),
+        where("entryId", "==", entryId)
+      );
+
+      const snap = await getDocs(q);
+
+      if (snap.empty) {
+        await addDoc(collection(db, "therapist_notes"), {
+          entryId,
+          uid,
+          exercise,
+          note: noteText,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp()
+        });
+      } else {
+        await updateDoc(
+          doc(db, "therapist_notes", snap.docs[0].id),
+          {
+            note: noteText,
+            updatedAt: serverTimestamp()
+          }
+        );
+      }
+
+      alert("Nota guardada correctamente");
+    });
+  });
+
 </script>
 
 </body>
