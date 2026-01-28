@@ -4,17 +4,18 @@
   <meta charset="UTF-8">
   <title>Espacio terapéutico | Psicoterapia Isla</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-  <!-- CSS APP -->
-  <link rel="stylesheet" href="./assets/css/app.css">
+  <link rel="stylesheet" href="assets/css/app.css">
 </head>
 
 <body class="app-body">
 
-  <!-- MENÚ DINÁMICO -->
-  <nav id="app-menu" class="app-menu"></nav>
+  <nav class="app-menu">
+    <a href="index.html">Inicio</a>
+    <a href="diario.html">Diario</a>
+    <a href="ejercicio.html">Ejercicios</a>
+    <a href="login.html">Salir</a>
+  </nav>
 
-  <!-- CONTENIDO PRINCIPAL -->
   <main class="app-container">
 
     <h1>Tu espacio personal</h1>
@@ -40,20 +41,10 @@
 
   </main>
 
-  <script type="module">
-    import { requireAuth } from "./assets/js/auth.js";
-    import { loadMenu } from "./assets/js/menu.js";
-    import { db, auth } from "./assets/js/firebase.js";
-    import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
-    requireAuth();
-
-    (async () => {
-      const userDoc = await getDoc(doc(db, "users", auth.currentUser.uid));
-      const role = userDoc.data()?.role || "patient";
-      loadMenu(role);
-    })();
-  </script>
-
 </body>
 </html>
+
+<script type="module">
+  import { requireAuth } from "./assets/js/auth.js";
+  requireAuth();
+</script>
