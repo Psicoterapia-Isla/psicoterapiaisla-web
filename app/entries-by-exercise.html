@@ -26,11 +26,15 @@
     collection,
     query,
     orderBy,
-    getDocs
+    getDocs,
+    doc,
+    getDoc,
+    setDoc,
+    serverTimestamp
   } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
   // 🔐 Auth
-  await requireAuth();
+  const user = await requireAuth();
 
   const container = document.getElementById("exercises");
 
@@ -43,55 +47,83 @@
 
   if (snap.empty) {
     container.innerHTML = "<p>No hay respuestas todavía.</p>";
-  } else {
-    const grouped = {};
+    return;
+  }
 
-    snap.forEach(docSnap => {
-      const entry = docSnap.data();
-      if (!entry.type || !entry.data) return;
+  const grouped = {};
 
-      if (!grouped[entry.type]) grouped[entry.type] = [];
-      grouped[entry.type].push(entry);
-    });
+  snap.forEach(docSnap => {
+    const entry = docSnap.data();
+    entry._id = docSnap.id;
 
-    for (const type of Object.keys(grouped)) {
-      const section = document.createElement("section");
-      section.className = "exercise-card";
+    if (!entry.type || !entry.data) return;
+    if (!grouped[entry.type]) grouped[entry.type] = [];
+    grouped[entry.type].push(entry);
+  });
 
-      section.innerHTML = `
-        <h2>${type.replace(/_/g, " ")}</h2>
+  for (const type of Object.keys(grouped)) {
+    const section = document.createElement("section");
+    section.className = "exercise-card";
+
+    section.innerHTML = `<h2>${type.replace(/_/g, " ")}</h2>`;
+
+    for (const entry of grouped[type]) {
+      const alias = entry.alias || "Paciente";
+      const fecha = entry.createdAt?.toDate
+        ? entry.createdAt.toDate().toLocaleString()
+        : "";
+
+      const noteId = `${entry.uid}_${entry._id}`;
+      const noteRef = doc(db, "therapist_notes", noteId);
+      const noteSnap = await getDoc(noteRef);
+      const existingNote = noteSnap.exists() ? noteSnap.data().note : "";
+
+      const card = document.createElement("div");
+      card.className = "entry-card";
+
+      let inner = `
+        <div class="entry-meta">
+          <strong>${alias}</strong> · ${fecha}
+        </div>
       `;
 
-      grouped[type].forEach(entry => {
-        const alias = entry.alias || "Paciente";
-        const fecha = entry.createdAt?.toDate
-          ? entry.createdAt.toDate().toLocaleString()
-          : "";
-
-        const card = document.createElement("div");
-        card.className = "entry-card";
-
-        let inner = `
-          <div class="entry-meta">
-            <strong>${alias}</strong> · ${fecha}
+      for (const key in entry.data) {
+        inner += `
+          <div class="entry-field">
+            <strong>${key.replace(/_/g, " ")}</strong>
+            <span>${entry.data[key]}</span>
           </div>
         `;
+      }
 
-        for (const key in entry.data) {
-          inner += `
-            <div class="entry-field">
-              <strong>${key.replace(/_/g, " ")}</strong>
-              <span>${entry.data[key]}</span>
-            </div>
-          `;
-        }
+      inner += `
+        <div class="entry-field">
+          <strong>Notas del terapeuta</strong>
+          <textarea class="note-textarea" rows="3"
+            placeholder="Escribe aquí la nota clínica...">${existingNote}</textarea>
+          <button class="save-note-btn">Guardar nota</button>
+          <small class="note-status"></small>
+        </div>
+      `;
 
-        card.innerHTML = inner;
-        section.appendChild(card);
+      card.innerHTML = inner;
+      section.appendChild(card);
+
+      const textarea = card.querySelector(".note-textarea");
+      const button = card.querySelector(".save-note-btn");
+      const status = card.querySelector(".note-status");
+
+      button.addEventListener("click", async () => {
+        status.textContent = "Guardando...";
+        await setDoc(noteRef, {
+          note: textarea.value,
+          updatedAt: serverTimestamp()
+        });
+        status.textContent = "Nota guardada ✔";
       });
-
-      container.appendChild(section);
     }
+
+    container.appendChild(section);
   }
 </script>
 
