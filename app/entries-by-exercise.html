@@ -21,7 +21,7 @@
 
 <script type="module">
   import { requireAuth } from "./assets/js/auth.js";
-  import { db, auth } from "./assets/js/firebase.js";
+  import { db } from "./assets/js/firebase.js";
   import {
     collection,
     query,
@@ -35,7 +35,8 @@
     serverTimestamp
   } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-  const user = await requireAuth();
+  await requireAuth();
+
   const container = document.getElementById("exercises");
 
   // 1️⃣ Traer entradas
@@ -48,109 +49,117 @@
 
   if (entriesSnap.empty) {
     container.innerHTML = "<p>No hay respuestas todavía.</p>";
-    return;
-  }
+  } else {
 
-  // Alias cache
-  const aliasCache = {};
+    // Cache alias
+    const aliasCache = {};
 
-  async function getAlias(uid) {
-    if (!uid) return "Paciente";
-    if (aliasCache[uid]) return aliasCache[uid];
+    async function getAlias(uid) {
+      if (!uid) return "Paciente";
+      if (aliasCache[uid]) return aliasCache[uid];
 
-    const snap = await getDoc(doc(db, "users", uid));
-    const alias = snap.exists() ? snap.data().alias || "Paciente" : "Paciente";
-    aliasCache[uid] = alias;
-    return alias;
-  }
+      const snap = await getDoc(doc(db, "users", uid));
+      const alias = snap.exists()
+        ? snap.data().alias || "Paciente"
+        : "Paciente";
 
-  // 2️⃣ Agrupar por ejercicio
-  const grouped = {};
-
-  for (const docSnap of entriesSnap.docs) {
-    const entry = { _id: docSnap.id, ...docSnap.data() };
-    const type = entry.type || "Sin ejercicio";
-
-    if (!grouped[type]) grouped[type] = [];
-    grouped[type].push(entry);
-  }
-
-  // 3️⃣ Pintar + notas clínicas
-  for (const type of Object.keys(grouped)) {
-    const block = document.createElement("div");
-    block.className = "exercise-card";
-    block.innerHTML = `<h2>${type.replace(/_/g, " ")}</h2>`;
-
-    for (const entry of grouped[type]) {
-      const alias = await getAlias(entry.uid);
-
-      const entryDiv = document.createElement("div");
-      entryDiv.innerHTML = `
-        <hr>
-        <p><strong>Paciente:</strong> ${alias}</p>
-        <p><strong>Fecha:</strong> ${entry.createdAt?.toDate().toLocaleString() || ""}</p>
-      `;
-
-      for (const key in entry.data || {}) {
-        entryDiv.innerHTML += `
-          <p><strong>${key.replace(/_/g, " ")}:</strong><br>${entry.data[key]}</p>
-        `;
-      }
-
-      // ---- NOTAS TERAPEUTA ----
-      entryDiv.innerHTML += `
-        <p><strong>Notas del terapeuta</strong></p>
-        <textarea rows="4" placeholder="Escribe aquí la nota clínica..."></textarea>
-        <button>Guardar nota</button>
-      `;
-
-      const textarea = entryDiv.querySelector("textarea");
-      const button = entryDiv.querySelector("button");
-
-      // 4️⃣ Precargar nota si existe
-      const notesQuery = query(
-        collection(db, "therapist_notes"),
-        where("entryId", "==", entry._id)
-      );
-
-      const notesSnap = await getDocs(notesQuery);
-      let existingNoteId = null;
-
-      if (!notesSnap.empty) {
-        const noteDoc = notesSnap.docs[0];
-        textarea.value = noteDoc.data().note || "";
-        existingNoteId = noteDoc.id;
-      }
-
-      // 5️⃣ Guardar / actualizar
-      button.addEventListener("click", async () => {
-        const text = textarea.value.trim();
-        if (!text) return;
-
-        if (existingNoteId) {
-          await updateDoc(doc(db, "therapist_notes", existingNoteId), {
-            note: text,
-            updatedAt: serverTimestamp()
-          });
-        } else {
-          const ref = await addDoc(collection(db, "therapist_notes"), {
-            entryId: entry._id,
-            uid: entry.uid,
-            exercise: entry.type,
-            note: text,
-            createdAt: serverTimestamp(),
-            updatedAt: serverTimestamp()
-          });
-          existingNoteId = ref.id;
-        }
-
-        alert("Nota guardada");
-      });
-
-      block.appendChild(entryDiv);
+      aliasCache[uid] = alias;
+      return alias;
     }
 
-    container.appendChild(block);
+    // 2️⃣ Agrupar por ejercicio
+    const grouped = {};
+
+    for (const docSnap of entriesSnap.docs) {
+      const entry = { _id: docSnap.id, ...docSnap.data() };
+      const type = entry.type || "Sin ejercicio";
+
+      if (!grouped[type]) grouped[type] = [];
+      grouped[type].push(entry);
+    }
+
+    // 3️⃣ Pintar resultados + notas
+    for (const type of Object.keys(grouped)) {
+      const block = document.createElement("div");
+      block.className = "exercise-card";
+      block.innerHTML = `<h2>${type.replace(/_/g, " ")}</h2>`;
+
+      for (const entry of grouped[type]) {
+        const alias = await getAlias(entry.uid);
+
+        const entryDiv = document.createElement("div");
+        entryDiv.innerHTML = `
+          <hr>
+          <p><strong>Paciente:</strong> ${alias}</p>
+          <p><strong>Fecha:</strong>
+            ${entry.createdAt?.toDate().toLocaleString() || ""}
+          </p>
+        `;
+
+        for (const key in entry.data || {}) {
+          entryDiv.innerHTML += `
+            <p>
+              <strong>${key.replace(/_/g, " ")}:</strong><br>
+              ${entry.data[key]}
+            </p>
+          `;
+        }
+
+        // ---- NOTA TERAPEUTA ----
+        entryDiv.innerHTML += `
+          <p><strong>Notas del terapeuta</strong></p>
+          <textarea rows="4" placeholder="Escribe aquí la nota clínica..."></textarea>
+          <button>Guardar nota</button>
+        `;
+
+        const textarea = entryDiv.querySelector("textarea");
+        const button = entryDiv.querySelector("button");
+
+        // Precargar nota
+        const noteQuery = query(
+          collection(db, "therapist_notes"),
+          where("entryId", "==", entry._id)
+        );
+
+        const noteSnap = await getDocs(noteQuery);
+        let noteId = null;
+
+        if (!noteSnap.empty) {
+          const noteDoc = noteSnap.docs[0];
+          textarea.value = noteDoc.data().note || "";
+          noteId = noteDoc.id;
+        }
+
+        // Guardar / actualizar
+        button.addEventListener("click", async () => {
+          const text = textarea.value.trim();
+          if (!text) return;
+
+          if (noteId) {
+            await updateDoc(doc(db, "therapist_notes", noteId), {
+              note: text,
+              updatedAt: serverTimestamp()
+            });
+          } else {
+            const ref = await addDoc(collection(db, "therapist_notes"), {
+              entryId: entry._id,
+              uid: entry.uid,
+              exercise: entry.type,
+              note: text,
+              createdAt: serverTimestamp(),
+              updatedAt: serverTimestamp()
+            });
+            noteId = ref.id;
+          }
+
+          alert("Nota guardada correctamente");
+        });
+
+        block.appendChild(entryDiv);
+      }
+
+      container.appendChild(block);
+    }
   }
 </script>
 </body>
