@@ -50,73 +50,84 @@
   import { requireAuth } from "./assets/js/auth.js";
   import { db } from "./assets/js/firebase.js";
   import {
-    collection,
-    addDoc,
     doc,
     getDoc,
+    collection,
+    addDoc,
     serverTimestamp
   } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-  // 1️⃣ Autenticación
-  const user = await requireAuth();
+  async function init() {
+    // 1️⃣ Esperar autenticación
+    const user = await requireAuth();
 
-  // 2️⃣ Verificar rol terapeuta
-  const userSnap = await getDoc(doc(db, "users", user.uid));
-  if (!userSnap.exists() || userSnap.data().role !== "therapist") {
-    alert("Acceso solo para terapeutas");
-    location.href = "index.html";
-  }
+    // 2️⃣ Comprobar rol terapeuta
+    const userRef = doc(db, "users", user.uid);
+    const userSnap = await getDoc(userRef);
 
-  // 3️⃣ Añadir campos dinámicos
-  const fieldsContainer = document.getElementById("fields");
-  document.getElementById("add-field").addEventListener("click", () => {
-    const input = document.createElement("input");
-    input.type = "text";
-    input.placeholder = "nombre_del_campo (ej: emociones_presentes)";
-    input.className = "field-input";
-    fieldsContainer.appendChild(input);
-  });
-
-  // 4️⃣ Guardar ejercicio
-  document.getElementById("exercise-form").addEventListener("submit", async (e) => {
-    e.preventDefault();
-
-    const title = titleInput.value.trim();
-    const description = descriptionInput.value.trim();
-    const active = document.getElementById("active").checked;
-
-    const fields = [...document.querySelectorAll(".field-input")]
-      .map(i => i.value.trim())
-      .filter(Boolean);
-
-    if (!title || fields.length === 0) {
-      alert("Añade al menos un campo");
+    if (!userSnap.exists() || userSnap.data().role !== "therapist") {
+      alert("Acceso solo para terapeutas");
+      window.location.href = "index.html";
       return;
     }
 
-    const slug = title
-      .toLowerCase()
-      .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
-      .replace(/[^a-z0-9]+/g, "_")
-      .replace(/^_|_$/g, "");
+    // 3️⃣ UI dinámica de campos
+    const fieldsContainer = document.getElementById("fields");
+    const addFieldBtn = document.getElementById("add-field");
 
-    await addDoc(collection(db, "exercises"), {
-      title,
-      description,
-      slug,
-      fields,
-      active,
-      createdAt: serverTimestamp()
+    addFieldBtn.addEventListener("click", () => {
+      const input = document.createElement("input");
+      input.type = "text";
+      input.placeholder = "nombre_del_campo (ej: emociones_presentes)";
+      input.className = "field-input";
+      fieldsContainer.appendChild(input);
     });
 
-    alert("Ejercicio creado");
-    e.target.reset();
-    fieldsContainer.innerHTML = "";
-  });
+    // 4️⃣ Guardar ejercicio
+    const form = document.getElementById("exercise-form");
 
-  // referencias
-  const titleInput = document.getElementById("title");
-  const descriptionInput = document.getElementById("description");
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const title = document.getElementById("title").value.trim();
+      const description = document.getElementById("description").value.trim();
+      const active = document.getElementById("active").checked;
+
+      const fieldInputs = document.querySelectorAll(".field-input");
+      const fields = Array.from(fieldInputs)
+        .map(i => i.value.trim())
+        .filter(v => v !== "");
+
+      if (!title || fields.length === 0) {
+        alert("El ejercicio necesita título y al menos un campo");
+        return;
+      }
+
+      const slug = title
+        .toLowerCase()
+        .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9]+/g, "_")
+        .replace(/^_|_$/g, "");
+
+      await addDoc(collection(db, "exercises"), {
+        title,
+        description,
+        slug,
+        fields,
+        active,
+        createdAt: serverTimestamp(),
+        createdBy: user.uid
+      });
+
+      alert("Ejercicio guardado correctamente");
+
+      form.reset();
+      fieldsContainer.innerHTML = "";
+    });
+  }
+
+  // 🚀 Arranque seguro
+  init();
 </script>
 
 </body>
