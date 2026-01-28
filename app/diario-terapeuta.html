@@ -39,10 +39,9 @@ exercisesSnap.forEach(doc => {
   }
 });
   const q = query(
-    collection(db, "entries"),
-    where("tipo", "==", "diario"),
-    orderBy("createdAt", "desc")
-  );
+  collection(db, "entries"),
+  orderBy("createdAt", "desc")
+);
 
   const snap = await getDocs(q);
   const container = document.getElementById("entries");
