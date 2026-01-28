@@ -235,4 +235,8 @@ button:hover {
     justify-content: center;
     flex-wrap: wrap;
   }
+<main class="app-container">
+  <h1 class="page-title">Respuestas por ejercicio</h1>
+  <div id="exercises" class="exercise-list"></div>
+</main>
 }
