@@ -54,7 +54,7 @@
 
 <script type="module">
 import { requireAuth } from "./assets/js/auth.js";
-import { db } from "./assets/js/firebase.js";
+import { auth, db } from "./assets/js/firebase.js";
 import {
   doc,
   getDoc,
@@ -66,9 +66,16 @@ import {
 document.addEventListener("DOMContentLoaded", async () => {
 
   /* ========= AUTH ========= */
-  const user = await requireAuth();
+await requireAuth();
 
-  const userSnap = await getDoc(doc(db, "users", user.uid));
+const user = auth.currentUser;
+
+if (!user) {
+  alert("Usuario no autenticado");
+  return;
+}
+
+const userSnap = await getDoc(doc(db, "users", user.uid));
   if (!userSnap.exists() || userSnap.data().role !== "therapist") {
     alert("Solo terapeutas");
     location.href = "index.html";
