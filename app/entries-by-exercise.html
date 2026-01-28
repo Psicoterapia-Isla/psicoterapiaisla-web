@@ -26,15 +26,17 @@
     collection,
     query,
     orderBy,
-    getDocs
+    getDocs,
+    doc,
+    getDoc
   } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-  // 🔐 Auth (terapeuta)
+  // Auth
   await requireAuth();
 
   const container = document.getElementById("exercises");
 
-  // 📥 Leer entradas (permitido por rules)
+  // Traer entradas
   const q = query(
     collection(db, "entries"),
     orderBy("createdAt", "desc")
@@ -46,33 +48,47 @@
     container.innerHTML = "<p>No hay respuestas todavía.</p>";
   }
 
-  // 🧠 Agrupar por ejercicio
+  // Cache de alias para no pedirlos mil veces
+  const aliasCache = {};
+
+  async function getAlias(uid) {
+    if (aliasCache[uid]) return aliasCache[uid];
+
+    const userRef = doc(db, "users", uid);
+    const userSnap = await getDoc(userRef);
+
+    const alias = userSnap.exists()
+      ? userSnap.data().alias || "Paciente"
+      : "Paciente";
+
+    aliasCache[uid] = alias;
+    return alias;
+  }
+
+  // Agrupar por ejercicio
   const grouped = {};
 
-  snap.forEach(doc => {
-    const entry = doc.data();
-    const type = entry.type || "sin_ejercicio";
+  for (const docSnap of snap.docs) {
+    const entry = docSnap.data();
+    const type = entry.type;
 
-    if (!grouped[type]) {
-      grouped[type] = [];
-    }
-
+    if (!grouped[type]) grouped[type] = [];
     grouped[type].push(entry);
-  });
+  }
 
-  // 🖨️ Pintar resultados
-  Object.keys(grouped).forEach(type => {
+  // Pintar
+  for (const type of Object.keys(grouped)) {
     const block = document.createElement("div");
     block.className = "exercise-card";
 
-    let html = `
-      <h2>${type.replace(/_/g, " ")}</h2>
-    `;
+    let html = `<h2>${type.replace(/_/g, " ")}</h2>`;
 
-    grouped[type].forEach(entry => {
+    for (const entry of grouped[type]) {
+      const alias = await getAlias(entry.uid);
+
       html += `
         <hr>
-        <p><strong>Paciente:</strong> ${entry.alias || "Paciente"}</p>
+        <p><strong>Paciente:</strong> ${alias}</p>
         <p><strong>Fecha:</strong>
           ${entry.createdAt?.toDate().toLocaleString() || ""}
         </p>
@@ -86,11 +102,11 @@
           </p>
         `;
       }
-    });
+    }
 
     block.innerHTML = html;
     container.appendChild(block);
-  });
+  }
 </script>
 
 </body>
