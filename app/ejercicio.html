@@ -23,14 +23,17 @@
 
 <script type="module">
 import { requireAuth } from "./assets/js/auth.js";
-import { db } from "./assets/js/firebase.js";
+import { db, auth } from "./assets/js/firebase.js";
 import {
   collection,
   query,
   where,
-  getDocs
+  getDocs,
+  addDoc,
+  serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
+// 🔐 Autenticación
 await requireAuth();
 
 // 1️⃣ leer slug de la URL
@@ -72,12 +75,40 @@ exercise.fields.forEach(field => {
   const textarea = document.createElement("textarea");
   textarea.name = field;
   textarea.placeholder = "Escribe aquí…";
+  textarea.required = true;
 
   form.appendChild(label);
   form.appendChild(textarea);
 });
 
-// (más adelante aquí irá el guardado)
+// 5️⃣ botón guardar
+const submitBtn = document.createElement("button");
+submitBtn.type = "submit";
+submitBtn.textContent = "Guardar ejercicio";
+form.appendChild(submitBtn);
+
+// 6️⃣ guardar respuestas como ENTRY
+form.addEventListener("submit", async (e) => {
+  e.preventDefault();
+
+  const responses = {};
+
+  exercise.fields.forEach(field => {
+    responses[field] = form.querySelector(`[name="${field}"]`).value.trim();
+  });
+
+  await addDoc(collection(db, "entries"), {
+    uid: auth.currentUser.uid,
+    type: "exercise",
+    exerciseSlug: slug,
+    exerciseTitle: exercise.title,
+    responses,
+    createdAt: serverTimestamp()
+  });
+
+  alert("Ejercicio guardado correctamente");
+  form.reset();
+});
 </script>
 
 </body>
