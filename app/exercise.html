@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Ejercicio terapéutico</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="assets/css/app.css">
+</head>
+
+<body class="app-body">
+
+<nav class="app-menu">
+  <a href="index.html">Inicio</a>
+  <a href="login.html">Salir</a>
+</nav>
+
+<main class="app-container">
+  <h1 id="exercise-title"></h1>
+  <p id="exercise-description"></p>
+
+  <form id="exercise-form"></form>
+</main>
+
+<script type="module">
+  import { requireAuth } from "./assets/js/auth.js";
+  import { db, auth } from "./assets/js/firebase.js";
+  import {
+    collection,
+    query,
+    where,
+    getDocs,
+    addDoc,
+    serverTimestamp
+  } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+  // Auth
+  const user = await requireAuth();
+
+  // Obtener slug desde la URL
+  const params = new URLSearchParams(window.location.search);
+  const slug = params.get("slug");
+
+  if (!slug) {
+    alert("Ejercicio no especificado");
+    window.location.href = "index.html";
+  }
+
+  // Cargar ejercicio
+  const q = query(
+    collection(db, "exercises"),
+    where("slug", "==", slug),
+    where("active", "==", true)
+  );
+
+  const snap = await getDocs(q);
+
+  if (snap.empty) {
+    alert("Ejercicio no encontrado");
+    window.location.href = "index.html";
+  }
+
+  const exercise = snap.docs[0].data();
+
+  // Pintar contenido
+  document.getElementById("exercise-title").textContent = exercise.title;
+  document.getElementById("exercise-description").textContent = exercise.description;
+
+  const form = document.getElementById("exercise-form");
+
+  // Generar campos dinámicos
+  exercise.fields.forEach(field => {
+    const label = document.createElement("label");
+    label.textContent = field.replace(/_/g, " ");
+
+    const textarea = document.createElement("textarea");
+    textarea.name = field;
+    textarea.required = true;
+
+    label.appendChild(textarea);
+    form.appendChild(label);
+  });
+
+  // Botón guardar
+  const submitBtn = document.createElement("button");
+  submitBtn.type = "submit";
+  submitBtn.textContent = "Guardar ejercicio";
+  form.appendChild(submitBtn);
+
+  // Guardar entrada
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    const data = {};
+    exercise.fields.forEach(field => {
+      data[field] = form.elements[field].value.trim();
+    });
+
+    await addDoc(collection(db, "entries"), {
+      uid: auth.currentUser.uid,
+      type: exercise.slug,
+      data,
+      createdAt: serverTimestamp()
+    });
+
+    alert("Ejercicio guardado correctamente");
+    window.location.href = "index.html";
+  });
+</script>
+
+</body>
+</html>
