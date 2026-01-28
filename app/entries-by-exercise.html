@@ -29,11 +29,12 @@
     getDocs
   } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-  // Auth
+  // 🔐 Autenticación (espera a que esté resuelta)
   await requireAuth();
 
   const container = document.getElementById("exercises");
 
+  // 📥 Cargar todas las entradas
   const q = query(
     collection(db, "entries"),
     orderBy("createdAt", "desc")
@@ -46,16 +47,23 @@
     return;
   }
 
+  // 📦 Agrupar por tipo de ejercicio
   const grouped = {};
 
   snap.forEach(docSnap => {
     const entry = docSnap.data();
-    const type = entry.type;
 
-    if (!grouped[type]) grouped[type] = [];
-    grouped[type].push(entry);
+    // Seguridad básica
+    if (!entry.type || !entry.data) return;
+
+    if (!grouped[entry.type]) {
+      grouped[entry.type] = [];
+    }
+
+    grouped[entry.type].push(entry);
   });
 
+  // 🖨️ Pintar resultados
   for (const type of Object.keys(grouped)) {
     const block = document.createElement("div");
     block.className = "exercise-card";
@@ -69,7 +77,9 @@
         <hr>
         <p><strong>Paciente:</strong> ${alias}</p>
         <p><strong>Fecha:</strong>
-          ${entry.createdAt?.toDate().toLocaleString() || ""}
+          ${entry.createdAt?.toDate
+            ? entry.createdAt.toDate().toLocaleString()
+            : ""}
         </p>
       `;
 
@@ -87,5 +97,6 @@
     container.appendChild(block);
   }
 </script>
+
 </body>
 </html>
