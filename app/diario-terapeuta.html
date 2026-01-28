@@ -5,84 +5,95 @@
   <title>Diarios pacientes</title>
   <link rel="stylesheet" href="assets/css/app.css">
 </head>
+
 <body class="app-body">
+
+  <!-- ✅ MENÚ DINÁMICO -->
   <header id="app-menu"></header>
+
   <div class="app-container">
     <div class="card">
       <h1>Diarios terapéuticos</h1>
       <div id="entries"></div>
+    </div>
   </div>
-</div>
-<script type="module">
-  import { loadMenu } from "./assets/js/menu.js";
-  import { requireAuth } from "./assets/js/auth.js";
-  import { auth, db } from "./assets/js/firebase.js";
-  import {
-    collection, query, where, orderBy, getDocs
-  } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-  requireAuth();
-// 🔹 7.2 – Cargar títulos de ejercicios
-const exercisesSnap = await getDocs(collection(db, "exercises"));
+  <!-- ✅ SCRIPT -->
+  <script type="module">
+    import { loadMenu } from "./assets/js/menu.js";
+    import { requireAuth } from "./assets/js/auth.js";
+    import { db } from "./assets/js/firebase.js";
+    import {
+      collection,
+      query,
+      orderBy,
+      getDocs
+    } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-const exerciseTitles = {};
-exercisesSnap.forEach(doc => {
-  const d = doc.data();
-  if (d.slug && d.title) {
-    exerciseTitles[d.slug] = d.title;
-  }
-});
-  const q = query(
-  collection(db, "entries"),
-  orderBy("createdAt", "desc")
-);
+    // 🔐 Auth + menú
+    await requireAuth();
+    await loadMenu();
 
-  const snap = await getDocs(q);
-  const container = document.getElementById("entries");
+    // 🔹 7.2 – Cargar títulos de ejercicios
+    const exercisesSnap = await getDocs(collection(db, "exercises"));
+    const exerciseTitles = {};
 
-  snap.forEach(doc => {
-  const entry = doc.data();
-
-  const card = document.createElement("div");
-  card.className = "entry-card";
-
-  // 🟣 CASO 1: ES UN EJERCICIO
-  if (entry.type) {
-    const title = document.createElement("h3");
-title.textContent =
-  exerciseTitles[entry.type] || entry.type;
-card.appendChild(title);
-
-    const date = document.createElement("small");
-    date.textContent = entry.createdAt?.toDate
-      ? entry.createdAt.toDate().toLocaleString()
-      : "";
-    card.appendChild(date);
-
-    const data = entry.data || {};
-
-    Object.entries(data).forEach(([key, value]) => {
-      const fieldTitle = document.createElement("h4");
-      fieldTitle.textContent = key.replace(/_/g, " ");
-
-      const fieldValue = document.createElement("p");
-      fieldValue.textContent = value;
-
-      card.appendChild(fieldTitle);
-      card.appendChild(fieldValue);
+    exercisesSnap.forEach(doc => {
+      const d = doc.data();
+      if (d.slug && d.title) {
+        exerciseTitles[d.slug] = d.title;
+      }
     });
-  }
 
-  // 🔵 CASO 2: DIARIO NORMAL (lo que ya tenías)
-  else {
-    const text = document.createElement("p");
-    text.textContent = entry.text || "(sin contenido)";
-    card.appendChild(text);
-  }
+    // 🔹 Cargar entradas
+    const q = query(
+      collection(db, "entries"),
+      orderBy("createdAt", "desc")
+    );
 
-  container.appendChild(card);
-});
-</script>
+    const snap = await getDocs(q);
+    const container = document.getElementById("entries");
+
+    snap.forEach(doc => {
+      const entry = doc.data();
+      const card = document.createElement("div");
+      card.className = "entry-card";
+
+      // 🟣 CASO 1: EJERCICIO
+      if (entry.type) {
+        const title = document.createElement("h3");
+        title.textContent = exerciseTitles[entry.type] || entry.type;
+        card.appendChild(title);
+
+        const date = document.createElement("small");
+        date.textContent = entry.createdAt?.toDate
+          ? entry.createdAt.toDate().toLocaleString()
+          : "";
+        card.appendChild(date);
+
+        const data = entry.data || {};
+        Object.entries(data).forEach(([key, value]) => {
+          const fieldTitle = document.createElement("h4");
+          fieldTitle.textContent = key.replace(/_/g, " ");
+
+          const fieldValue = document.createElement("p");
+          fieldValue.textContent = value;
+
+          card.appendChild(fieldTitle);
+          card.appendChild(fieldValue);
+        });
+      }
+
+      // 🔵 CASO 2: DIARIO TEXTO
+      else {
+        const text = document.createElement("p");
+        text.textContent = entry.text || "(sin contenido)";
+        card.appendChild(text);
+      }
+
+      container.appendChild(card);
+    });
+  </script>
 
 </body>
 </html>
