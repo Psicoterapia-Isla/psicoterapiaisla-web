@@ -20,7 +20,7 @@ export async function loadMenu() {
       menu.innerHTML += `
         <a href="diario-terapeuta.html">Diarios pacientes</a>
         <a href="entradas-terapeuta.html">Entradas</a>
-        <a href="entries-by-exercise.html">Por ejercicio</a>
+        <a href="exercises-list.html">Ejercicios</a>
       `;
     }
 
