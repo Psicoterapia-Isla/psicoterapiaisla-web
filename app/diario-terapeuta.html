@@ -7,9 +7,18 @@
 </head>
 
 <body class="app-body">
+
+  <!-- MENÚ DINÁMICO -->
   <header class="app-menu"></header>
 
-  <!-- ✅ SCRIPT -->
+  <div class="app-container">
+    <div class="card">
+      <h1>Diarios terapéuticos</h1>
+      <div id="entries"></div>
+    </div>
+  </div>
+
+  <!-- SCRIPT PRINCIPAL -->
   <script type="module">
     import { loadMenu } from "./assets/js/menu.js";
     import { requireAuth } from "./assets/js/auth.js";
@@ -25,7 +34,7 @@
     await requireAuth();
     await loadMenu();
 
-    // 🔹 7.2 – Cargar títulos de ejercicios
+    // 🔹 Cargar títulos de ejercicios
     const exercisesSnap = await getDocs(collection(db, "exercises"));
     const exerciseTitles = {};
 
@@ -50,7 +59,7 @@
       const card = document.createElement("div");
       card.className = "entry-card";
 
-      // 🟣 CASO 1: EJERCICIO
+      // 🟣 EJERCICIO
       if (entry.type) {
         const title = document.createElement("h3");
         title.textContent = exerciseTitles[entry.type] || entry.type;
@@ -75,7 +84,7 @@
         });
       }
 
-      // 🔵 CASO 2: DIARIO TEXTO
+      // 🔵 DIARIO TEXTO
       else {
         const text = document.createElement("p");
         text.textContent = entry.text || "(sin contenido)";
@@ -85,12 +94,6 @@
       container.appendChild(card);
     });
   </script>
-<script type="module">
-  import { loadMenu } from "./assets/js/menu.js";
-  import { requireAuth } from "./assets/js/auth.js";
 
-  await requireAuth();
-  await loadMenu();
-</script>
 </body>
 </html>
