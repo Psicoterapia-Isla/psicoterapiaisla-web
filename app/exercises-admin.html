@@ -53,17 +53,87 @@
 </main>
 
 <script type="module">
-import { requireAuth } from "./assets/js/auth.js";
-import { auth, db } from "./assets/js/firebase.js";
-import {
-  doc,
-  getDoc,
-  collection,
-  addDoc,
-  serverTimestamp
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+  import { requireAuth } from "./assets/js/auth.js";
+  import { auth, db } from "./assets/js/firebase.js";
+  import {
+    onAuthStateChanged
+  } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+  import {
+    collection,
+    addDoc,
+    serverTimestamp
+  } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-document.addEventListener("DOMContentLoaded", async () => {
+  // 1️⃣ Esperar autenticación REAL
+  await requireAuth();
+
+  const user = await new Promise((resolve) => {
+    const unsub = onAuthStateChanged(auth, (u) => {
+      if (u) {
+        unsub();
+        resolve(u);
+      }
+    });
+  });
+
+  if (!user) {
+    alert("Usuario no autenticado");
+    return;
+  }
+
+  // 2️⃣ UI campos dinámicos
+  const fieldsContainer = document.getElementById("fields");
+  const addFieldBtn = document.getElementById("add-field");
+
+  addFieldBtn.addEventListener("click", () => {
+    const input = document.createElement("input");
+    input.type = "text";
+    input.placeholder = "nombre_del_campo (ej: emociones_presentes)";
+    input.className = "field-input";
+    fieldsContainer.appendChild(input);
+  });
+
+  // 3️⃣ Guardar ejercicio
+  const form = document.getElementById("exercise-form");
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    const title = document.getElementById("title").value.trim();
+    const description = document.getElementById("description").value.trim();
+    const active = document.getElementById("active").checked;
+
+    const fieldInputs = document.querySelectorAll(".field-input");
+    const fields = Array.from(fieldInputs)
+      .map(i => i.value.trim())
+      .filter(v => v !== "");
+
+    if (!title || fields.length === 0) {
+      alert("El ejercicio necesita título y al menos un campo");
+      return;
+    }
+
+    const slug = title
+      .toLowerCase()
+      .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9]+/g, "_")
+      .replace(/^_|_$/g, "");
+
+    await addDoc(collection(db, "exercises"), {
+      title,
+      description,
+      slug,
+      fields,
+      active,
+      createdAt: serverTimestamp(),
+      createdBy: user.uid
+    });
+
+    alert("Ejercicio guardado correctamente");
+    form.reset();
+    fieldsContainer.innerHTML = "";
+  });
+</script>
 
   /* ========= AUTH ========= */
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
