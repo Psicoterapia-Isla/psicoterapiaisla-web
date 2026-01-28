@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Gestión de ejercicios</title>
+  <title>Crear ejercicio</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="assets/css/app.css">
 </head>
@@ -20,8 +20,8 @@
   <form id="exercise-form">
 
     <input
-      type="text"
       id="title"
+      type="text"
       placeholder="Título del ejercicio"
       required
     >
@@ -34,59 +34,42 @@
     <h3>Campos del ejercicio</h3>
     <div id="fields"></div>
 
-    <label style="margin-top:1rem; display:block;">
+    <button type="button" id="add-field">+ Añadir campo</button>
+
+    <label style="display:block;margin-top:1rem;">
       <input type="checkbox" id="active" checked>
       Ejercicio activo
     </label>
 
-    <button type="submit">
-      Guardar ejercicio
-    </button>
+    <button type="submit">Guardar ejercicio</button>
 
   </form>
-
-  <!-- 🔴 BOTÓN FUERA DEL FORM -->
-  <button id="add-field" style="margin-top:1rem;">
-    + Añadir campo
-  </button>
-
 </main>
 
 <script type="module">
   import { requireAuth } from "./assets/js/auth.js";
-  import { auth, db } from "./assets/js/firebase.js";
-  import {
-    onAuthStateChanged
-  } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+  import { db } from "./assets/js/firebase.js";
   import {
     collection,
     addDoc,
+    doc,
+    getDoc,
     serverTimestamp
   } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-  // 1️⃣ Esperar autenticación REAL
-  await requireAuth();
+  // 1️⃣ Autenticación
+  const user = await requireAuth();
 
-  const user = await new Promise((resolve) => {
-    const unsub = onAuthStateChanged(auth, (u) => {
-      if (u) {
-        unsub();
-        resolve(u);
-      }
-    });
-  });
-
-  if (!user) {
-  alert("Usuario no autenticado");
-  throw new Error("Usuario no autenticado");
-}
+  // 2️⃣ Verificar rol terapeuta
+  const userSnap = await getDoc(doc(db, "users", user.uid));
+  if (!userSnap.exists() || userSnap.data().role !== "therapist") {
+    alert("Acceso solo para terapeutas");
+    location.href = "index.html";
   }
 
-  // 2️⃣ UI campos dinámicos
+  // 3️⃣ Añadir campos dinámicos
   const fieldsContainer = document.getElementById("fields");
-  const addFieldBtn = document.getElementById("add-field");
-
-  addFieldBtn.addEventListener("click", () => {
+  document.getElementById("add-field").addEventListener("click", () => {
     const input = document.createElement("input");
     input.type = "text";
     input.placeholder = "nombre_del_campo (ej: emociones_presentes)";
@@ -94,23 +77,20 @@
     fieldsContainer.appendChild(input);
   });
 
-  // 3️⃣ Guardar ejercicio
-  const form = document.getElementById("exercise-form");
-
-  form.addEventListener("submit", async (e) => {
+  // 4️⃣ Guardar ejercicio
+  document.getElementById("exercise-form").addEventListener("submit", async (e) => {
     e.preventDefault();
 
-    const title = document.getElementById("title").value.trim();
-    const description = document.getElementById("description").value.trim();
+    const title = titleInput.value.trim();
+    const description = descriptionInput.value.trim();
     const active = document.getElementById("active").checked;
 
-    const fieldInputs = document.querySelectorAll(".field-input");
-    const fields = Array.from(fieldInputs)
+    const fields = [...document.querySelectorAll(".field-input")]
       .map(i => i.value.trim())
-      .filter(v => v !== "");
+      .filter(Boolean);
 
     if (!title || fields.length === 0) {
-      alert("El ejercicio necesita título y al menos un campo");
+      alert("Añade al menos un campo");
       return;
     }
 
@@ -126,105 +106,18 @@
       slug,
       fields,
       active,
-      createdAt: serverTimestamp(),
-      createdBy: user.uid
+      createdAt: serverTimestamp()
     });
 
-    alert("Ejercicio guardado correctamente");
-    form.reset();
+    alert("Ejercicio creado");
+    e.target.reset();
     fieldsContainer.innerHTML = "";
   });
-</script>
 
-  /* ========= AUTH ========= */
-import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-
-await requireAuth();
-
-const user = await new Promise((resolve) => {
-  const unsub = onAuthStateChanged(auth, (u) => {
-    if (u) {
-      unsub();
-      resolve(u);
-    }
-  });
-});
-
-if (!user) {
-  alert("Usuario no autenticado");
-  return;
-}
-
-const userSnap = await getDoc(doc(db, "users", user.uid));
-  if (!userSnap.exists() || userSnap.data().role !== "therapist") {
-    alert("Solo terapeutas");
-    location.href = "index.html";
-    return;
-  }
-
-  /* ========= ELEMENTOS ========= */
-  const form = document.getElementById("exercise-form");
+  // referencias
   const titleInput = document.getElementById("title");
   const descriptionInput = document.getElementById("description");
-  const activeInput = document.getElementById("active");
-  const fieldsContainer = document.getElementById("fields");
-  const addFieldBtn = document.getElementById("add-field");
-
-  /* ========= AÑADIR CAMPO ========= */
-  addFieldBtn.addEventListener("click", () => {
-    const input = document.createElement("input");
-    input.type = "text";
-    input.placeholder = "nombre_del_campo (ej: emociones_presentes)";
-    input.className = "field-input";
-    fieldsContainer.appendChild(input);
-  });
-
-  /* ========= GUARDAR ========= */
-  form.addEventListener("submit", async (e) => {
-    e.preventDefault();
-
-    const title = titleInput.value.trim();
-    const description = descriptionInput.value.trim();
-    const active = activeInput.checked;
-
-    const fields = Array.from(
-      document.querySelectorAll(".field-input")
-    )
-      .map(i => i.value.trim())
-      .filter(Boolean);
-
-    if (!title || fields.length === 0) {
-      alert("El ejercicio necesita título y al menos un campo");
-      return;
-    }
-
-    const slug = title
-      .toLowerCase()
-      .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
-      .replace(/[^a-z0-9]+/g, "_")
-      .replace(/^_|_$/g, "");
-
-    try {
-      await addDoc(collection(db, "exercises"), {
-        title,
-        description,
-        slug,
-        fields,
-        active,
-        createdAt: serverTimestamp()
-      });
-
-      alert("Ejercicio guardado correctamente");
-      form.reset();
-      fieldsContainer.innerHTML = "";
-
-    } catch (err) {
-      console.error(err);
-      alert("Error al guardar. Mira la consola.");
-    }
-  });
-
-});
 </script>
+
 </body>
 </html>
