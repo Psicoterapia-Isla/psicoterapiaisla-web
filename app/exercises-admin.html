@@ -34,6 +34,7 @@
     <h3>Campos del ejercicio</h3>
     <div id="fields"></div>
 
+    <!-- IMPORTANTE: type="button" -->
     <button type="button" id="add-field">
       + Añadir campo
     </button>
@@ -61,19 +62,23 @@
     serverTimestamp
   } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-  // Autenticación
+  /* =========================
+     AUTENTICACIÓN Y ROL
+  ========================= */
   const user = await requireAuth();
 
-  // Comprobar rol terapeuta
   const userRef = doc(db, "users", user.uid);
   const userSnap = await getDoc(userRef);
 
   if (!userSnap.exists() || userSnap.data().role !== "therapist") {
     alert("Acceso solo para terapeutas");
     window.location.href = "index.html";
+    throw new Error("Usuario sin permisos");
   }
 
-  // UI dinámica de campos
+  /* =========================
+     CAMPOS DINÁMICOS
+  ========================= */
   const fieldsContainer = document.getElementById("fields");
   const addFieldBtn = document.getElementById("add-field");
 
@@ -81,11 +86,13 @@
     const input = document.createElement("input");
     input.type = "text";
     input.placeholder = "nombre_del_campo (ej: emociones_presentes)";
-    input.className = "field-input";
+    input.classList.add("field-input");
     fieldsContainer.appendChild(input);
   });
 
-  // Guardar ejercicio
+  /* =========================
+     GUARDAR EJERCICIO
+  ========================= */
   const form = document.getElementById("exercise-form");
 
   form.addEventListener("submit", async (e) => {
@@ -100,8 +107,13 @@
       .map(i => i.value.trim())
       .filter(v => v !== "");
 
-    if (!title || fields.length === 0) {
-      alert("El ejercicio necesita título y al menos un campo");
+    if (!title) {
+      alert("Falta el título del ejercicio");
+      return;
+    }
+
+    if (fields.length === 0) {
+      alert("Añade al menos un campo");
       return;
     }
 
@@ -111,19 +123,25 @@
       .replace(/[^a-z0-9]+/g, "_")
       .replace(/^_|_$/g, "");
 
-    await addDoc(collection(db, "exercises"), {
-      title,
-      description,
-      slug,
-      fields,
-      active,
-      createdAt: serverTimestamp()
-    });
+    try {
+      await addDoc(collection(db, "exercises"), {
+        title,
+        description,
+        slug,
+        fields,
+        active,
+        createdAt: serverTimestamp()
+      });
 
-    alert("Ejercicio guardado correctamente");
+      alert("Ejercicio guardado correctamente");
 
-    form.reset();
-    fieldsContainer.innerHTML = "";
+      form.reset();
+      fieldsContainer.innerHTML = "";
+
+    } catch (error) {
+      console.error("Error al guardar:", error);
+      alert("Error al guardar el ejercicio. Revisa la consola.");
+    }
   });
 </script>
 
