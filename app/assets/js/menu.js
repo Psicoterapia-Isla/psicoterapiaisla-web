@@ -1,4 +1,3 @@
-import { auth } from "./firebase.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { db } from "./firebase.js";
 import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
@@ -10,20 +9,18 @@ export async function loadMenu() {
   onAuthStateChanged(getAuth(), async (user) => {
     if (!user) return;
 
-    const userRef = doc(db, "users", user.uid);
-    const snap = await getDoc(userRef);
+    const snap = await getDoc(doc(db, "users", user.uid));
     const role = snap.exists() ? snap.data().role : "patient";
 
-    // Limpia menú
-    menu.innerHTML = "";
-
-    // Común
-    menu.innerHTML += `<a href="index.html">Inicio</a>`;
+    menu.innerHTML = `
+      <a href="index.html">Inicio</a>
+    `;
 
     if (role === "therapist") {
       menu.innerHTML += `
-        <a href="entradas-terapeuta.html">Vista terapeuta</a>
-        <a href="entries-by-exercise.html">Respuestas por ejercicio</a>
+        <a href="diario-terapeuta.html">Diarios pacientes</a>
+        <a href="entradas-terapeuta.html">Entradas</a>
+        <a href="entries-by-exercise.html">Por ejercicio</a>
       `;
     }
 
