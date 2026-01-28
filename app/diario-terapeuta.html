@@ -38,17 +38,48 @@
   const snap = await getDocs(q);
   const container = document.getElementById("entries");
 
-  snap.forEach(doc => {
-    const d = doc.data();
-    container.innerHTML += `
-      <div class="entry">
-        <small><strong>Paciente:</strong> ${d.uid}</small><br>
-        <small>${d.createdAt?.toDate().toLocaleString()}</small>
-        <p>${d.texto}</p>
-        <hr>
-      </div>
-    `;
-  });
+  snapshot.forEach(doc => {
+  const entry = doc.data();
+
+  const card = document.createElement("div");
+  card.className = "entry-card";
+
+  // 🟣 CASO 1: ES UN EJERCICIO
+  if (entry.type) {
+    const title = document.createElement("h3");
+    title.textContent = `Ejercicio: ${entry.type.replace(/_/g, " ")}`;
+
+    card.appendChild(title);
+
+    const date = document.createElement("small");
+    date.textContent = entry.createdAt?.toDate
+      ? entry.createdAt.toDate().toLocaleString()
+      : "";
+    card.appendChild(date);
+
+    const data = entry.data || {};
+
+    Object.entries(data).forEach(([key, value]) => {
+      const fieldTitle = document.createElement("h4");
+      fieldTitle.textContent = key.replace(/_/g, " ");
+
+      const fieldValue = document.createElement("p");
+      fieldValue.textContent = value;
+
+      card.appendChild(fieldTitle);
+      card.appendChild(fieldValue);
+    });
+  }
+
+  // 🔵 CASO 2: DIARIO NORMAL (lo que ya tenías)
+  else {
+    const text = document.createElement("p");
+    text.textContent = entry.text || "(sin contenido)";
+    card.appendChild(text);
+  }
+
+  container.appendChild(card);
+});
 </script>
 
 </body>
