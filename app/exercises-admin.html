@@ -33,6 +33,74 @@
     <button type="submit">Guardar ejercicio</button>
   </form>
 </main>
+<script type="module">
+import { requireAuth } from "./assets/js/auth.js";
+import { db } from "./assets/js/firebase.js";
+import {
+  doc,
+  getDoc,
+  collection,
+  addDoc
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
+const user = await requireAuth();
+
+// comprobar rol terapeuta
+const userRef = doc(db, "users", user.uid);
+const userSnap = await getDoc(userRef);
+
+if (!userSnap.exists() || userSnap.data().role !== "therapist") {
+  alert("Acceso solo para terapeutas");
+  window.location.href = "index.html";
+}
+  const fieldsContainer = document.getElementById("fields");
+const addFieldBtn = document.getElementById("add-field");
+
+addFieldBtn.addEventListener("click", () => {
+  const input = document.createElement("input");
+  input.type = "text";
+  input.placeholder = "nombre_del_campo (ej: emociones_presentes)";
+  input.className = "field-input";
+  fieldsContainer.appendChild(input);
+});
+  const form = document.getElementById("exercise-form");
+
+form.addEventListener("submit", async (e) => {
+  e.preventDefault();
+
+  const title = document.getElementById("title").value.trim();
+  const description = document.getElementById("description").value.trim();
+  const active = document.getElementById("active").checked;
+
+  const fieldInputs = document.querySelectorAll(".field-input");
+  const fields = Array.from(fieldInputs)
+    .map(i => i.value.trim())
+    .filter(v => v !== "");
+
+  if (!title || fields.length === 0) {
+    alert("El ejercicio necesita título y al menos un campo");
+    return;
+  }
+
+  const slug = title
+    .toLowerCase()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_|_$/g, "");
+
+  await addDoc(collection(db, "exercises"), {
+    title,
+    description,
+    slug,
+    fields,
+    active,
+    createdAt: new Date()
+  });
+
+  alert("Ejercicio guardado");
+  form.reset();
+  fieldsContainer.innerHTML = "";
+});
+</script>
 </body>
 </html>
