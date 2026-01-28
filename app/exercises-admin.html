@@ -77,8 +77,9 @@
   });
 
   if (!user) {
-    alert("Usuario no autenticado");
-    return;
+  alert("Usuario no autenticado");
+  throw new Error("Usuario no autenticado");
+}
   }
 
   // 2️⃣ UI campos dinámicos
