@@ -7,12 +7,6 @@
 </head>
 <body class="app-body">
 
-<nav class="app-menu">
-  <a href="index.html">Inicio</a>
-  <a href="diario-terapeuta.html">Diarios</a>
-  <a href="login.html">Salir</a>
-</nav>
-
 <div class="app-container">
   <div class="card">
     <h1>Diarios terapéuticos</h1>
@@ -21,6 +15,7 @@
 </div>
 
 <script type="module">
+  import { loadMenu } from "./assets/js/menu.js";
   import { requireAuth } from "./assets/js/auth.js";
   import { auth, db } from "./assets/js/firebase.js";
   import {
