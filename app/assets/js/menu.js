@@ -12,7 +12,6 @@ export async function loadMenu() {
     const snap = await getDoc(doc(db, "users", user.uid));
     const role = snap.exists() ? snap.data().role : "patient";
 
-    // Limpieza total
     menu.innerHTML = "";
 
     // 🔹 COMÚN
@@ -35,6 +34,7 @@ export async function loadMenu() {
         <a href="diario-terapeuta">Diarios pacientes</a>
         <a href="entries-by-exercise.html">Respuestas por ejercicio</a>
         <a href="entries-by-patient.html">Por paciente</a>
+        <a href="exercises-admin.html">Gestionar ejercicios</a>
       `;
     }
 
