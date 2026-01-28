@@ -240,3 +240,75 @@ button:hover {
   <div id="exercises" class="exercise-list"></div>
 </main>
 }
+/* =========================
+   Psicoterapia Isla – UX
+   Respuestas por ejercicio
+   ========================= */
+
+.page-title {
+  font-size: 1.8rem;
+  font-weight: 600;
+  color: #5a5a5a;
+  margin-bottom: 2rem;
+}
+
+/* Contenedor general */
+.exercise-list {
+  display: flex;
+  flex-direction: column;
+  gap: 3rem;
+}
+
+/* Bloque por ejercicio */
+.exercise-card {
+  background: #fffdf9;
+  border-radius: 20px;
+  padding: 2rem;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.04);
+  border-left: 8px solid #cfe8dc; /* verde pastel */
+}
+
+/* Título del ejercicio */
+.exercise-card h2 {
+  font-size: 1.4rem;
+  color: #7a6c8a; /* rosa-gris suave */
+  margin-bottom: 1.5rem;
+  text-transform: capitalize;
+}
+
+/* Cada entrada individual */
+.entry-card {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  border: 1px solid #f1f1f1;
+}
+
+/* Cabecera de entrada */
+.entry-meta {
+  font-size: 0.9rem;
+  color: #8a8a8a;
+  margin-bottom: 1rem;
+}
+
+/* Campos del ejercicio */
+.entry-field {
+  margin-bottom: 1rem;
+}
+
+.entry-field strong {
+  display: block;
+  font-weight: 600;
+  color: #6a7b6f; /* verde texto */
+  margin-bottom: 0.2rem;
+}
+
+.entry-field span {
+  display: block;
+  background: #fff6e5; /* amarillo pastel */
+  padding: 0.6rem 0.8rem;
+  border-radius: 10px;
+  color: #4a4a4a;
+  line-height: 1.4;
+}
