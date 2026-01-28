@@ -66,9 +66,18 @@ import {
 document.addEventListener("DOMContentLoaded", async () => {
 
   /* ========= AUTH ========= */
+import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
 await requireAuth();
 
-const user = auth.currentUser;
+const user = await new Promise((resolve) => {
+  const unsub = onAuthStateChanged(auth, (u) => {
+    if (u) {
+      unsub();
+      resolve(u);
+    }
+  });
+});
 
 if (!user) {
   alert("Usuario no autenticado");
