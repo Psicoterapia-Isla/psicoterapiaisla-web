@@ -26,32 +26,41 @@
     collection,
     query,
     orderBy,
-    getDocs,
-    doc,
-    getDoc
+    getDocs
   } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
   // 1️⃣ Auth
   await requireAuth();
 
-  // 2️⃣ Traer todas las entradas
+  const container = document.getElementById("exercises");
+
+  // 2️⃣ Cargar usuarios (uid → alias)
+  const usersSnap = await getDocs(collection(db, "users"));
+  const usersMap = {};
+
+  usersSnap.forEach(doc => {
+    const data = doc.data();
+    usersMap[doc.id] = data.alias || "Paciente";
+  });
+
+  // 3️⃣ Cargar entradas
   const q = query(
     collection(db, "entries"),
     orderBy("createdAt", "desc")
   );
 
   const snap = await getDocs(q);
-  const container = document.getElementById("exercises");
 
   if (snap.empty) {
     container.innerHTML = "<p>No hay respuestas todavía.</p>";
+    return;
   }
 
-  // 3️⃣ Agrupar por ejercicio
+  // 4️⃣ Agrupar por ejercicio
   const grouped = {};
 
-  snap.forEach(docSnap => {
-    const entry = docSnap.data();
+  snap.forEach(doc => {
+    const entry = doc.data();
     const type = entry.type;
 
     if (!grouped[type]) {
@@ -61,25 +70,15 @@
     grouped[type].push(entry);
   });
 
-  // 4️⃣ Pintar por ejercicio (con alias)
-  for (const type of Object.keys(grouped)) {
+  // 5️⃣ Pintar resultados
+  Object.keys(grouped).forEach(type => {
     const block = document.createElement("div");
     block.className = "exercise-card";
 
-    let html = `
-      <h2>${type.replace(/_/g, " ")}</h2>
-    `;
+    let html = `<h2>${type.replace(/_/g, " ")}</h2>`;
 
-    for (const entry of grouped[type]) {
-
-      // 🔹 Resolver alias desde users/{uid}
-      let alias = "Paciente";
-      try {
-        const userSnap = await getDoc(doc(db, "users", entry.uid));
-        if (userSnap.exists()) {
-          alias = userSnap.data().alias || alias;
-        }
-      } catch (e) {}
+    grouped[type].forEach(entry => {
+      const alias = usersMap[entry.uid] || "Paciente";
 
       html += `
         <hr>
@@ -97,11 +96,11 @@
           </p>
         `;
       }
-    }
+    });
 
     block.innerHTML = html;
     container.appendChild(block);
-  }
+  });
 </script>
 
 </body>
