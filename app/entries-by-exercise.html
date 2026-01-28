@@ -34,7 +34,7 @@
   } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
   // 🔐 Auth
-  const user = await requireAuth();
+  await requireAuth();
 
   const container = document.getElementById("exercises");
 
@@ -73,8 +73,8 @@
         ? entry.createdAt.toDate().toLocaleString()
         : "";
 
-      const noteId = `${entry.uid}_${entry._id}`;
-      const noteRef = doc(db, "therapist_notes", noteId);
+      // 🧠 ID de nota = ID de la entry
+      const noteRef = doc(db, "therapist_notes", entry._id);
       const noteSnap = await getDoc(noteRef);
       const existingNote = noteSnap.exists() ? noteSnap.data().note : "";
 
@@ -97,9 +97,9 @@
       }
 
       inner += `
-        <div class="entry-field">
-          <strong>Notas del terapeuta</strong>
-          <textarea class="note-textarea" rows="3"
+        <div class="therapist-note">
+          <label><strong>Notas del terapeuta</strong></label>
+          <textarea class="note-textarea" rows="4"
             placeholder="Escribe aquí la nota clínica...">${existingNote}</textarea>
           <button class="save-note-btn">Guardar nota</button>
           <small class="note-status"></small>
@@ -114,12 +114,13 @@
       const status = card.querySelector(".note-status");
 
       button.addEventListener("click", async () => {
-        status.textContent = "Guardando...";
+        status.textContent = "Guardando…";
         await setDoc(noteRef, {
           note: textarea.value,
           updatedAt: serverTimestamp()
         });
         status.textContent = "Nota guardada ✔";
+        setTimeout(() => status.textContent = "", 2000);
       });
     }
 
