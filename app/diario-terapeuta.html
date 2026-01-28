@@ -46,7 +46,7 @@ exercisesSnap.forEach(doc => {
   const snap = await getDocs(q);
   const container = document.getElementById("entries");
 
-  snapshot.forEach(doc => {
+  snap.forEach(doc => {
   const entry = doc.data();
 
   const card = document.createElement("div");
