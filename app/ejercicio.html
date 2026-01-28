@@ -9,107 +9,107 @@
 
 <body class="app-body">
 
-<nav class="app-menu">
-  <a href="exercises-test.html">Volver</a>
-  <a href="login.html">Salir</a>
-</nav>
+  <!-- ✅ MENÚ DINÁMICO -->
+  <header class="app-menu"></header>
 
-<main class="app-container">
-  <h1 id="exercise-title"></h1>
-  <p id="exercise-description"></p>
+  <main class="app-container">
+    <h1 id="exercise-title"></h1>
+    <p id="exercise-description"></p>
 
-  <form id="exercise-form"></form>
-</main>
+    <form id="exercise-form"></form>
+  </main>
 
-<script type="module">
-import { requireAuth } from "./assets/js/auth.js";
-import { db, auth } from "./assets/js/firebase.js";
-import {
-  collection,
-  query,
-  where,
-  getDocs,
-  addDoc,
-  serverTimestamp
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+  <script type="module">
+    import { requireAuth } from "./assets/js/auth.js";
+    import { loadMenu } from "./assets/js/menu.js";
+    import { db, auth } from "./assets/js/firebase.js";
+    import {
+      collection,
+      query,
+      where,
+      getDocs,
+      addDoc,
+      serverTimestamp
+    } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-// 🔐 Autenticación
-await requireAuth();
+    // 🔐 Auth + menú
+    await requireAuth();
+    await loadMenu();
 
-// 1️⃣ leer slug de la URL
-const params = new URLSearchParams(window.location.search);
-const slug = params.get("slug");
+    // 1️⃣ leer slug de la URL
+    const params = new URLSearchParams(window.location.search);
+    const slug = params.get("slug");
 
-if (!slug) {
-  alert("Ejercicio no especificado");
-  throw new Error("Slug ausente");
-}
+    if (!slug) {
+      alert("Ejercicio no especificado");
+      throw new Error("Slug ausente");
+    }
 
-// 2️⃣ buscar ejercicio en Firestore
-const q = query(
-  collection(db, "exercises"),
-  where("slug", "==", slug),
-  where("active", "==", true)
-);
+    // 2️⃣ buscar ejercicio en Firestore
+    const q = query(
+      collection(db, "exercises"),
+      where("slug", "==", slug),
+      where("active", "==", true)
+    );
 
-const snapshot = await getDocs(q);
+    const snapshot = await getDocs(q);
 
-if (snapshot.empty) {
-  alert("Ejercicio no encontrado");
-  throw new Error("Ejercicio no existe");
-}
+    if (snapshot.empty) {
+      alert("Ejercicio no encontrado");
+      throw new Error("Ejercicio no existe");
+    }
 
-const exercise = snapshot.docs[0].data();
+    const exercise = snapshot.docs[0].data();
 
-// 3️⃣ pintar título y descripción
-document.getElementById("exercise-title").textContent = exercise.title;
-document.getElementById("exercise-description").textContent = exercise.description;
+    // 3️⃣ pintar título y descripción
+    document.getElementById("exercise-title").textContent = exercise.title;
+    document.getElementById("exercise-description").textContent = exercise.description;
 
-// 4️⃣ generar campos dinámicos
-const form = document.getElementById("exercise-form");
+    // 4️⃣ generar campos dinámicos
+    const form = document.getElementById("exercise-form");
 
-exercise.fields.forEach(field => {
-  const label = document.createElement("label");
-  label.textContent = field.replace(/_/g, " ");
+    exercise.fields.forEach(field => {
+      const label = document.createElement("label");
+      label.textContent = field.replace(/_/g, " ");
 
-  const textarea = document.createElement("textarea");
-  textarea.name = field;
-  textarea.placeholder = "Escribe aquí…";
-  textarea.required = true;
+      const textarea = document.createElement("textarea");
+      textarea.name = field;
+      textarea.placeholder = "Escribe aquí…";
+      textarea.required = true;
 
-  form.appendChild(label);
-  form.appendChild(textarea);
-});
+      form.appendChild(label);
+      form.appendChild(textarea);
+    });
 
-// 5️⃣ botón guardar
-const submitBtn = document.createElement("button");
-submitBtn.type = "submit";
-submitBtn.textContent = "Guardar ejercicio";
-form.appendChild(submitBtn);
+    // 5️⃣ botón guardar
+    const submitBtn = document.createElement("button");
+    submitBtn.type = "submit";
+    submitBtn.textContent = "Guardar ejercicio";
+    form.appendChild(submitBtn);
 
-// 6️⃣ guardar respuestas como ENTRY
-form.addEventListener("submit", async (e) => {
-  e.preventDefault();
+    // 6️⃣ guardar respuestas como ENTRY
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
 
-  const responses = {};
+      const responses = {};
 
-  exercise.fields.forEach(field => {
-    responses[field] = form.querySelector(`[name="${field}"]`).value.trim();
-  });
+      exercise.fields.forEach(field => {
+        responses[field] = form.querySelector(`[name="${field}"]`).value.trim();
+      });
 
-  await addDoc(collection(db, "entries"), {
-    uid: auth.currentUser.uid,
-    type: "exercise",
-    exerciseSlug: slug,
-    exerciseTitle: exercise.title,
-    responses,
-    createdAt: serverTimestamp()
-  });
+      await addDoc(collection(db, "entries"), {
+        uid: auth.currentUser.uid,
+        type: "exercise",
+        exerciseSlug: slug,
+        exerciseTitle: exercise.title,
+        responses,
+        createdAt: serverTimestamp()
+      });
 
-  alert("Ejercicio guardado correctamente");
-  form.reset();
-});
-</script>
+      alert("Ejercicio guardado correctamente");
+      form.reset();
+    });
+  </script>
 
 </body>
 </html>
