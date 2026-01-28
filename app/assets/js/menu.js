@@ -1,6 +1,6 @@
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import { db } from "./firebase.js";
 import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { db } from "./firebase.js";
 
 export async function loadMenu() {
   const menu = document.querySelector(".app-menu");
@@ -12,25 +12,35 @@ export async function loadMenu() {
     const snap = await getDoc(doc(db, "users", user.uid));
     const role = snap.exists() ? snap.data().role : "patient";
 
-    menu.innerHTML = `
+    // Limpieza total
+    menu.innerHTML = "";
+
+    // 🔹 COMÚN
+    menu.innerHTML += `
       <a href="index.html">Inicio</a>
     `;
 
-    if (role === "therapist") {
-      menu.innerHTML += `
-        <a href="diario-terapeuta.html">Diarios pacientes</a>
-        <a href="entradas-terapeuta.html">Entradas</a>
-        <a href="exercises-list.html">Ejercicios</a>
-      `;
-    }
-
+    // 🔹 PACIENTE
     if (role === "patient") {
       menu.innerHTML += `
-        <a href="diario.html">Mi diario</a>
-        <a href="mis-respuestas.html">Mis respuestas</a>
+        <a href="diario.html">Diario</a>
+        <a href="exercises-list.html">Ejercicios</a>
+        <a href="mis-entradas.html">Mis entradas</a>
       `;
     }
 
-    menu.innerHTML += `<a href="login.html">Salir</a>`;
+    // 🔹 TERAPEUTA
+    if (role === "therapist") {
+      menu.innerHTML += `
+        <a href="diario-terapeuta">Diarios pacientes</a>
+        <a href="entries-by-exercise.html">Respuestas por ejercicio</a>
+        <a href="entries-by-patient.html">Por paciente</a>
+      `;
+    }
+
+    // 🔹 SALIR
+    menu.innerHTML += `
+      <a href="login.html">Salir</a>
+    `;
   });
 }
