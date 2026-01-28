@@ -1,44 +1,84 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <title>Ejercicios terapéuticos | Psicoterapia Isla</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-  <link rel="stylesheet" href="assets/css/app.css">
+  <meta charset="UTF-8" />
+  <title>Ejercicio terapéutico</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="assets/css/app.css" />
 </head>
 
 <body class="app-body">
 
-  <nav class="app-menu">
-    <a href="index.html">Inicio</a>
-    <a href="diario.html">Diario</a>
-    <a href="ejercicio.html">Ejercicios</a>
-    <a href="login.html">Salir</a>
-  </nav>
+<nav class="app-menu">
+  <a href="exercises-test.html">Volver</a>
+  <a href="login.html">Salir</a>
+</nav>
 
-  <main class="app-container">
+<main class="app-container">
+  <h1 id="exercise-title"></h1>
+  <p id="exercise-description"></p>
 
-    <h1>Ejercicios terapéuticos</h1>
-    <p>
-      Ejercicios propuestos para trabajar entre sesiones.
-      Lee con calma y realiza solo aquello que te resulte seguro.
-    </p>
+  <form id="exercise-form"></form>
+</main>
 
-    <ul class="exercise-list">
-      <li><a href="ejercicios/seguridad.html">Sentirme a salvo</a></li>
-      <li><a href="ejercicios/registro-emocional.html">Registro emocional</a></li>
-      <li><a href="ejercicios/autocompasion.html">Autocompasión</a></li>
-      <li><a href="ejercicios/limites.html">Límites</a></li>
-      <li><a href="ejercicios/recursos.html">Recursos internos</a></li>
-    </ul>
+<script type="module">
+import { requireAuth } from "./assets/js/auth.js";
+import { db } from "./assets/js/firebase.js";
+import {
+  collection,
+  query,
+  where,
+  getDocs
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-  </main>
+await requireAuth();
+
+// 1️⃣ leer slug de la URL
+const params = new URLSearchParams(window.location.search);
+const slug = params.get("slug");
+
+if (!slug) {
+  alert("Ejercicio no especificado");
+  throw new Error("Slug ausente");
+}
+
+// 2️⃣ buscar ejercicio en Firestore
+const q = query(
+  collection(db, "exercises"),
+  where("slug", "==", slug),
+  where("active", "==", true)
+);
+
+const snapshot = await getDocs(q);
+
+if (snapshot.empty) {
+  alert("Ejercicio no encontrado");
+  throw new Error("Ejercicio no existe");
+}
+
+const exercise = snapshot.docs[0].data();
+
+// 3️⃣ pintar título y descripción
+document.getElementById("exercise-title").textContent = exercise.title;
+document.getElementById("exercise-description").textContent = exercise.description;
+
+// 4️⃣ generar campos dinámicos
+const form = document.getElementById("exercise-form");
+
+exercise.fields.forEach(field => {
+  const label = document.createElement("label");
+  label.textContent = field.replace(/_/g, " ");
+
+  const textarea = document.createElement("textarea");
+  textarea.name = field;
+  textarea.placeholder = "Escribe aquí…";
+
+  form.appendChild(label);
+  form.appendChild(textarea);
+});
+
+// (más adelante aquí irá el guardado)
+</script>
 
 </body>
 </html>
-
-<script type="module">
-  import { requireAuth } from "./assets/js/auth.js";
-  requireAuth();
-</script>
