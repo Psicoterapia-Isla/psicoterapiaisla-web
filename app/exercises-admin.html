@@ -34,11 +34,6 @@
     <h3>Campos del ejercicio</h3>
     <div id="fields"></div>
 
-    <!-- IMPORTANTE: type="button" -->
-    <button type="button" id="add-field">
-      + Añadir campo
-    </button>
-
     <label style="margin-top:1rem; display:block;">
       <input type="checkbox" id="active" checked>
       Ejercicio activo
@@ -49,6 +44,12 @@
     </button>
 
   </form>
+
+  <!-- 🔴 BOTÓN FUERA DEL FORM -->
+  <button id="add-field" style="margin-top:1rem;">
+    + Añadir campo
+  </button>
+
 </main>
 
 <script type="module">
@@ -62,87 +63,74 @@
     serverTimestamp
   } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-  /* =========================
-     AUTENTICACIÓN Y ROL
-  ========================= */
+  /* ========= AUTH ========= */
   const user = await requireAuth();
 
-  const userRef = doc(db, "users", user.uid);
-  const userSnap = await getDoc(userRef);
-
+  const userSnap = await getDoc(doc(db, "users", user.uid));
   if (!userSnap.exists() || userSnap.data().role !== "therapist") {
-    alert("Acceso solo para terapeutas");
-    window.location.href = "index.html";
-    throw new Error("Usuario sin permisos");
+    alert("Solo terapeutas");
+    location.href = "index.html";
+    throw new Error("Sin permisos");
   }
 
-  /* =========================
-     CAMPOS DINÁMICOS
-  ========================= */
+  /* ========= CAMPOS ========= */
   const fieldsContainer = document.getElementById("fields");
   const addFieldBtn = document.getElementById("add-field");
 
-  addFieldBtn.addEventListener("click", () => {
+  addFieldBtn.onclick = () => {
     const input = document.createElement("input");
     input.type = "text";
     input.placeholder = "nombre_del_campo (ej: emociones_presentes)";
-    input.classList.add("field-input");
+    input.className = "field-input";
     fieldsContainer.appendChild(input);
-  });
+  };
 
-  /* =========================
-     GUARDAR EJERCICIO
-  ========================= */
+  /* ========= GUARDAR ========= */
   const form = document.getElementById("exercise-form");
 
-  form.addEventListener("submit", async (e) => {
+  form.onsubmit = async (e) => {
     e.preventDefault();
 
-    const title = document.getElementById("title").value.trim();
-    const description = document.getElementById("description").value.trim();
-    const active = document.getElementById("active").checked;
+    const title = titleInput();
+    const fields = getFields();
 
-    const fieldInputs = document.querySelectorAll(".field-input");
-    const fields = Array.from(fieldInputs)
-      .map(i => i.value.trim())
-      .filter(v => v !== "");
-
-    if (!title) {
-      alert("Falta el título del ejercicio");
-      return;
-    }
-
-    if (fields.length === 0) {
-      alert("Añade al menos un campo");
+    if (!title || fields.length === 0) {
+      alert("Falta título o campos");
       return;
     }
 
     const slug = title
       .toLowerCase()
       .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
-      .replace(/[^a-z0-9]+/g, "_")
-      .replace(/^_|_$/g, "");
+      .replace(/[^a-z0-9]+/g, "_");
 
     try {
       await addDoc(collection(db, "exercises"), {
         title,
-        description,
+        description: descriptionInput(),
         slug,
         fields,
-        active,
+        active: document.getElementById("active").checked,
         createdAt: serverTimestamp()
       });
 
-      alert("Ejercicio guardado correctamente");
-
+      alert("Ejercicio guardado");
       form.reset();
       fieldsContainer.innerHTML = "";
 
-    } catch (error) {
-      console.error("Error al guardar:", error);
-      alert("Error al guardar el ejercicio. Revisa la consola.");
+    } catch (err) {
+      console.error(err);
+      alert("NO se ha guardado. Mira consola.");
     }
-  });
+  };
+
+  /* ========= HELPERS ========= */
+  const titleInput = () => document.getElementById("title").value.trim();
+  const descriptionInput = () => document.getElementById("description").value.trim();
+  const getFields = () =>
+    Array.from(document.querySelectorAll(".field-input"))
+      .map(i => i.value.trim())
+      .filter(Boolean);
 </script>
 
 </body>
