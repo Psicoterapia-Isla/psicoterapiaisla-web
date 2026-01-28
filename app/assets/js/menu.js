@@ -2,7 +2,7 @@ import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/
 import { db } from "./firebase.js";
 import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-export async function loadMenu() {
+export function loadMenu() {
   const menu = document.querySelector(".app-menu");
   if (!menu) return;
 
@@ -12,18 +12,15 @@ export async function loadMenu() {
     const snap = await getDoc(doc(db, "users", user.uid));
     const role = snap.exists() ? snap.data().role : "patient";
 
-    // Reset menú
-    menu.innerHTML = "";
-
-    // 🔹 COMÚN A TODOS
-    menu.innerHTML += `
+    // Base
+    menu.innerHTML = `
       <a href="index.html">Inicio</a>
     `;
 
     // 🧠 TERAPEUTA
     if (role === "therapist") {
       menu.innerHTML += `
-        <a href="diario-terapeuta">Diarios pacientes</a>
+        <a href="diario-terapeuta.html">Diarios pacientes</a>
         <a href="entries-by-exercise.html">Respuestas por ejercicio</a>
         <a href="entries-by-patient.html">Respuestas por paciente</a>
         <a href="entries-by-exercise.html#pdf">Exportar informes (PDF)</a>
