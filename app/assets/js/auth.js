@@ -11,9 +11,13 @@ export async function login(email, password) {
 }
 
 export function requireAuth() {
-  onAuthStateChanged(auth, (user) => {
-    if (!user) {
-      window.location.href = "/app/login.html";
-    }
+  return new Promise((resolve) => {
+    onAuthStateChanged(auth, (user) => {
+      if (!user) {
+        window.location.href = "/app/login.html";
+        return;
+      }
+      resolve(user);
+    });
   });
 }
