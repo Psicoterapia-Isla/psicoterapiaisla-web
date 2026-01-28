@@ -8,7 +8,15 @@
 </head>
 
 <body class="app-body">
+<header class="app-menu"></header>
 
+<script type="module">
+  import { requireAuth } from "./assets/js/auth.js";
+  import { loadMenu } from "./assets/js/menu.js";
+
+  await requireAuth();
+  await loadMenu();
+</script>
   <main class="login-container">
     <div class="login-box">
 
