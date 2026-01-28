@@ -85,6 +85,12 @@
       container.appendChild(card);
     });
   </script>
+<script type="module">
+  import { loadMenu } from "./assets/js/menu.js";
+  import { requireAuth } from "./assets/js/auth.js";
 
+  await requireAuth();
+  await loadMenu();
+</script>
 </body>
 </html>
