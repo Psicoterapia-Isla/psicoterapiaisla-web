@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Gestión de ejercicios</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="assets/css/app.css">
+</head>
+
+<body class="app-body">
+
+<nav class="app-menu">
+  <a href="index.html">Inicio</a>
+  <a href="login.html">Salir</a>
+</nav>
+
+<main class="app-container">
+  <h1>Crear ejercicio</h1>
+
+  <form id="exercise-form">
+    <input type="text" id="title" placeholder="Título" required>
+    <textarea id="description" placeholder="Descripción"></textarea>
+
+    <h3>Campos</h3>
+    <div id="fields"></div>
+    <button type="button" id="add-field">+ Añadir campo</button>
+
+    <label>
+      <input type="checkbox" id="active" checked>
+      Activo
+    </label>
+
+    <button type="submit">Guardar ejercicio</button>
+  </form>
+</main>
+
+</body>
+</html>
