@@ -14,6 +14,14 @@
 
 <header class="app-menu"></header>
 
+<script type="module">
+  import { requireAuth } from "./assets/js/auth.js";
+  import { loadMenu } from "./assets/js/menu.js";
+
+  await requireAuth();
+  await loadMenu();
+</script>
+
 <main class="app-container">
   <h1 class="page-title">Respuestas por ejercicio</h1>
   <div id="exercises" class="exercise-list"></div>
