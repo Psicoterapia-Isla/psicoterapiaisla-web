@@ -53,15 +53,17 @@
 </main>
 
 <script type="module">
-  import { requireAuth } from "./assets/js/auth.js";
-  import { db } from "./assets/js/firebase.js";
-  import {
-    doc,
-    getDoc,
-    collection,
-    addDoc,
-    serverTimestamp
-  } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { requireAuth } from "./assets/js/auth.js";
+import { db } from "./assets/js/firebase.js";
+import {
+  doc,
+  getDoc,
+  collection,
+  addDoc,
+  serverTimestamp
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+document.addEventListener("DOMContentLoaded", async () => {
 
   /* ========= AUTH ========= */
   const user = await requireAuth();
@@ -70,68 +72,72 @@
   if (!userSnap.exists() || userSnap.data().role !== "therapist") {
     alert("Solo terapeutas");
     location.href = "index.html";
-    throw new Error("Sin permisos");
+    return;
   }
 
-  /* ========= CAMPOS ========= */
+  /* ========= ELEMENTOS ========= */
+  const form = document.getElementById("exercise-form");
+  const titleInput = document.getElementById("title");
+  const descriptionInput = document.getElementById("description");
+  const activeInput = document.getElementById("active");
   const fieldsContainer = document.getElementById("fields");
   const addFieldBtn = document.getElementById("add-field");
 
-  addFieldBtn.onclick = () => {
+  /* ========= AÑADIR CAMPO ========= */
+  addFieldBtn.addEventListener("click", () => {
     const input = document.createElement("input");
     input.type = "text";
     input.placeholder = "nombre_del_campo (ej: emociones_presentes)";
     input.className = "field-input";
     fieldsContainer.appendChild(input);
-  };
+  });
 
   /* ========= GUARDAR ========= */
-  const form = document.getElementById("exercise-form");
-
-  form.onsubmit = async (e) => {
+  form.addEventListener("submit", async (e) => {
     e.preventDefault();
 
-    const title = titleInput();
-    const fields = getFields();
+    const title = titleInput.value.trim();
+    const description = descriptionInput.value.trim();
+    const active = activeInput.checked;
+
+    const fields = Array.from(
+      document.querySelectorAll(".field-input")
+    )
+      .map(i => i.value.trim())
+      .filter(Boolean);
 
     if (!title || fields.length === 0) {
-      alert("Falta título o campos");
+      alert("El ejercicio necesita título y al menos un campo");
       return;
     }
 
     const slug = title
       .toLowerCase()
       .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
-      .replace(/[^a-z0-9]+/g, "_");
+      .replace(/[^a-z0-9]+/g, "_")
+      .replace(/^_|_$/g, "");
 
     try {
       await addDoc(collection(db, "exercises"), {
         title,
-        description: descriptionInput(),
+        description,
         slug,
         fields,
-        active: document.getElementById("active").checked,
+        active,
         createdAt: serverTimestamp()
       });
 
-      alert("Ejercicio guardado");
+      alert("Ejercicio guardado correctamente");
       form.reset();
       fieldsContainer.innerHTML = "";
 
     } catch (err) {
       console.error(err);
-      alert("NO se ha guardado. Mira consola.");
+      alert("Error al guardar. Mira la consola.");
     }
-  };
+  });
 
-  /* ========= HELPERS ========= */
-  const titleInput = () => document.getElementById("title").value.trim();
-  const descriptionInput = () => document.getElementById("description").value.trim();
-  const getFields = () =>
-    Array.from(document.querySelectorAll(".field-input"))
-      .map(i => i.value.trim())
-      .filter(Boolean);
+});
 </script>
-
 </body>
 </html>
