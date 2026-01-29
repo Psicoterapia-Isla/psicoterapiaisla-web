@@ -1,4 +1,3 @@
-import { auth } from "./firebase.js";
 import { db } from "./firebase.js";
 import {
   doc,
@@ -7,44 +6,47 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 /* =========================
-   ESTADO DE FECHA
+   ESTADO GLOBAL
 ========================= */
 let currentDate = new Date();
+let currentUser = null;
 
 function formatDate(date) {
   return date.toISOString().split("T")[0];
 }
 
 /* =========================
-   NAVEGACIÓN DE DÍAS
+   INICIALIZACIÓN
 ========================= */
-export function initAgendaNavigation() {
-  const prev = document.getElementById("prev-day");
-  const next = document.getElementById("next-day");
-
-  if (prev) {
-    prev.addEventListener("click", async () => {
-      currentDate.setDate(currentDate.getDate() - 1);
-      renderDate();
-      await loadAgenda();
-    });
-  }
-
-  if (next) {
-    next.addEventListener("click", async () => {
-      currentDate.setDate(currentDate.getDate() + 1);
-      renderDate();
-      await loadAgenda();
-    });
-  }
+export function initAgenda(user) {
+  if (!user) throw new Error("Usuario no inicializado en agenda");
+  currentUser = user;
 
   renderDate();
+  bindDayNavigation();
 }
 
 /* =========================
-   RENDER FECHA
+   NAVEGACIÓN DE DÍAS
 ========================= */
-export function renderDate() {
+function bindDayNavigation() {
+  document.getElementById("prev-day")?.addEventListener("click", async () => {
+    currentDate.setDate(currentDate.getDate() - 1);
+    renderDate();
+    await loadAgenda();
+  });
+
+  document.getElementById("next-day")?.addEventListener("click", async () => {
+    currentDate.setDate(currentDate.getDate() + 1);
+    renderDate();
+    await loadAgenda();
+  });
+}
+
+/* =========================
+   FECHA
+========================= */
+function renderDate() {
   const el = document.getElementById("current-day");
   if (!el) return;
 
@@ -60,11 +62,10 @@ export function renderDate() {
    CARGAR AGENDA
 ========================= */
 export async function loadAgenda() {
-  const user = auth.currentUser;
-  if (!user) return;
+  if (!currentUser) return;
 
   const dateKey = formatDate(currentDate);
-  const ref = doc(db, "agendaTerapeuta", `${user.uid}_${dateKey}`);
+  const ref = doc(db, "agendaTerapeuta", `${currentUser.uid}_${dateKey}`);
   const snap = await getDoc(ref);
 
   // limpiar siempre
@@ -91,8 +92,7 @@ export async function loadAgenda() {
    GUARDAR AGENDA
 ========================= */
 export async function saveAgenda() {
-  const user = auth.currentUser;
-  if (!user) return;
+  if (!currentUser) return;
 
   const dateKey = formatDate(currentDate);
 
@@ -102,7 +102,7 @@ export async function saveAgenda() {
   });
 
   const data = {
-    uid: user.uid,
+    uid: currentUser.uid,
     date: dateKey,
     plan,
     reto: document.getElementById("reto-diario").value || "",
@@ -112,7 +112,7 @@ export async function saveAgenda() {
   };
 
   await setDoc(
-    doc(db, "agendaTerapeuta", `${user.uid}_${dateKey}`),
+    doc(db, "agendaTerapeuta", `${currentUser.uid}_${dateKey}`),
     data
   );
 
