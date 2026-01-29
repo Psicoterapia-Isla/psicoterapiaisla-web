@@ -29,3 +29,18 @@ export function saveAgenda() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(all));
   alert("Agenda guardada");
 }
+export function loadAgenda() {
+  const dateKey = getTodayKey();
+  const all = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+  const agenda = all[dateKey];
+  if (!agenda) return;
+
+  Object.entries(agenda.plan).forEach(([hour, value]) => {
+    const field = document.querySelector(`[data-hour="${hour}"]`);
+    if (field) field.value = value;
+  });
+
+  document.querySelector("#reto-diario").value = agenda.reto || "";
+  document.querySelector("#notas-contactos").value = agenda.notas?.contactos || "";
+  document.querySelector("#tiempo-fuera").value = agenda.notas?.tiempo_fuera || "";
+}
