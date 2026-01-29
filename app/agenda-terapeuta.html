@@ -85,14 +85,42 @@
 <script type="module">
   import { requireAuth } from "./assets/js/auth.js";
   import { loadMenu } from "./assets/js/menu.js";
-  import { saveAgenda, loadAgenda } from "./assets/js/agenda-terapeuta.js";
+  import {
+    saveAgenda,
+    loadAgenda,
+    renderDate,
+    goPrevDay,
+    goNextDay
+  } from "./assets/js/agenda-terapeuta.js";
 
   await requireAuth();
   await loadMenu();
 
+  // Inicial
+  renderDate();
+  await loadAgenda();
+
+  // Guardar
   document
     .getElementById("guardar-agenda")
     .addEventListener("click", saveAgenda);
+
+  // Navegación días
+  document
+    .getElementById("prev-day")
+    .addEventListener("click", async () => {
+      goPrevDay();
+      renderDate();
+      await loadAgenda();
+    });
+
+  document
+    .getElementById("next-day")
+    .addEventListener("click", async () => {
+      goNextDay();
+      renderDate();
+      await loadAgenda();
+    });
 </script>
 
 </body>
