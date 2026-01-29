@@ -33,8 +33,6 @@
         <h2 class="section-title">Plan del día</h2>
 
         <div class="list">
-
-          <!-- 06:00 → 23:00 -->
           <div class="hour-line"><span>06:00</span><textarea data-hour="06:00"></textarea></div>
           <div class="hour-line"><span>07:00</span><textarea data-hour="07:00"></textarea></div>
           <div class="hour-line"><span>08:00</span><textarea data-hour="08:00"></textarea></div>
@@ -53,7 +51,6 @@
           <div class="hour-line"><span>21:00</span><textarea data-hour="21:00"></textarea></div>
           <div class="hour-line"><span>22:00</span><textarea data-hour="22:00"></textarea></div>
           <div class="hour-line"><span>23:00</span><textarea data-hour="23:00"></textarea></div>
-
         </div>
       </div>
 
@@ -86,41 +83,23 @@
   import { requireAuth } from "./assets/js/auth.js";
   import { loadMenu } from "./assets/js/menu.js";
   import {
+    initAgendaNavigation,
     saveAgenda,
-    loadAgenda,
-    renderDate,
-    goPrevDay,
-    goNextDay
+    loadAgenda
   } from "./assets/js/agenda-terapeuta.js";
 
+  // Seguridad
   await requireAuth();
   await loadMenu();
 
-  // Inicial
-  renderDate();
+  // Inicialización correcta
+  initAgendaNavigation();
   await loadAgenda();
 
   // Guardar
   document
     .getElementById("guardar-agenda")
     .addEventListener("click", saveAgenda);
-
-  // Navegación días
-  document
-    .getElementById("prev-day")
-    .addEventListener("click", async () => {
-      goPrevDay();
-      renderDate();
-      await loadAgenda();
-    });
-
-  document
-    .getElementById("next-day")
-    .addEventListener("click", async () => {
-      goNextDay();
-      renderDate();
-      await loadAgenda();
-    });
 </script>
 
 </body>
