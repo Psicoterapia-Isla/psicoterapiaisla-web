@@ -306,3 +306,43 @@ button:hover {
   background: var(--border-soft);
   margin: 24px 0;
 }
+<main class="app-container">
+
+  <h1>Agenda profesional</h1>
+
+  <section class="card">
+    <h3>Plan del día</h3>
+
+    <div class="hours-list">
+      <div>06:00</div>
+      <div>07:00</div>
+      <div>08:00</div>
+      <div>09:00</div>
+      <div>10:00</div>
+      <div>11:00</div>
+      <div>12:00</div>
+      <div>13:00</div>
+      <div>14:00</div>
+      <div>15:00</div>
+      <div>16:00</div>
+      <div>17:00</div>
+      <div>18:00</div>
+      <div>19:00</div>
+      <div>20:00</div>
+      <div>21:00</div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h3>Reto diario</h3>
+    <textarea placeholder="Reto terapéutico del día..."></textarea>
+  </section>
+
+  <section class="card">
+    <h3>Notas del día</h3>
+    <textarea placeholder="¿Con quién he hablado hoy?"></textarea>
+    <input type="text" placeholder="Tiempo fuera de casa (ej. 2 horas)">
+    <button>Guardar agenda</button>
+  </section>
+
+</main>
