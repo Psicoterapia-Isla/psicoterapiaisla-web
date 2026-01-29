@@ -1,3 +1,25 @@
+let currentDate = new Date();
+
+function formatDate(date) {
+  return date.toISOString().split("T")[0];
+}
+document.getElementById("prev-day").onclick = () => {
+  currentDate.setDate(currentDate.getDate() - 1);
+  loadAgenda();
+};
+
+document.getElementById("next-day").onclick = () => {
+  currentDate.setDate(currentDate.getDate() + 1);
+  loadAgenda();
+};
+function renderDate() {
+  document.getElementById("current-day").textContent =
+    currentDate.toLocaleDateString("es-ES", {
+      weekday: "long",
+      day: "numeric",
+      month: "long"
+    });
+}
 const STORAGE_KEY = "agenda-terapeuta";
 
 function getTodayKey() {
