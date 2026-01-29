@@ -125,3 +125,61 @@ button:hover {
     grid-template-columns: 1fr;
   }
 }
+/* =============================
+   AJUSTES RÉPLICA PAPEL
+============================= */
+
+/* Inputs integrados (no cajas blancas) */
+textarea,
+input {
+  background: transparent;
+  border-radius: 0;
+  border: none;
+  border-bottom: 1px dashed rgba(47,93,80,0.35);
+  padding: 0.6rem 0;
+}
+
+/* Líneas de escritura tipo papel */
+textarea {
+  background-image:
+    repeating-linear-gradient(
+      to bottom,
+      transparent,
+      transparent 26px,
+      rgba(47,93,80,0.25) 27px
+    );
+  line-height: 27px;
+}
+
+/* Reto diario más alto como en el original */
+.grid-2 .block textarea {
+  min-height: 260px;
+}
+
+/* Plan del día ocupa todo el ancho */
+.list {
+  grid-template-columns: 70px 1fr;
+}
+
+.list-item::after {
+  border-bottom: 1px dashed rgba(47,93,80,0.35);
+  margin-left: 0.5rem;
+}
+
+/* Botón más orgánico */
+button {
+  font-weight: 500;
+  border-radius: 999px;
+}
+
+/* Tipografía más editorial (si no cargas otra) */
+.page-title,
+.section-title {
+  font-family: "Georgia", serif;
+}
+
+.block,
+textarea,
+input {
+  font-family: system-ui, -apple-system, sans-serif;
+}
