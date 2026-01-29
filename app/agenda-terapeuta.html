@@ -83,20 +83,17 @@
   import { requireAuth } from "./assets/js/auth.js";
   import { loadMenu } from "./assets/js/menu.js";
   import {
-    initAgendaNavigation,
-    saveAgenda,
-    loadAgenda
+    initAgenda,
+    loadAgenda,
+    saveAgenda
   } from "./assets/js/agenda-terapeuta.js";
 
-  // Seguridad
-  await requireAuth();
+  const user = await requireAuth();
   await loadMenu();
 
-  // Inicialización correcta
-  initAgendaNavigation();
+  initAgenda(user);
   await loadAgenda();
 
-  // Guardar
   document
     .getElementById("guardar-agenda")
     .addEventListener("click", saveAgenda);
