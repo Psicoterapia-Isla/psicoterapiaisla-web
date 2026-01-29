@@ -6,32 +6,28 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { db } from "./firebase.js";
 
-/* =========================
-   FECHA ACTUAL
-   ========================= */
+/* ========= FECHA ========= */
 let currentDate = new Date();
 
 function formatDate(date) {
   return date.toISOString().split("T")[0];
 }
 
-/* =========================
-   NAVEGACIÓN DÍAS
-   ========================= */
-export function initDayNavigation() {
-  document.getElementById("prev-day").onclick = () => {
-    currentDate.setDate(currentDate.getDate() - 1);
-    renderDate();
-    loadAgenda();
-  };
+/* ========= NAVEGACIÓN ========= */
+export function initAgendaNavigation() {
+  const prev = document.getElementById("prev-day");
+  const next = document.getElementById("next-day");
 
-  document.getElementById("next-day").onclick = () => {
-    currentDate.setDate(currentDate.getDate() + 1);
-    renderDate();
-    loadAgenda();
-  };
+  if (prev) prev.onclick = () => changeDay(-1);
+  if (next) next.onclick = () => changeDay(1);
 
   renderDate();
+}
+
+function changeDay(delta) {
+  currentDate.setDate(currentDate.getDate() + delta);
+  renderDate();
+  loadAgenda();
 }
 
 function renderDate() {
@@ -46,9 +42,7 @@ function renderDate() {
   });
 }
 
-/* =========================
-   GUARDAR
-   ========================= */
+/* ========= GUARDAR ========= */
 export async function saveAgenda() {
   const user = auth.currentUser;
   if (!user) return;
@@ -57,8 +51,8 @@ export async function saveAgenda() {
   const uid = user.uid;
 
   const plan = {};
-  document.querySelectorAll("[data-hour]").forEach(t => {
-    plan[t.dataset.hour] = t.value || "";
+  document.querySelectorAll("[data-hour]").forEach(el => {
+    plan[el.dataset.hour] = el.value || "";
   });
 
   const data = {
@@ -75,9 +69,7 @@ export async function saveAgenda() {
   alert("Agenda guardada");
 }
 
-/* =========================
-   CARGAR
-   ========================= */
+/* ========= CARGAR ========= */
 export async function loadAgenda() {
   const user = auth.currentUser;
   if (!user) return;
@@ -88,8 +80,8 @@ export async function loadAgenda() {
   const ref = doc(db, "agendaTerapeuta", `${uid}_${date}`);
   const snap = await getDoc(ref);
 
-  // limpiar campos siempre
-  document.querySelectorAll("[data-hour]").forEach(t => t.value = "");
+  // limpiar siempre
+  document.querySelectorAll("[data-hour]").forEach(el => el.value = "");
   document.getElementById("reto-diario").value = "";
   document.getElementById("notas-contactos").value = "";
   document.getElementById("tiempo-fuera").value = "";
