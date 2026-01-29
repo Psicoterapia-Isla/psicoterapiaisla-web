@@ -183,3 +183,29 @@ textarea,
 input {
   font-family: system-ui, -apple-system, sans-serif;
 }
+/* Plan del día */
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.list-item {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  border-bottom: 1px dashed var(--green-border);
+  padding: 0.35rem 0;
+}
+
+/* Reto diario */
+textarea {
+  min-height: 120px;
+}
+
+/* Notas */
+.block label {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-bottom: 0.4rem;
+  display: block;
+}
