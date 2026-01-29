@@ -1,7 +1,7 @@
-/* ===============================
-   AGENDA TERAPEUTA – REPLICA PAPEL
-   Psicoterapia Isla
-================================ */
+/* =================================================
+   AGENDA PROFESIONAL – Psicoterapia Isla
+   Réplica planificador en papel
+================================================= */
 
 /* Fondo general tipo hoja */
 .app-body {
@@ -10,133 +10,118 @@
 
 /* Título principal */
 .page-title {
-  font-size: 2.2rem;
   color: #2F5D50;
-  letter-spacing: 0.04em;
+  font-size: 2.2rem;
+  letter-spacing: 0.05em;
   margin-bottom: 2rem;
 }
 
-/* Contenedor general */
-.agenda-layout {
+/* Card principal */
+.card {
+  background: #CFEED6;
+  border-radius: 30px;
+  padding: 2.5rem;
+}
+
+/* Grid superior */
+.grid-2 {
   display: grid;
   grid-template-columns: 2fr 1fr;
   gap: 2rem;
-  margin-bottom: 2rem;
 }
 
-/* Tarjetas base */
-.card {
-  background: #CFEED6;
-  border-radius: 28px;
+/* Bloques */
+.block {
+  background: #BFE7C8;
+  border-radius: 24px;
   padding: 2rem;
 }
 
-/* ===============================
-   PLAN DEL DÍA
-================================ */
-.plan-dia {
-  background: #BFE7C8;
-}
-
-.plan-dia h2 {
+/* Títulos de bloque */
+.section-title {
   color: #2F5D50;
-  font-size: 1.1rem;
-  letter-spacing: 0.08em;
+  font-size: 1.05rem;
+  letter-spacing: 0.1em;
   margin-bottom: 1.5rem;
+  text-transform: uppercase;
 }
 
-/* Lista de horas */
-.horas {
+/* =============================
+   PLAN DEL DÍA
+============================= */
+.list {
   display: grid;
   grid-template-columns: 60px 1fr;
-  row-gap: 0.8rem;
+  row-gap: 0.7rem;
 }
 
-.hora {
+.list-item {
+  grid-column: 1 / 2;
+  color: #2F5D50;
   font-weight: 500;
-  color: #2F5D50;
-}
-
-.linea {
-  border-bottom: 1px dashed rgba(47,93,80,0.35);
-}
-
-/* ===============================
-   RETO DIARIO
-================================ */
-.reto {
-  background: #BFE7C8;
-}
-
-.reto h2 {
-  font-size: 1.1rem;
-  color: #2F5D50;
-  letter-spacing: 0.08em;
-  margin-bottom: 1rem;
-  text-decoration: underline;
-}
-
-.reto textarea {
-  width: 100%;
-  min-height: 260px;
-  background: transparent;
-  border: none;
-  resize: none;
   font-size: 0.95rem;
-  line-height: 1.6;
 }
 
-/* ===============================
-   NOTAS
-================================ */
-.notas {
-  background: #CFEED6;
-}
-
-.notas h2 {
-  font-size: 1rem;
-  color: #2F5D50;
-  letter-spacing: 0.08em;
-  margin-bottom: 1rem;
-  text-decoration: underline;
-}
-
-.notas label {
+.list-item::after {
+  content: "";
+  grid-column: 2 / 3;
   display: block;
-  margin-top: 1rem;
-  font-size: 0.85rem;
-  color: #2F5D50;
+  border-bottom: 1px dashed rgba(47,93,80,0.35);
+  margin-left: 1rem;
+  transform: translateY(-0.4rem);
 }
 
-.notas input,
-.notas textarea {
+/* =============================
+   TEXTAREAS / INPUTS
+============================= */
+textarea,
+input {
   width: 100%;
   background: transparent;
   border: none;
   border-bottom: 1px dashed rgba(47,93,80,0.35);
+  font-size: 0.95rem;
   padding: 0.4rem 0;
-  font-size: 0.9rem;
+  resize: none;
 }
 
-/* ===============================
+textarea {
+  min-height: 220px;
+}
+
+/* Notas */
+.block label {
+  color: #2F5D50;
+  font-size: 0.85rem;
+  letter-spacing: 0.05em;
+  margin-top: 1.2rem;
+  display: block;
+}
+
+/* =============================
    BOTÓN
-================================ */
+============================= */
 button {
   margin-top: 2rem;
   background: #2F5D50;
   color: #fff;
   border: none;
-  padding: 0.7rem 1.6rem;
-  border-radius: 20px;
+  border-radius: 22px;
+  padding: 0.8rem 1.8rem;
   font-size: 0.85rem;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.1em;
+  cursor: pointer;
 }
 
-/* ===============================
+button:hover {
+  opacity: 0.9;
+}
+
+/* =============================
    RESPONSIVE
-================================ */
+============================= */
 @media (max-width: 900px) {
-  .agenda-layout {
+  .grid-2 {
     grid-template-columns: 1fr;
   }
 }
