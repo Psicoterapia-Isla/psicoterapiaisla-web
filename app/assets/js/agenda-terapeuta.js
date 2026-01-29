@@ -1,35 +1,49 @@
 import { auth } from "./firebase.js";
+import { db } from "./firebase.js";
 import {
   doc,
   setDoc,
   getDoc
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-import { db } from "./firebase.js";
-import {
-  onAuthStateChanged
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
 /* =========================
-   ESTADO GLOBAL
+   ESTADO DE FECHA
 ========================= */
 let currentDate = new Date();
-let currentUser = null;
 
-/* =========================
-   FECHAS
-========================= */
 function formatDate(date) {
   return date.toISOString().split("T")[0];
 }
 
-export function goPrevDay() {
-  currentDate.setDate(currentDate.getDate() - 1);
+/* =========================
+   NAVEGACIÓN DE DÍAS
+========================= */
+export function initAgendaNavigation() {
+  const prev = document.getElementById("prev-day");
+  const next = document.getElementById("next-day");
+
+  if (prev) {
+    prev.addEventListener("click", async () => {
+      currentDate.setDate(currentDate.getDate() - 1);
+      renderDate();
+      await loadAgenda();
+    });
+  }
+
+  if (next) {
+    next.addEventListener("click", async () => {
+      currentDate.setDate(currentDate.getDate() + 1);
+      renderDate();
+      await loadAgenda();
+    });
+  }
+
+  renderDate();
 }
 
-export function goNextDay() {
-  currentDate.setDate(currentDate.getDate() + 1);
-}
-
+/* =========================
+   RENDER FECHA
+========================= */
 export function renderDate() {
   const el = document.getElementById("current-day");
   if (!el) return;
@@ -43,27 +57,22 @@ export function renderDate() {
 }
 
 /* =========================
-   LIMPIAR UI
+   CARGAR AGENDA
 ========================= */
-function clearAgendaUI() {
+export async function loadAgenda() {
+  const user = auth.currentUser;
+  if (!user) return;
+
+  const dateKey = formatDate(currentDate);
+  const ref = doc(db, "agendaTerapeuta", `${user.uid}_${dateKey}`);
+  const snap = await getDoc(ref);
+
+  // limpiar siempre
   document.querySelectorAll("[data-hour]").forEach(t => t.value = "");
   document.getElementById("reto-diario").value = "";
   document.getElementById("notas-contactos").value = "";
   document.getElementById("tiempo-fuera").value = "";
-}
 
-/* =========================
-   CARGAR AGENDA
-========================= */
-export async function loadAgenda() {
-  if (!currentUser) return;
-
-  const dateKey = formatDate(currentDate);
-  const ref = doc(db, "agendaTerapeuta", `${currentUser.uid}_${dateKey}`);
-
-  clearAgendaUI();
-
-  const snap = await getDoc(ref);
   if (!snap.exists()) return;
 
   const data = snap.data();
@@ -82,17 +91,18 @@ export async function loadAgenda() {
    GUARDAR AGENDA
 ========================= */
 export async function saveAgenda() {
-  if (!currentUser) return;
+  const user = auth.currentUser;
+  if (!user) return;
 
   const dateKey = formatDate(currentDate);
-  const plan = {};
 
+  const plan = {};
   document.querySelectorAll("[data-hour]").forEach(t => {
     plan[t.dataset.hour] = t.value || "";
   });
 
   const data = {
-    uid: currentUser.uid,
+    uid: user.uid,
     date: dateKey,
     plan,
     reto: document.getElementById("reto-diario").value || "",
@@ -102,20 +112,9 @@ export async function saveAgenda() {
   };
 
   await setDoc(
-    doc(db, "agendaTerapeuta", `${currentUser.uid}_${dateKey}`),
+    doc(db, "agendaTerapeuta", `${user.uid}_${dateKey}`),
     data
   );
 
   alert("Agenda guardada");
 }
-
-/* =========================
-   INIT REAL (CLAVE)
-========================= */
-onAuthStateChanged(auth, async user => {
-  if (!user) return;
-
-  currentUser = user;
-  renderDate();
-  await loadAgenda();
-});
