@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Agenda profesional</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- CSS base -->
+  <link rel="stylesheet" href="assets/css/app.css">
+  <link rel="stylesheet" href="assets/css/design.css">
+</head>
+
+<body class="app-body">
+
+<header class="app-menu"></header>
+
+<main class="app-container">
+
+  <h1 class="page-title">Agenda profesional</h1>
+
+  <div class="card">
+
+    <!-- Cabecera agenda -->
+    <div class="grid-2">
+
+      <!-- Plan horario -->
+      <div class="block">
+        <h2 class="section-title">Plan del día</h2>
+
+        <div class="list">
+          <div class="list-item">06:00</div>
+          <div class="list-item">07:00</div>
+          <div class="list-item">08:00</div>
+          <div class="list-item">09:00</div>
+          <div class="list-item">10:00</div>
+          <div class="list-item">11:00</div>
+          <div class="list-item">12:00</div>
+          <div class="list-item">13:00</div>
+          <div class="list-item">14:00</div>
+          <div class="list-item">15:00</div>
+          <div class="list-item">16:00</div>
+          <div class="list-item">17:00</div>
+          <div class="list-item">18:00</div>
+          <div class="list-item">19:00</div>
+          <div class="list-item">20:00</div>
+          <div class="list-item">21:00</div>
+          <div class="list-item">22:00</div>
+          <div class="list-item">23:00</div>
+        </div>
+      </div>
+
+      <!-- Reto diario -->
+      <div class="block">
+        <h2 class="section-title">Reto diario</h2>
+        <textarea placeholder="Reto terapéutico del día…"></textarea>
+      </div>
+
+    </div>
+
+    <!-- Notas -->
+    <div class="block" style="margin-top:2rem;">
+      <h2 class="section-title">Notas del día</h2>
+
+      <label>¿Con quién he hablado hoy?</label>
+      <textarea></textarea>
+
+      <label style="margin-top:1rem;">Tiempo fuera de casa</label>
+      <input type="text" placeholder="Ej. 2 horas">
+    </div>
+
+    <button>Guardar agenda</button>
+
+  </div>
+
+</main>
+
+<script type="module">
+  import { requireAuth } from "./assets/js/auth.js";
+  import { loadMenu } from "./assets/js/menu.js";
+
+  await requireAuth();
+  await loadMenu();
+</script>
+
+</body>
+</html>
