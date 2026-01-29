@@ -6,31 +6,27 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { db } from "./firebase.js";
 
-/* ========= FECHA ========= */
+/* =========================
+   ESTADO DE FECHA
+========================= */
 let currentDate = new Date();
 
 function formatDate(date) {
   return date.toISOString().split("T")[0];
 }
 
-/* ========= NAVEGACIÓN ========= */
-export function initAgendaNavigation() {
-  const prev = document.getElementById("prev-day");
-  const next = document.getElementById("next-day");
-
-  if (prev) prev.onclick = () => changeDay(-1);
-  if (next) next.onclick = () => changeDay(1);
-
-  renderDate();
+/* =========================
+   NAVEGACIÓN DE DÍAS
+========================= */
+export function goPrevDay() {
+  currentDate.setDate(currentDate.getDate() - 1);
 }
 
-function changeDay(delta) {
-  currentDate.setDate(currentDate.getDate() + delta);
-  renderDate();
-  loadAgenda();
+export function goNextDay() {
+  currentDate.setDate(currentDate.getDate() + 1);
 }
 
-function renderDate() {
+export function renderDate() {
   const el = document.getElementById("current-day");
   if (!el) return;
 
@@ -42,46 +38,19 @@ function renderDate() {
   });
 }
 
-/* ========= GUARDAR ========= */
-export async function saveAgenda() {
-  const user = auth.currentUser;
-  if (!user) return;
-
-  const date = formatDate(currentDate);
-  const uid = user.uid;
-
-  const plan = {};
-  document.querySelectorAll("[data-hour]").forEach(el => {
-    plan[el.dataset.hour] = el.value || "";
-  });
-
-  const data = {
-    uid,
-    date,
-    plan,
-    reto: document.getElementById("reto-diario")?.value || "",
-    notas: document.getElementById("notas-contactos")?.value || "",
-    tiempoFuera: document.getElementById("tiempo-fuera")?.value || "",
-    updatedAt: new Date()
-  };
-
-  await setDoc(doc(db, "agendaTerapeuta", `${uid}_${date}`), data);
-  alert("Agenda guardada");
-}
-
-/* ========= CARGAR ========= */
+/* =========================
+   CARGAR AGENDA (FIRESTORE)
+========================= */
 export async function loadAgenda() {
   const user = auth.currentUser;
   if (!user) return;
 
-  const date = formatDate(currentDate);
-  const uid = user.uid;
-
-  const ref = doc(db, "agendaTerapeuta", `${uid}_${date}`);
+  const dateKey = formatDate(currentDate);
+  const ref = doc(db, "agendaTerapeuta", `${user.uid}_${dateKey}`);
   const snap = await getDoc(ref);
 
-  // limpiar siempre
-  document.querySelectorAll("[data-hour]").forEach(el => el.value = "");
+  // Limpiar siempre antes
+  document.querySelectorAll("[data-hour]").forEach(t => t.value = "");
   document.getElementById("reto-diario").value = "";
   document.getElementById("notas-contactos").value = "";
   document.getElementById("tiempo-fuera").value = "";
@@ -90,12 +59,44 @@ export async function loadAgenda() {
 
   const data = snap.data();
 
-  Object.entries(data.plan || {}).forEach(([h, v]) => {
-    const field = document.querySelector(`[data-hour="${h}"]`);
-    if (field) field.value = v;
+  Object.entries(data.plan || {}).forEach(([hour, value]) => {
+    const field = document.querySelector(`[data-hour="${hour}"]`);
+    if (field) field.value = value;
   });
 
   document.getElementById("reto-diario").value = data.reto || "";
   document.getElementById("notas-contactos").value = data.notas || "";
   document.getElementById("tiempo-fuera").value = data.tiempoFuera || "";
+}
+
+/* =========================
+   GUARDAR AGENDA (FIRESTORE)
+========================= */
+export async function saveAgenda() {
+  const user = auth.currentUser;
+  if (!user) return;
+
+  const dateKey = formatDate(currentDate);
+
+  const plan = {};
+  document.querySelectorAll("[data-hour]").forEach(t => {
+    plan[t.dataset.hour] = t.value || "";
+  });
+
+  const data = {
+    uid: user.uid,
+    date: dateKey,
+    plan,
+    reto: document.getElementById("reto-diario").value || "",
+    notas: document.getElementById("notas-contactos").value || "",
+    tiempoFuera: document.getElementById("tiempo-fuera").value || "",
+    updatedAt: new Date()
+  };
+
+  await setDoc(
+    doc(db, "agendaTerapeuta", `${user.uid}_${dateKey}`),
+    data
+  );
+
+  alert("Agenda guardada");
 }
