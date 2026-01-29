@@ -5,19 +5,23 @@ import {
   getDoc
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { db } from "./firebase.js";
+import {
+  onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
 /* =========================
-   ESTADO DE FECHA
+   ESTADO GLOBAL
 ========================= */
 let currentDate = new Date();
+let currentUser = null;
 
+/* =========================
+   FECHAS
+========================= */
 function formatDate(date) {
   return date.toISOString().split("T")[0];
 }
 
-/* =========================
-   NAVEGACIÓN DE DÍAS
-========================= */
 export function goPrevDay() {
   currentDate.setDate(currentDate.getDate() - 1);
 }
@@ -39,22 +43,27 @@ export function renderDate() {
 }
 
 /* =========================
-   CARGAR AGENDA (FIRESTORE)
+   LIMPIAR UI
 ========================= */
-export async function loadAgenda() {
-  const user = auth.currentUser;
-  if (!user) return;
-
-  const dateKey = formatDate(currentDate);
-  const ref = doc(db, "agendaTerapeuta", `${user.uid}_${dateKey}`);
-  const snap = await getDoc(ref);
-
-  // Limpiar siempre antes
+function clearAgendaUI() {
   document.querySelectorAll("[data-hour]").forEach(t => t.value = "");
   document.getElementById("reto-diario").value = "";
   document.getElementById("notas-contactos").value = "";
   document.getElementById("tiempo-fuera").value = "";
+}
 
+/* =========================
+   CARGAR AGENDA
+========================= */
+export async function loadAgenda() {
+  if (!currentUser) return;
+
+  const dateKey = formatDate(currentDate);
+  const ref = doc(db, "agendaTerapeuta", `${currentUser.uid}_${dateKey}`);
+
+  clearAgendaUI();
+
+  const snap = await getDoc(ref);
   if (!snap.exists()) return;
 
   const data = snap.data();
@@ -70,21 +79,20 @@ export async function loadAgenda() {
 }
 
 /* =========================
-   GUARDAR AGENDA (FIRESTORE)
+   GUARDAR AGENDA
 ========================= */
 export async function saveAgenda() {
-  const user = auth.currentUser;
-  if (!user) return;
+  if (!currentUser) return;
 
   const dateKey = formatDate(currentDate);
-
   const plan = {};
+
   document.querySelectorAll("[data-hour]").forEach(t => {
     plan[t.dataset.hour] = t.value || "";
   });
 
   const data = {
-    uid: user.uid,
+    uid: currentUser.uid,
     date: dateKey,
     plan,
     reto: document.getElementById("reto-diario").value || "",
@@ -94,9 +102,20 @@ export async function saveAgenda() {
   };
 
   await setDoc(
-    doc(db, "agendaTerapeuta", `${user.uid}_${dateKey}`),
+    doc(db, "agendaTerapeuta", `${currentUser.uid}_${dateKey}`),
     data
   );
 
   alert("Agenda guardada");
 }
+
+/* =========================
+   INIT REAL (CLAVE)
+========================= */
+onAuthStateChanged(auth, async user => {
+  if (!user) return;
+
+  currentUser = user;
+  renderDate();
+  await loadAgenda();
+});
