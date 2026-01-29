@@ -76,7 +76,7 @@ import {
 /* ===== GUARDAR AGENDA ===== */
 export async function saveAgenda() {
   const uid = auth.currentUser.uid;
-  const today = new Date().toISOString().split("T")[0];
+  const date = formatDate(currentDate);
 
   const hours = {};
   document.querySelectorAll("[data-hour]").forEach(t => {
@@ -100,7 +100,7 @@ export async function saveAgenda() {
 /* ===== CARGAR AGENDA ===== */
 export async function loadAgenda() {
   const uid = auth.currentUser.uid;
-  const today = new Date().toISOString().split("T")[0];
+  const date = = formatDate(currentDate);
 
   const ref = doc(db, "agendaTerapeuta", `${uid}_${today}`);
   const snap = await getDoc(ref);
