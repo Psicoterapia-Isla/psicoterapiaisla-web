@@ -1,23 +1,40 @@
-import { db, auth } from "./firebase.js";
+import { auth } from "./firebase.js";
 import {
   doc,
   setDoc,
   getDoc
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { db } from "./firebase.js";
 
 /* =========================
-   ESTADO DE FECHA ACTUAL
+   FECHA ACTUAL
    ========================= */
-export let currentDate = new Date();
+let currentDate = new Date();
 
-/* =========================
-   UTILIDADES
-   ========================= */
 function formatDate(date) {
-  return date.toISOString().split("T")[0]; // YYYY-MM-DD
+  return date.toISOString().split("T")[0];
 }
 
-export function renderDate() {
+/* =========================
+   NAVEGACIÓN DÍAS
+   ========================= */
+export function initDayNavigation() {
+  document.getElementById("prev-day").onclick = () => {
+    currentDate.setDate(currentDate.getDate() - 1);
+    renderDate();
+    loadAgenda();
+  };
+
+  document.getElementById("next-day").onclick = () => {
+    currentDate.setDate(currentDate.getDate() + 1);
+    renderDate();
+    loadAgenda();
+  };
+
+  renderDate();
+}
+
+function renderDate() {
   const el = document.getElementById("current-day");
   if (!el) return;
 
@@ -30,78 +47,63 @@ export function renderDate() {
 }
 
 /* =========================
-   NAVEGACIÓN ENTRE DÍAS
-   ========================= */
-document.getElementById("prev-day")?.addEventListener("click", () => {
-  currentDate.setDate(currentDate.getDate() - 1);
-  renderDate();
-  loadAgenda();
-});
-
-document.getElementById("next-day")?.addEventListener("click", () => {
-  currentDate.setDate(currentDate.getDate() + 1);
-  renderDate();
-  loadAgenda();
-});
-
-/* =========================
-   GUARDAR AGENDA
+   GUARDAR
    ========================= */
 export async function saveAgenda() {
-  const uid = auth.currentUser.uid;
-  const dateKey = formatDate(currentDate);
+  const user = auth.currentUser;
+  if (!user) return;
 
-  const hours = {};
-  document.querySelectorAll("[data-hour]").forEach(el => {
-    hours[el.dataset.hour] = el.value || "";
+  const date = formatDate(currentDate);
+  const uid = user.uid;
+
+  const plan = {};
+  document.querySelectorAll("[data-hour]").forEach(t => {
+    plan[t.dataset.hour] = t.value || "";
   });
 
   const data = {
     uid,
-    date: dateKey,
-    hours,
+    date,
+    plan,
     reto: document.getElementById("reto-diario")?.value || "",
-    notasContactos: document.getElementById("notas-contactos")?.value || "",
+    notas: document.getElementById("notas-contactos")?.value || "",
     tiempoFuera: document.getElementById("tiempo-fuera")?.value || "",
     updatedAt: new Date()
   };
 
-  await setDoc(
-    doc(db, "agendaTerapeuta", `${uid}_${dateKey}`),
-    data
-  );
-
+  await setDoc(doc(db, "agendaTerapeuta", `${uid}_${date}`), data);
   alert("Agenda guardada");
 }
 
 /* =========================
-   CARGAR AGENDA
+   CARGAR
    ========================= */
 export async function loadAgenda() {
-  const uid = auth.currentUser.uid;
-  const dateKey = formatDate(currentDate);
+  const user = auth.currentUser;
+  if (!user) return;
 
-  renderDate();
+  const date = formatDate(currentDate);
+  const uid = user.uid;
 
-  // Limpia primero
-  document.querySelectorAll("[data-hour]").forEach(el => el.value = "");
+  const ref = doc(db, "agendaTerapeuta", `${uid}_${date}`);
+  const snap = await getDoc(ref);
+
+  // limpiar campos siempre
+  document.querySelectorAll("[data-hour]").forEach(t => t.value = "");
   document.getElementById("reto-diario").value = "";
   document.getElementById("notas-contactos").value = "";
   document.getElementById("tiempo-fuera").value = "";
-
-  const ref = doc(db, "agendaTerapeuta", `${uid}_${dateKey}`);
-  const snap = await getDoc(ref);
 
   if (!snap.exists()) return;
 
   const data = snap.data();
 
-  Object.entries(data.hours || {}).forEach(([hour, value]) => {
-    const field = document.querySelector(`[data-hour="${hour}"]`);
-    if (field) field.value = value;
+  Object.entries(data.plan || {}).forEach(([h, v]) => {
+    const field = document.querySelector(`[data-hour="${h}"]`);
+    if (field) field.value = v;
   });
 
   document.getElementById("reto-diario").value = data.reto || "";
-  document.getElementById("notas-contactos").value = data.notasContactos || "";
+  document.getElementById("notas-contactos").value = data.notas || "";
   document.getElementById("tiempo-fuera").value = data.tiempoFuera || "";
 }
