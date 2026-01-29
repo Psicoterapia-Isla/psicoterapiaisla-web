@@ -44,3 +44,54 @@ export function loadAgenda() {
   document.querySelector("#notas-contactos").value = agenda.notas?.contactos || "";
   document.querySelector("#tiempo-fuera").value = agenda.notas?.tiempo_fuera || "";
 }
+import { db, auth } from "./firebase.js";
+import {
+  doc,
+  setDoc,
+  getDoc
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+/* ===== GUARDAR AGENDA ===== */
+export async function saveAgenda() {
+  const uid = auth.currentUser.uid;
+  const today = new Date().toISOString().split("T")[0];
+
+  const hours = {};
+  document.querySelectorAll("[data-hour]").forEach(t => {
+    hours[t.dataset.hour] = t.value;
+  });
+
+  const data = {
+    uid,
+    date: today,
+    hours,
+    reto: document.getElementById("reto-diario")?.value || "",
+    notas: document.getElementById("notas-contactos")?.value || "",
+    tiempoFuera: document.getElementById("tiempo-fuera")?.value || "",
+    updatedAt: new Date()
+  };
+
+  await setDoc(doc(db, "agendaTerapeuta", `${uid}_${today}`), data);
+  alert("Agenda guardada");
+}
+
+/* ===== CARGAR AGENDA ===== */
+export async function loadAgenda() {
+  const uid = auth.currentUser.uid;
+  const today = new Date().toISOString().split("T")[0];
+
+  const ref = doc(db, "agendaTerapeuta", `${uid}_${today}`);
+  const snap = await getDoc(ref);
+
+  if (!snap.exists()) return;
+
+  const data = snap.data();
+
+  document.querySelectorAll("[data-hour]").forEach(t => {
+    t.value = data.hours?.[t.dataset.hour] || "";
+  });
+
+  document.getElementById("reto-diario").value = data.reto || "";
+  document.getElementById("notas-contactos").value = data.notas || "";
+  document.getElementById("tiempo-fuera").value = data.tiempoFuera || "";
+}
