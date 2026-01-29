@@ -1,0 +1,123 @@
+/* ===============================
+   PSICOTERAPIA ISLA – BASE DESIGN
+   Inspirado en planificador físico
+================================ */
+
+/* 🎨 Variables de marca */
+:root {
+  --isla-bg: #faf7f2;
+  --isla-card: #eaf4ef;
+  --isla-green: #7fb8a3;
+  --isla-green-dark: #2f5d50;
+  --isla-border: rgba(47,93,80,0.35);
+  --isla-text: #2f3e3a;
+}
+
+/* 🌿 Fondo general */
+body.app-body {
+  background: var(--isla-bg);
+  color: var(--isla-text);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+/* 📄 Contenedor */
+.app-container {
+  max-width: 900px;
+  padding: 1.5rem;
+}
+
+/* 🧾 Tarjetas = papel */
+.card {
+  background: var(--isla-card);
+  border-radius: 22px;
+  padding: 2rem;
+}
+
+/* 🧠 Títulos */
+.page-title {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 2rem;
+  color: var(--isla-green-dark);
+  margin-bottom: 1.5rem;
+}
+
+.section-title {
+  font-family: Georgia, serif;
+  font-size: 1.1rem;
+  color: var(--isla-green-dark);
+  margin-bottom: 0.8rem;
+}
+
+/* ✏️ Inputs integrados (sin cajas) */
+textarea,
+input {
+  width: 100%;
+  background: transparent;
+  border: none;
+  border-bottom: 1px dashed var(--isla-border);
+  padding: 0.6rem 0;
+  font-size: 0.95rem;
+  color: var(--isla-text);
+}
+
+/* 📓 Líneas tipo cuaderno */
+textarea {
+  line-height: 27px;
+  background-image:
+    repeating-linear-gradient(
+      to bottom,
+      transparent,
+      transparent 26px,
+      var(--isla-border) 27px
+    );
+  resize: none;
+}
+
+/* 🕰 Plan horario */
+.list {
+  display: grid;
+  grid-template-columns: 70px 1fr;
+  gap: 0.3rem;
+}
+
+.list-item {
+  display: contents;
+}
+
+.list-item::before {
+  content: attr(data-hour);
+  color: var(--isla-green-dark);
+}
+
+.list-item::after {
+  content: "";
+  border-bottom: 1px dashed var(--isla-border);
+  margin-top: 0.6rem;
+}
+
+/* 🟢 Botones */
+button {
+  background: var(--isla-green);
+  color: white;
+  border: none;
+  padding: 0.9rem 2.2rem;
+  border-radius: 999px;
+  font-size: 0.95rem;
+  cursor: pointer;
+  margin-top: 2rem;
+}
+
+button:hover {
+  background: var(--isla-green-dark);
+}
+
+/* 📱 Responsive */
+@media (max-width: 768px) {
+  .card {
+    padding: 1.5rem;
+  }
+
+  .page-title {
+    font-size: 1.6rem;
+  }
+}
