@@ -203,3 +203,106 @@ button:hover {
    ========================= */
 .mt-24 { margin-top: 24px; }
 .mb-24 { margin-bottom: 24px; }
+/* =========================
+   SISTEMA VISUAL PSICOTERAPIA ISLA
+   Inspirado en Planificador Diario
+   ========================= */
+
+:root {
+  --bg-main: #f6f5f2;
+  --green-soft: #dff0e5;
+  --green-mid: #b7dbc9;
+  --green-strong: #7fb8a1;
+
+  --text-main: #2f2f2f;
+  --text-muted: #6b6b6b;
+
+  --border-soft: #cfe3d8;
+  --radius-lg: 18px;
+  --radius-md: 12px;
+}
+
+/* Fondo general */
+body.app-body {
+  background: var(--bg-main);
+  color: var(--text-main);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+}
+
+/* Contenedor principal */
+.app-container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 32px 20px;
+}
+
+/* Títulos */
+h1,
+h2,
+h3 {
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+
+/* Tarjetas (bloques verdes) */
+.card,
+.plan-card {
+  background: var(--green-soft);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  margin-bottom: 24px;
+  border: 1px solid var(--border-soft);
+}
+
+/* Inputs y textarea */
+input[type="text"],
+input[type="number"],
+textarea {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-soft);
+  background: #ffffff;
+  font-size: 14px;
+  margin-bottom: 14px;
+}
+
+textarea {
+  min-height: 100px;
+  resize: vertical;
+}
+
+/* Botones */
+button {
+  background: var(--green-strong);
+  color: #ffffff;
+  border: none;
+  padding: 10px 16px;
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  cursor: pointer;
+}
+
+button.secondary {
+  background: var(--green-mid);
+  color: var(--text-main);
+}
+
+button:hover {
+  opacity: 0.9;
+}
+
+/* Horas agenda */
+.hours-list {
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.8;
+}
+
+/* Separadores suaves */
+.section-divider {
+  height: 1px;
+  background: var(--border-soft);
+  margin: 24px 0;
+}
