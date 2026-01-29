@@ -346,126 +346,104 @@ button:hover {
   </section>
 
 </main>
-/* ===============================
-   AGENDA PROFESIONAL – PSICOTERAPIA ISLA
-   Estilo calmado, terapéutico y humano
-   =============================== */
+/* =========================
+   AGENDA TERAPEUTA – PSICOTERAPIA ISLA
+   ========================= */
 
-:root {
-  --verde-suave: #cfe8d8;
-  --verde-medio: #a7d3bd;
-  --verde-profundo: #6fa58c;
-  --crema-fondo: #f7f6f2;
-  --texto-principal: #2f3e3a;
-  --texto-suave: #6b7c75;
-}
-
-/* Fondo general */
-body.app-body {
-  background-color: var(--crema-fondo);
-}
-
-/* Contenedor principal */
 .app-container {
-  max-width: 920px;
-  margin: 0 auto;
-  padding: 2.5rem 1.5rem 4rem;
+  max-width: 1100px;
 }
 
-/* Título */
-.app-container h1 {
-  font-size: 2.1rem;
-  font-weight: 400;
-  color: var(--texto-principal);
-  margin-bottom: 2rem;
-  letter-spacing: 0.5px;
-}
-
-/* Tarjetas */
-.card {
-  background: var(--verde-suave);
-  border-radius: 28px;
-  padding: 2rem 2.2rem;
-  margin-bottom: 2.5rem;
-  box-shadow: 0 12px 30px rgba(0,0,0,0.04);
-}
-
-/* Títulos de sección */
-.card h3 {
-  font-size: 1.2rem;
+/* TÍTULO */
+.app-container .page-title {
+  font-size: 2rem;
   font-weight: 500;
-  color: var(--texto-principal);
-  margin-bottom: 1.2rem;
+  color: #2f4f4a;
+  margin-bottom: 2rem;
 }
 
-/* Horas del día */
-.hours-list {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 0.6rem 1.2rem;
-  font-size: 0.95rem;
-  color: var(--texto-suave);
-}
-
-.hours-list div {
-  padding: 0.3rem 0;
-}
-
-/* Inputs y textareas */
-textarea,
-input[type="text"] {
-  width: 100%;
+/* TARJETA PRINCIPAL */
+.app-container .card {
+  background: #e9f4ef;
+  border-radius: 18px;
+  padding: 2.5rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
   border: none;
-  border-radius: 16px;
-  padding: 0.9rem 1rem;
+}
+
+/* CABECERA DE SECCIÓN */
+.card h2,
+.card h3 {
+  color: #2f4f4a;
+  font-weight: 500;
+  margin-bottom: 1rem;
+}
+
+/* PLAN DEL DÍA */
+.plan-dia {
+  display: grid;
+  grid-template-columns: 80px 1fr;
+  gap: 0.75rem 1.25rem;
+  margin-bottom: 2.5rem;
+}
+
+/* HORAS */
+.plan-dia .hora {
+  font-weight: 500;
+  color: #2f4f4a;
+  opacity: 0.85;
+}
+
+/* CAMPOS DE TEXTO */
+.plan-dia textarea,
+.card textarea,
+.card input[type="text"] {
+  width: 100%;
+  border-radius: 12px;
+  border: 1px solid #cfe3dc;
+  padding: 0.75rem 1rem;
+  font-family: inherit;
   font-size: 0.95rem;
+  resize: none;
   background: #ffffff;
-  color: var(--texto-principal);
-  margin-top: 0.5rem;
-  box-shadow: inset 0 0 0 1px rgba(0,0,0,0.05);
 }
 
-textarea {
-  min-height: 90px;
-  resize: vertical;
+/* FOCUS */
+textarea:focus,
+input:focus {
+  outline: none;
+  border-color: #7fb8a5;
+  box-shadow: 0 0 0 2px rgba(127, 184, 165, 0.2);
 }
 
-/* Placeholder */
-textarea::placeholder,
-input::placeholder {
-  color: #9aa9a3;
+/* RETO DIARIO */
+.reto-diario textarea {
+  min-height: 120px;
 }
 
-/* Botón guardar */
-button {
-  margin-top: 1.2rem;
-  background: var(--verde-profundo);
-  color: white;
+/* NOTAS */
+.notas textarea {
+  min-height: 140px;
+}
+
+/* TIEMPO FUERA */
+.tiempo-fuera {
+  max-width: 200px;
+}
+
+/* BOTÓN */
+.card button {
+  background: #7fb8a5;
+  color: #ffffff;
   border: none;
   border-radius: 999px;
-  padding: 0.7rem 1.6rem;
+  padding: 0.75rem 2rem;
   font-size: 0.95rem;
   cursor: pointer;
-  transition: all 0.2s ease;
+  margin-top: 1.5rem;
+  transition: background 0.2s ease;
 }
 
-button:hover {
-  background: #5e927b;
-  transform: translateY(-1px);
-}
-
-/* Separación visual suave */
-.card + .card {
-  margin-top: 2.8rem;
-}
-
-/* Responsive */
-@media (max-width: 700px) {
-  .hours-list {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  .app-container h1 {
-    font-size: 1.8rem;
-  }
+.card button:hover {
+  background: #6aa895;
 }
