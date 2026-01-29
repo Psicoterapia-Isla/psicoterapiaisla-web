@@ -1,1 +1,376 @@
 
+/* =========================
+   RESET GLOBAL
+   ========================= */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* =========================
+   BASE APP
+   ========================= */
+body.app-body {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+               Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", sans-serif;
+  background-color: #f4f6f5;
+  color: #1f2f2a;
+  min-height: 100vh;
+}
+
+/* =========================
+   LOGIN
+   ========================= */
+.login-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+}
+
+.login-box {
+  width: 100%;
+  max-width: 420px;
+  background: #ffffff;
+  padding: 2.5rem;
+  border-radius: 14px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.06);
+}
+
+.login-box h1 {
+  font-size: 1.6rem;
+  margin-bottom: 0.5rem;
+}
+
+.login-subtitle {
+  color: #6f7f79;
+  font-size: 0.95rem;
+  margin-bottom: 2rem;
+}
+
+form label {
+  display: block;
+  font-size: 0.85rem;
+  margin-bottom: 1.2rem;
+  color: #4f5f59;
+}
+
+form input {
+  width: 100%;
+  margin-top: 0.4rem;
+  padding: 0.7rem 0.8rem;
+  border-radius: 8px;
+  border: 1px solid #dcdcdc;
+  font-size: 0.95rem;
+}
+
+form input:focus {
+  outline: none;
+  border-color: #2f6f64;
+}
+
+form button {
+  width: 100%;
+  margin-top: 1.2rem;
+  padding: 0.85rem;
+  border-radius: 8px;
+  border: none;
+  background-color: #2f6f64;
+  color: white;
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+
+form button:hover {
+  background-color: #285e55;
+}
+
+.legal-note {
+  margin-top: 2rem;
+  font-size: 0.75rem;
+  color: #6f7f79;
+  line-height: 1.5;
+}
+
+/* =========================
+   BARRA DE NAVEGACIÓN APP
+   ========================= */
+.app-menu {
+  display: flex;
+  gap: 1.5rem;
+  padding: 1rem 2rem;
+  background: #ffffff;
+  border-bottom: 1px solid #e2e2e2;
+}
+
+.app-menu a {
+  text-decoration: none;
+  color: #2e2e2e;
+  font-weight: 500;
+  font-size: 0.95rem;
+}
+
+.app-menu a:hover {
+  color: #2f6f64;
+}
+
+/* =========================
+   CONTENEDOR PRINCIPAL
+   ========================= */
+.app-container {
+  max-width: 760px;
+  margin: 3rem auto;
+  padding: 2.5rem;
+}
+
+/* Tarjeta base */
+.card {
+  background: #ffffff;
+  padding: 2.2rem;
+  border-radius: 14px;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.05);
+}
+
+/* =========================
+   TIPOGRAFÍA
+   ========================= */
+h1 {
+  font-size: 1.8rem;
+  margin-bottom: 0.8rem;
+}
+
+h2 {
+  font-size: 1.3rem;
+  margin-bottom: 0.6rem;
+}
+
+p {
+  line-height: 1.6;
+  color: #3f4f4a;
+}
+
+p + p {
+  margin-top: 0.6rem;
+}
+
+/* =========================
+   ENLACES INTERNOS
+   ========================= */
+a {
+  color: #2f6f64;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+/* =========================
+   DIARIO Y EJERCICIOS
+   ========================= */
+textarea {
+  width: 100%;
+  min-height: 180px;
+  margin-top: 1rem;
+  padding: 1rem;
+  border-radius: 10px;
+  border: 1px solid #ccc;
+  font-family: inherit;
+  font-size: 0.95rem;
+}
+
+textarea:focus {
+  outline: none;
+  border-color: #2f6f64;
+}
+
+input[type="file"] {
+  margin-top: 1rem;
+}
+
+/* =========================
+   BOTONES
+   ========================= */
+button {
+  margin-top: 1.5rem;
+  padding: 0.75rem 1.6rem;
+  border: none;
+  border-radius: 10px;
+  background: #5b7c7a;
+  color: white;
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #496664;
+}
+
+/* =========================
+   LISTA DE EJERCICIOS
+   ========================= */
+.exercise-list {
+  margin-top: 1.2rem;
+  padding-left: 1.2rem;
+}
+
+.exercise-list li {
+  margin-bottom: 0.6rem;
+}
+
+/* =========================
+   RESPONSIVE
+   ========================= */
+@media (max-width: 640px) {
+  .app-container {
+    margin: 1.5rem 1rem;
+    padding: 0;
+  }
+
+  .card {
+    padding: 1.8rem;
+  }
+
+  .app-menu {
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+<main class="app-container">
+  <h1 class="page-title">Respuestas por ejercicio</h1>
+  <div id="exercises" class="exercise-list"></div>
+</main>
+}
+/* =========================
+   Psicoterapia Isla – UX
+   Respuestas por ejercicio
+   ========================= */
+
+.page-title {
+  font-size: 1.8rem;
+  font-weight: 600;
+  color: #5a5a5a;
+  margin-bottom: 2rem;
+}
+
+/* Contenedor general */
+.exercise-list {
+  display: flex;
+  flex-direction: column;
+  gap: 3rem;
+}
+
+/* Bloque por ejercicio */
+.exercise-card {
+  background: #fffdf9;
+  border-radius: 20px;
+  padding: 2rem;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.04);
+  border-left: 8px solid #cfe8dc; /* verde pastel */
+}
+
+/* Título del ejercicio */
+.exercise-card h2 {
+  font-size: 1.4rem;
+  color: #7a6c8a; /* rosa-gris suave */
+  margin-bottom: 1.5rem;
+  text-transform: capitalize;
+}
+
+/* Cada entrada individual */
+.entry-card {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  border: 1px solid #f1f1f1;
+}
+
+/* Cabecera de entrada */
+.entry-meta {
+  font-size: 0.9rem;
+  color: #8a8a8a;
+  margin-bottom: 1rem;
+}
+
+/* Campos del ejercicio */
+.entry-field {
+  margin-bottom: 1rem;
+}
+
+.entry-field strong {
+  display: block;
+  font-weight: 600;
+  color: #6a7b6f; /* verde texto */
+  margin-bottom: 0.2rem;
+}
+
+.entry-field span {
+  display: block;
+  background: #fff6e5; /* amarillo pastel */
+  padding: 0.6rem 0.8rem;
+  border-radius: 10px;
+  color: #4a4a4a;
+  line-height: 1.4;
+}
+/* =========================
+   AGENDA PROFESIONAL – BASE
+   ========================= */
+
+.agenda-day {
+  margin-top: 2rem;
+}
+
+.agenda-date {
+  font-size: 1.2rem;
+  color: #6a7b6f;
+  margin-bottom: 1.5rem;
+}
+
+.session-card {
+  display: flex;
+  gap: 1rem;
+  background: #fffdf9;
+  border-radius: 16px;
+  padding: 1.2rem;
+  margin-bottom: 1rem;
+  border-left: 6px solid #f2d6b3; /* amarillo pastel */
+  box-shadow: 0 6px 20px rgba(0,0,0,0.04);
+}
+
+.session-time {
+  font-weight: 600;
+  color: #7a6c8a;
+  min-width: 60px;
+}
+
+.session-content {
+  flex: 1;
+}
+
+.session-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.4rem;
+}
+
+.patient-alias {
+  color: #4a4a4a;
+}
+
+.session-type {
+  font-size: 0.85rem;
+  color: #8a8a8a;
+}
+
+.session-notes {
+  background: #f7efe6;
+  padding: 0.6rem 0.8rem;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  color: #555;
+}
+
+.session-notes.muted {
+  opacity: 0.6;
+}
