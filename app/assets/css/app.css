@@ -312,3 +312,64 @@ button:hover {
   color: #4a4a4a;
   line-height: 1.4;
 }
+/* =========================
+   AGENDA PROFESIONAL – BASE
+   ========================= */
+
+.agenda-day {
+  margin-top: 2rem;
+}
+
+.agenda-date {
+  font-size: 1.2rem;
+  color: #6a7b6f;
+  margin-bottom: 1.5rem;
+}
+
+.session-card {
+  display: flex;
+  gap: 1rem;
+  background: #fffdf9;
+  border-radius: 16px;
+  padding: 1.2rem;
+  margin-bottom: 1rem;
+  border-left: 6px solid #f2d6b3; /* amarillo pastel */
+  box-shadow: 0 6px 20px rgba(0,0,0,0.04);
+}
+
+.session-time {
+  font-weight: 600;
+  color: #7a6c8a;
+  min-width: 60px;
+}
+
+.session-content {
+  flex: 1;
+}
+
+.session-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.4rem;
+}
+
+.patient-alias {
+  color: #4a4a4a;
+}
+
+.session-type {
+  font-size: 0.85rem;
+  color: #8a8a8a;
+}
+
+.session-notes {
+  background: #f7efe6;
+  padding: 0.6rem 0.8rem;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  color: #555;
+}
+
+.session-notes.muted {
+  opacity: 0.6;
+}
