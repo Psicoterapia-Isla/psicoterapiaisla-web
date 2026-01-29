@@ -1,119 +1,118 @@
-let currentDate = new Date();
-
-function formatDate(date) {
-  return date.toISOString().split("T")[0];
-}
-document.getElementById("prev-day").onclick = () => {
-  currentDate.setDate(currentDate.getDate() - 1);
-  loadAgenda();
-};
-
-document.getElementById("next-day").onclick = () => {
-  currentDate.setDate(currentDate.getDate() + 1);
-  loadAgenda();
-};
-function renderDate() {
-  document.getElementById("current-day").textContent =
-    currentDate.toLocaleDateString("es-ES", {
-      weekday: "long",
-      day: "numeric",
-      month: "long"
-    });
-}
-const STORAGE_KEY = "agenda-terapeuta";
-
-function getTodayKey() {
-  return new Date().toISOString().split("T")[0];
-}
-
-export function saveAgenda() {
-  const dateKey = getTodayKey();
-
-  const plan = {};
-  document.querySelectorAll("[data-hour]").forEach(el => {
-    plan[el.dataset.hour] = el.value || "";
-  });
-
-  const agenda = {
-    date: dateKey,
-    plan,
-    reto: document.querySelector("#reto-diario")?.value || "",
-    notas: {
-      contactos: document.querySelector("#notas-contactos")?.value || "",
-      tiempo_fuera: document.querySelector("#tiempo-fuera")?.value || ""
-    },
-    updatedAt: new Date().toISOString()
-  };
-
-  const all = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
-  all[dateKey] = agenda;
-
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(all));
-  alert("Agenda guardada");
-}
-export function loadAgenda() {
-  const dateKey = getTodayKey();
-  const all = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
-  const agenda = all[dateKey];
-  if (!agenda) return;
-
-  Object.entries(agenda.plan).forEach(([hour, value]) => {
-    const field = document.querySelector(`[data-hour="${hour}"]`);
-    if (field) field.value = value;
-  });
-
-  document.querySelector("#reto-diario").value = agenda.reto || "";
-  document.querySelector("#notas-contactos").value = agenda.notas?.contactos || "";
-  document.querySelector("#tiempo-fuera").value = agenda.notas?.tiempo_fuera || "";
-}
-import { db, auth } from "./firebase.js";
+import { auth } from "./firebase.js";
 import {
   doc,
   setDoc,
   getDoc
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { db } from "./firebase.js";
 
-/* ===== GUARDAR AGENDA ===== */
+/* =========================
+   ESTADO DE FECHA
+   ========================= */
+let currentDate = new Date();
+
+function formatDate(date) {
+  return date.toISOString().split("T")[0];
+}
+
+/* =========================
+   NAVEGACIÓN ENTRE DÍAS
+   ========================= */
+document.getElementById("prev-day")?.addEventListener("click", () => {
+  currentDate.setDate(currentDate.getDate() - 1);
+  renderDate();
+  loadAgenda();
+});
+
+document.getElementById("next-day")?.addEventListener("click", () => {
+  currentDate.setDate(currentDate.getDate() + 1);
+  renderDate();
+  loadAgenda();
+});
+
+function renderDate() {
+  const el = document.getElementById("current-day");
+  if (!el) return;
+
+  el.textContent = currentDate.toLocaleDateString("es-ES", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric"
+  });
+}
+
+/* =========================
+   GUARDAR AGENDA (Firestore)
+   ========================= */
 export async function saveAgenda() {
-  const uid = auth.currentUser.uid;
-  const date = formatDate(currentDate);
+  const user = auth.currentUser;
+  if (!user) return alert("Usuario no autenticado");
+
+  const dateKey = formatDate(currentDate);
 
   const hours = {};
-  document.querySelectorAll("[data-hour]").forEach(t => {
-    hours[t.dataset.hour] = t.value;
+  document.querySelectorAll("[data-hour]").forEach(el => {
+    hours[el.dataset.hour] = el.value || "";
   });
 
   const data = {
-    uid,
-    date: today,
+    uid: user.uid,
+    date: dateKey,
     hours,
     reto: document.getElementById("reto-diario")?.value || "",
-    notas: document.getElementById("notas-contactos")?.value || "",
+    notasContactos: document.getElementById("notas-contactos")?.value || "",
     tiempoFuera: document.getElementById("tiempo-fuera")?.value || "",
     updatedAt: new Date()
   };
 
-  await setDoc(doc(db, "agendaTerapeuta", `${uid}_${today}`), data);
+  await setDoc(
+    doc(db, "agendaTerapeuta", `${user.uid}_${dateKey}`),
+    data
+  );
+
   alert("Agenda guardada");
 }
 
-/* ===== CARGAR AGENDA ===== */
+/* =========================
+   CARGAR AGENDA (Firestore)
+   ========================= */
 export async function loadAgenda() {
-  const uid = auth.currentUser.uid;
-  const date = = formatDate(currentDate);
+  const user = auth.currentUser;
+  if (!user) return;
 
-  const ref = doc(db, "agendaTerapeuta", `${uid}_${today}`);
+  const dateKey = formatDate(currentDate);
+  const ref = doc(db, "agendaTerapeuta", `${user.uid}_${dateKey}`);
   const snap = await getDoc(ref);
+
+  // limpiar campos
+  document.querySelectorAll("[data-hour]").forEach(el => {
+    el.value = "";
+  });
+  document.getElementById("reto-diario").value = "";
+  document.getElementById("notas-contactos").value = "";
+  document.getElementById("tiempo-fuera").value = "";
 
   if (!snap.exists()) return;
 
   const data = snap.data();
 
-  document.querySelectorAll("[data-hour]").forEach(t => {
-    t.value = data.hours?.[t.dataset.hour] || "";
+  Object.entries(data.hours || {}).forEach(([hour, value]) => {
+    const el = document.querySelector(`[data-hour="${hour}"]`);
+    if (el) el.value = value;
   });
 
   document.getElementById("reto-diario").value = data.reto || "";
-  document.getElementById("notas-contactos").value = data.notas || "";
+  document.getElementById("notas-contactos").value = data.notasContactos || "";
   document.getElementById("tiempo-fuera").value = data.tiempoFuera || "";
 }
+
+/* =========================
+   INIT
+   ========================= */
+auth.onAuthStateChanged(user => {
+  if (user) {
+    renderDate();
+    loadAgenda();
+  }
+});
