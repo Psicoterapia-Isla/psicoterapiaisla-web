@@ -1,146 +1,142 @@
-/* ================================
-   AGENDA TERAPEUTA – RÉPLICA PAPEL
+/* ===============================
+   AGENDA TERAPEUTA – REPLICA PAPEL
    Psicoterapia Isla
 ================================ */
 
-/* ===== BASE ===== */
-
-body.app-body {
-  background: #f6f3ed;
+/* Fondo general tipo hoja */
+.app-body {
+  background: #F7F5EF;
 }
 
-.app-container {
-  max-width: 1100px;
-  margin: 0 auto;
-  padding: 2.5rem 1.5rem;
-}
-
-/* ===== TÍTULO ===== */
-
+/* Título principal */
 .page-title {
-  font-family: Georgia, serif;
-  font-weight: 500;
+  font-size: 2.2rem;
+  color: #2F5D50;
   letter-spacing: 0.04em;
-  color: #2f4f4a;
   margin-bottom: 2rem;
 }
 
-/* ===== CONTENEDOR PRINCIPAL ===== */
-
+/* Contenedor general */
 .agenda-layout {
   display: grid;
-  grid-template-columns: 2.2fr 1fr;
+  grid-template-columns: 2fr 1fr;
   gap: 2rem;
+  margin-bottom: 2rem;
 }
 
-/* ===== BLOQUES VERDES ===== */
-
-.agenda-block {
-  background: #dff1e6;
+/* Tarjetas base */
+.card {
+  background: #CFEED6;
   border-radius: 28px;
   padding: 2rem;
-  box-shadow: inset 0 0 0 1px rgba(47,79,74,0.15);
 }
 
-/* ===== PLAN DEL DÍA ===== */
+/* ===============================
+   PLAN DEL DÍA
+================================ */
+.plan-dia {
+  background: #BFE7C8;
+}
 
 .plan-dia h2 {
-  font-family: Georgia, serif;
+  color: #2F5D50;
   font-size: 1.1rem;
-  color: #2f4f4a;
+  letter-spacing: 0.08em;
   margin-bottom: 1.5rem;
 }
 
-.plan-dia .hora-linea {
+/* Lista de horas */
+.horas {
   display: grid;
   grid-template-columns: 60px 1fr;
-  align-items: center;
-  margin-bottom: 0.6rem;
+  row-gap: 0.8rem;
 }
 
-.plan-dia .hora {
-  font-size: 0.85rem;
-  color: #2f4f4a;
+.hora {
+  font-weight: 500;
+  color: #2F5D50;
 }
 
-.plan-dia input,
-.plan-dia textarea {
-  border: none;
-  border-bottom: 1px dashed rgba(47,79,74,0.5);
-  background: transparent;
-  padding: 4px 6px;
-  font-size: 0.9rem;
-  outline: none;
+.linea {
+  border-bottom: 1px dashed rgba(47,93,80,0.35);
 }
 
-/* ===== RETO DIARIO ===== */
+/* ===============================
+   RETO DIARIO
+================================ */
+.reto {
+  background: #BFE7C8;
+}
 
-.reto-diario h2 {
-  font-family: Georgia, serif;
-  font-size: 1.05rem;
-  color: #2f4f4a;
+.reto h2 {
+  font-size: 1.1rem;
+  color: #2F5D50;
+  letter-spacing: 0.08em;
   margin-bottom: 1rem;
+  text-decoration: underline;
 }
 
-.reto-diario textarea {
+.reto textarea {
   width: 100%;
-  min-height: 420px;
-  border: none;
+  min-height: 260px;
   background: transparent;
+  border: none;
   resize: none;
   font-size: 0.95rem;
-  line-height: 1.5;
-  outline: none;
+  line-height: 1.6;
 }
 
-/* ===== BLOQUE INFERIOR ===== */
-
-.agenda-notas {
-  margin-top: 2rem;
-  background: #dff1e6;
-  border-radius: 28px;
-  padding: 2rem;
+/* ===============================
+   NOTAS
+================================ */
+.notas {
+  background: #CFEED6;
 }
 
-.agenda-notas h2 {
-  font-family: Georgia, serif;
-  font-size: 1.05rem;
-  color: #2f4f4a;
+.notas h2 {
+  font-size: 1rem;
+  color: #2F5D50;
+  letter-spacing: 0.08em;
   margin-bottom: 1rem;
+  text-decoration: underline;
 }
 
-.agenda-notas textarea,
-.agenda-notas input {
-  width: 100%;
-  border: none;
-  border-bottom: 1px dashed rgba(47,79,74,0.5);
-  background: transparent;
-  margin-bottom: 1rem;
-  padding: 4px 6px;
-  outline: none;
-}
-
-/* ===== BOTÓN ===== */
-
-button,
-.btn {
-  background: #7fb8a5;
-  border: none;
-  border-radius: 999px;
-  padding: 0.6rem 1.5rem;
+.notas label {
+  display: block;
+  margin-top: 1rem;
   font-size: 0.85rem;
-  color: #fff;
-  cursor: pointer;
+  color: #2F5D50;
 }
 
-/* ===== MOBILE ===== */
+.notas input,
+.notas textarea {
+  width: 100%;
+  background: transparent;
+  border: none;
+  border-bottom: 1px dashed rgba(47,93,80,0.35);
+  padding: 0.4rem 0;
+  font-size: 0.9rem;
+}
 
+/* ===============================
+   BOTÓN
+================================ */
+button {
+  margin-top: 2rem;
+  background: #2F5D50;
+  color: #fff;
+  border: none;
+  padding: 0.7rem 1.6rem;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  letter-spacing: 0.08em;
+}
+
+/* ===============================
+   RESPONSIVE
+================================ */
 @media (max-width: 900px) {
   .agenda-layout {
     grid-template-columns: 1fr;
-  }
-
-  .reto-diario textarea {
-    min-height: 200px;
   }
 }
