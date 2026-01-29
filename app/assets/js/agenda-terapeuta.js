@@ -1,18 +1,32 @@
-import { auth } from "./firebase.js";
+import { db, auth } from "./firebase.js";
 import {
   doc,
   setDoc,
   getDoc
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-import { db } from "./firebase.js";
 
 /* =========================
-   ESTADO DE FECHA
+   ESTADO DE FECHA ACTUAL
    ========================= */
-let currentDate = new Date();
+export let currentDate = new Date();
 
+/* =========================
+   UTILIDADES
+   ========================= */
 function formatDate(date) {
-  return date.toISOString().split("T")[0];
+  return date.toISOString().split("T")[0]; // YYYY-MM-DD
+}
+
+export function renderDate() {
+  const el = document.getElementById("current-day");
+  if (!el) return;
+
+  el.textContent = currentDate.toLocaleDateString("es-ES", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric"
+  });
 }
 
 /* =========================
@@ -30,25 +44,11 @@ document.getElementById("next-day")?.addEventListener("click", () => {
   loadAgenda();
 });
 
-function renderDate() {
-  const el = document.getElementById("current-day");
-  if (!el) return;
-
-  el.textContent = currentDate.toLocaleDateString("es-ES", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    year: "numeric"
-  });
-}
-
 /* =========================
-   GUARDAR AGENDA (Firestore)
+   GUARDAR AGENDA
    ========================= */
 export async function saveAgenda() {
-  const user = auth.currentUser;
-  if (!user) return alert("Usuario no autenticado");
-
+  const uid = auth.currentUser.uid;
   const dateKey = formatDate(currentDate);
 
   const hours = {};
@@ -57,7 +57,7 @@ export async function saveAgenda() {
   });
 
   const data = {
-    uid: user.uid,
+    uid,
     date: dateKey,
     hours,
     reto: document.getElementById("reto-diario")?.value || "",
@@ -67,7 +67,7 @@ export async function saveAgenda() {
   };
 
   await setDoc(
-    doc(db, "agendaTerapeuta", `${user.uid}_${dateKey}`),
+    doc(db, "agendaTerapeuta", `${uid}_${dateKey}`),
     data
   );
 
@@ -75,44 +75,33 @@ export async function saveAgenda() {
 }
 
 /* =========================
-   CARGAR AGENDA (Firestore)
+   CARGAR AGENDA
    ========================= */
 export async function loadAgenda() {
-  const user = auth.currentUser;
-  if (!user) return;
-
+  const uid = auth.currentUser.uid;
   const dateKey = formatDate(currentDate);
-  const ref = doc(db, "agendaTerapeuta", `${user.uid}_${dateKey}`);
-  const snap = await getDoc(ref);
 
-  // limpiar campos
-  document.querySelectorAll("[data-hour]").forEach(el => {
-    el.value = "";
-  });
+  renderDate();
+
+  // Limpia primero
+  document.querySelectorAll("[data-hour]").forEach(el => el.value = "");
   document.getElementById("reto-diario").value = "";
   document.getElementById("notas-contactos").value = "";
   document.getElementById("tiempo-fuera").value = "";
+
+  const ref = doc(db, "agendaTerapeuta", `${uid}_${dateKey}`);
+  const snap = await getDoc(ref);
 
   if (!snap.exists()) return;
 
   const data = snap.data();
 
   Object.entries(data.hours || {}).forEach(([hour, value]) => {
-    const el = document.querySelector(`[data-hour="${hour}"]`);
-    if (el) el.value = value;
+    const field = document.querySelector(`[data-hour="${hour}"]`);
+    if (field) field.value = value;
   });
 
   document.getElementById("reto-diario").value = data.reto || "";
   document.getElementById("notas-contactos").value = data.notasContactos || "";
   document.getElementById("tiempo-fuera").value = data.tiempoFuera || "";
 }
-
-/* =========================
-   INIT
-   ========================= */
-auth.onAuthStateChanged(user => {
-  if (user) {
-    renderDate();
-    loadAgenda();
-  }
-});
