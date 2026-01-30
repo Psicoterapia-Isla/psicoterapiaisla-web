@@ -43,3 +43,8 @@ export function loadMenu() {
     `;
   });
 }
+const links = [
+  { text: "Agenda profesional", href: "/app/agenda-terapeuta.html" },
+  { text: "Agenda paciente", href: "/app/agenda-paciente.html" },
+  // lo demás que ya tengas
+];
