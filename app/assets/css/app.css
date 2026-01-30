@@ -258,3 +258,13 @@ body.app-body {
     padding: 1rem 1.2rem;
   }
 }
+:root {
+  --isla-green: #5f7f73;
+  --isla-pink: #e7b7c8;
+  --isla-cream: #f6f2ee;
+  --isla-violet: #6e5a78;
+  --isla-text: #2f2f2f;
+
+  --radius-soft: 22px;
+  --radius-card: 26px;
+}
