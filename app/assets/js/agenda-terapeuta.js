@@ -1,9 +1,13 @@
 import { db } from "./firebase.js";
+import { auth } from "./firebase.js";
 import {
   doc,
   setDoc,
   getDoc
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import {
+  onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
 /* =========================
    ESTADO GLOBAL
@@ -16,15 +20,16 @@ function formatDate(date) {
 }
 
 /* =========================
-   INICIALIZACIÓN
+   INICIALIZACIÓN (AÑADIDO CLAVE)
 ========================= */
-export function initAgenda(user) {
-  if (!user) throw new Error("Usuario no inicializado en agenda");
-  currentUser = user;
+onAuthStateChanged(auth, async (user) => {
+  if (!user) return;
 
+  currentUser = user;
   renderDate();
   bindDayNavigation();
-}
+  await loadAgenda();
+});
 
 /* =========================
    NAVEGACIÓN DE DÍAS
@@ -92,7 +97,10 @@ export async function loadAgenda() {
    GUARDAR AGENDA
 ========================= */
 export async function saveAgenda() {
-  if (!currentUser) return;
+  if (!currentUser) {
+    alert("Usuario no autenticado");
+    return;
+  }
 
   const dateKey = formatDate(currentDate);
 
