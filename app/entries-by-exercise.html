@@ -62,13 +62,16 @@
   const grouped = {};
 
   snap.forEach(docSnap => {
-    const entry = docSnap.data();
-    entry._id = docSnap.id;
+  const entry = docSnap.data();
+  entry._id = docSnap.id;
 
-    if (!entry.type || !entry.data) return;
-    if (!grouped[entry.type]) grouped[entry.type] = [];
-    grouped[entry.type].push(entry);
-  });
+  // SOLO ejercicios válidos
+  if (!entry.type || typeof entry.data !== "object") return;
+  if (entry.type === "diario") return;
+
+  if (!grouped[entry.type]) grouped[entry.type] = [];
+  grouped[entry.type].push(entry);
+});
 
   for (const type of Object.keys(grouped)) {
     const section = document.createElement("section");
