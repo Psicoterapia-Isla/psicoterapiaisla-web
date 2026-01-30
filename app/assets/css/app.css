@@ -1,513 +1,244 @@
-/* =========================================================
-   PSICOTERAPIA ISLA – THEME BASE
-   Identidad visual unificada App + Web
-   ========================================================= */
-
 /* =========================
-   VARIABLES DE MARCA
-   ========================= */
-
+   VARIABLES BASE – PSICOTERAPIA ISLA
+========================= */
 :root {
-  /* Verdes */
-  --verde-bosque: #3f6f63;
-  --verde-salvia: #7faea3;
-  --verde-claro: #e7f1ee;
+  --green-main: #2f5d50;
+  --green-soft: #e9f5ef;
+  --green-card: #dff1e7;
 
-  /* Rosas */
-  --rosa-empolvado: #f1c6d3;
-  --rosa-suave: #fae4ec;
+  --mauve-main: #6e5a7a;
+  --mauve-soft: #f1eaf4;
 
-  /* Lilas */
-  --lila-profundo: #6b5a7a;
-  --lila-suave: #e8e1f0;
+  --text-main: #2b2b2b;
+  --text-soft: #6b6b6b;
 
-  /* Neutros cálidos */
-  --crema-fondo: #faf7f3;
-  --blanco-suave: #ffffff;
+  --radius-lg: 22px;
+  --radius-md: 14px;
 
-  /* Texto */
-  --texto-principal: #2f2f2f;
-  --texto-secundario: #5f5f5f;
-
-  /* Bordes y sombras */
-  --borde-suave: rgba(0, 0, 0, 0.08);
-  --sombra-suave: 0 10px 40px rgba(0, 0, 0, 0.08);
-
-  /* Tipografías */
-  --font-base: "Inter", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-titulo: "Playfair Display", serif;
+  --shadow-soft: 0 10px 30px rgba(0,0,0,0.06);
 }
 
 /* =========================
-   RESET BÁSICO
-   ========================= */
-
-* {
-  box-sizing: border-box;
-}
-
-body {
-  margin: 0;
-}
-
-/* =========================
-   FONDO GLOBAL CON PATRÓN ORGÁNICO
-   ========================= */
-
+   BODY / FONDO GENERAL
+========================= */
 body.app-body {
-  font-family: var(--font-base);
-  color: var(--texto-principal);
+  margin: 0;
+  font-family: "Inter", system-ui, sans-serif;
+  color: var(--text-main);
 
-  background-color: var(--crema-fondo);
-  background-image:
-    radial-gradient(circle at 15% 20%, rgba(241, 198, 211, 0.25) 0%, transparent 45%),
-    radial-gradient(circle at 85% 10%, rgba(127, 174, 163, 0.25) 0%, transparent 50%),
-    radial-gradient(circle at 30% 80%, rgba(232, 225, 240, 0.35) 0%, transparent 55%);
+  background:
+    radial-gradient(circle at 20% 20%, rgba(233,245,239,0.6), transparent 40%),
+    radial-gradient(circle at 80% 30%, rgba(241,234,244,0.5), transparent 45%),
+    radial-gradient(circle at 50% 80%, rgba(233,245,239,0.4), transparent 40%),
+    #f6f4f1;
 }
 
 /* =========================
-   MENÚ PRINCIPAL
-   ========================= */
+   CONTENEDOR PRINCIPAL
+========================= */
+.app-container {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 28px 18px 60px;
+}
 
+/* =========================
+   TÍTULOS
+========================= */
+.page-title,
+h1 {
+  font-size: 1.9rem;
+  font-weight: 700;
+  color: var(--green-main);
+  margin: 10px 0 24px;
+}
+
+h2 {
+  font-size: 1.3rem;
+  color: var(--mauve-main);
+  margin-bottom: 16px;
+}
+
+/* =========================
+   MENÚ SUPERIOR
+========================= */
 .app-menu {
-  background: linear-gradient(
-    135deg,
-    var(--verde-bosque),
-    var(--lila-profundo)
-  );
+  margin: 16px;
+  padding: 14px;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(135deg, #4e7f73, #6b5a7a);
+  box-shadow: var(--shadow-soft);
 
-  padding: 1.2rem 2rem;
-  margin-bottom: 2.5rem;
-
-  border-bottom-left-radius: 32px;
-  border-bottom-right-radius: 32px;
-
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
-}
-
-.app-menu a {
-  color: #ffffff;
-  text-decoration: none;
-  font-weight: 500;
-  margin-right: 1.2rem;
-
-  position: relative;
-}
-
-.app-menu a::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  bottom: -6px;
-  width: 0%;
-  height: 2px;
-  background-color: var(--rosa-empolvado);
-  transition: width 0.3s ease;
-}
-
-.app-menu a:hover::after {
-  width: 100%;
-}
-/* =====================================================
-   MENÚ AGRUPADO – PSICOTERAPIA ISLA
-   ===================================================== */
-
-.menu-group {
-  flex: 1 1 100%;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
 }
 
-/* Botón principal del grupo */
-.menu-group-toggle {
-  all: unset;
-  cursor: pointer;
-
-  padding: 12px 16px;
-  border-radius: 16px;
-
-  background: linear-gradient(
-    135deg,
-    rgba(255,255,255,0.35),
-    rgba(255,255,255,0.15)
-  );
-
-  color: #ffffff;
-  font-weight: 600;
+/* enlaces simples (Inicio / Salir) */
+.app-menu > a {
+  color: #ffffffcc;
+  text-decoration: none;
   font-size: 0.95rem;
+  padding: 6px 4px;
+}
+
+.app-menu > a:hover {
+  color: #fff;
+}
+
+/* =========================
+   GRUPOS DESPLEGABLES
+========================= */
+.menu-group {
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+/* botón principal del grupo */
+.menu-group-toggle {
+  width: 100%;
+  border: none;
+  background: rgba(255,255,255,0.18);
+  color: #fff;
+  padding: 14px 16px;
+
+  font-size: 1.05rem;
+  font-weight: 600;
 
   display: flex;
   justify-content: space-between;
   align-items: center;
 
-  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.35);
+  border-radius: var(--radius-md);
 }
 
-/* Flecha */
+/* flecha */
 .menu-group-toggle .arrow {
-  font-size: 0.9rem;
-  opacity: 0.7;
-  transition: transform 0.25s ease;
+  transition: transform 0.3s ease;
 }
 
-/* Contenido */
+/* contenido oculto */
 .menu-group-content {
-  display: none;
-  flex-direction: column;
-  gap: 6px;
-
-  padding: 12px;
-  border-radius: 16px;
-
-  background:
-    linear-gradient(
-      180deg,
-      rgba(246,242,238,0.95),
-      rgba(255,255,255,0.95)
-    );
-
-  box-shadow: 0 14px 35px rgba(0,0,0,0.18);
+  max-height: 0;
+  overflow: hidden;
+  background: rgba(255,255,255,0.9);
+  transition: max-height 0.35s ease;
 }
 
-/* Links internos */
+/* enlaces internos */
 .menu-group-content a {
-  padding: 10px 14px;
-  border-radius: 12px;
-  background: transparent;
-  color: var(--isla-violet);
-  font-size: 0.9rem;
-  text-align: left;
+  display: block;
+  padding: 12px 16px;
+  font-size: 0.95rem;
+  color: var(--green-main);
+  text-decoration: none;
+  border-bottom: 1px solid #eee;
 }
 
-.menu-group-content a:hover {
-  background: rgba(231,183,200,0.25);
+.menu-group-content a:last-child {
+  border-bottom: none;
 }
 
-/* Estado abierto */
-.menu-group.open .menu-group-content {
-  display: flex;
+/* =========================
+   DESPLEGADO (SIN JS)
+========================= */
+.menu-group:focus-within .menu-group-content,
+.menu-group:hover .menu-group-content {
+  max-height: 500px;
 }
 
-.menu-group.open .menu-group-toggle .arrow {
+.menu-group:focus-within .arrow,
+.menu-group:hover .arrow {
   transform: rotate(180deg);
 }
 
 /* =========================
-   CONTENEDOR PRINCIPAL
-   ========================= */
-
-.app-container {
-  max-width: 1100px;
-  margin: 0 auto;
-  padding: 0 1.5rem 4rem;
+   CARDS / BLOQUES DE CONTENIDO
+========================= */
+.exercise-card,
+.entry-card,
+.card {
+  background: #fff;
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: var(--shadow-soft);
 }
 
-/* =========================
-   TÍTULOS
-   ========================= */
-
-.page-title {
-  font-family: var(--font-titulo);
-  font-size: 2.4rem;
-  text-align: center;
-
-  color: var(--lila-profundo);
-  margin-bottom: 3rem;
-}
-
-/* =========================
-   TARJETAS DE EJERCICIOS
-   ========================= */
-
-.exercise-card {
-  background-color: var(--blanco-suave);
-  border-radius: 22px;
-
-  padding: 2rem;
-  margin-bottom: 2.5rem;
-
-  box-shadow: var(--sombra-suave);
-}
-
-.exercise-card h2 {
-  font-family: var(--font-titulo);
-  color: var(--verde-bosque);
-  margin-bottom: 1.5rem;
-}
-
-/* =========================
-   RESPUESTAS INDIVIDUALES
-   ========================= */
-
-.entry-card {
-  background-color: var(--verde-claro);
-  border-radius: 16px;
-
-  padding: 1.2rem 1.5rem;
-  margin-bottom: 1.2rem;
-}
-
+/* cabecera de entrada */
 .entry-meta {
   font-size: 0.9rem;
-  color: var(--texto-secundario);
-  margin-bottom: 0.8rem;
+  color: var(--text-soft);
+  margin-bottom: 10px;
 }
 
+/* campos */
 .entry-field {
-  margin-bottom: 0.6rem;
+  margin-bottom: 10px;
 }
 
 .entry-field strong {
   display: block;
-  color: var(--lila-profundo);
-  font-weight: 600;
+  font-size: 0.85rem;
+  color: var(--mauve-main);
+  margin-bottom: 2px;
 }
 
 /* =========================
-   NOTAS DEL TERAPEUTA
-   ========================= */
-
+   NOTAS TERAPEUTA
+========================= */
 .therapist-note {
-  margin-top: 1.2rem;
-  padding-top: 1rem;
-  border-top: 1px dashed var(--borde-suave);
+  margin-top: 18px;
+  background: var(--green-soft);
+  padding: 16px;
+  border-radius: var(--radius-md);
 }
 
 .note-textarea {
   width: 100%;
   min-height: 90px;
-
   border-radius: 12px;
-  border: 1px solid var(--borde-suave);
-  padding: 0.8rem;
-
-  font-family: var(--font-base);
-  resize: vertical;
+  border: none;
+  padding: 10px;
+  font-family: inherit;
 }
-
-/* =========================
-   BOTONES
-   ========================= */
 
 .save-note-btn,
 .export-pdf-btn {
-  margin-top: 0.6rem;
-  margin-right: 0.6rem;
-
-  border: none;
+  margin-top: 10px;
+  padding: 10px 14px;
   border-radius: 999px;
-  padding: 0.5rem 1.3rem;
-
-  font-weight: 500;
+  border: none;
+  font-size: 0.9rem;
   cursor: pointer;
 }
 
 .save-note-btn {
-  background-color: var(--verde-bosque);
-  color: #ffffff;
+  background: var(--green-main);
+  color: #fff;
 }
 
 .export-pdf-btn {
-  background-color: var(--rosa-empolvado);
-  color: #3a3a3a;
-}
-
-.save-note-btn:hover,
-.export-pdf-btn:hover {
-  opacity: 0.9;
+  background: var(--mauve-main);
+  color: #fff;
 }
 
 /* =========================
-   TEXTOS AUXILIARES
-   ========================= */
-
-.note-status {
-  display: block;
-  margin-top: 0.4rem;
-  font-size: 0.85rem;
-  color: var(--texto-secundario);
+   AGENDA
+========================= */
+.agenda-card {
+  background: var(--green-card);
+  border-radius: var(--radius-lg);
+  padding: 22px;
 }
 
 /* =========================
-   RESPONSIVE
-   ========================= */
-
-@media (max-width: 768px) {
-  .page-title {
-    font-size: 1.9rem;
-  }
-
-  .app-menu {
-    padding: 1rem 1.2rem;
-  }
-}
-:root {
-  --isla-green: #5f7f73;
-  --isla-pink: #e7b7c8;
-  --isla-cream: #f6f2ee;
-  --isla-violet: #6e5a78;
-  --isla-text: #2f2f2f;
-
-  --radius-soft: 22px;
-  --radius-card: 26px;
-}
-/* ======================================================
-   🌿 MENÚ PRINCIPAL – PSICOTERAPIA ISLA
-   Ajuste fino de jerarquía y coherencia emocional
-   ====================================================== */
-
-.app-menu {
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  margin: 1rem;
-  padding: 0.75rem;
-  border-radius: 22px;
-
-  background: linear-gradient(
-    135deg,
-    rgba(78, 140, 131, 0.85),
-    rgba(140, 120, 160, 0.85)
-  );
-
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-
-  box-shadow:
-    0 10px 30px rgba(0, 0, 0, 0.12),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.15);
+   LINKS
+========================= */
+a {
+  color: var(--mauve-main);
 }
 
-/* =====================
-   LINKS BASE
-   ===================== */
-
-.app-menu a,
-.menu-group-toggle {
-  display: flex;
-  align-items: center;
-
-  width: 100%;
-  padding: 0.65rem 0.9rem;
-
-  font-size: 0.95rem;
-  font-weight: 500;
-  text-decoration: none;
-
-  color: #f5f5f5;
-  background: transparent;
-  border: none;
-  border-radius: 14px;
-
-  cursor: pointer;
-  transition: all 0.25s ease;
-}
-
-/* Hover general */
-.app-menu a:hover,
-.menu-group-toggle:hover {
-  background: rgba(255, 255, 255, 0.14);
-}
-
-/* =====================
-   INICIO – INTEGRADO
-   ===================== */
-
-.app-menu a[href="index.html"] {
-  font-weight: 600;
-  background: rgba(255, 255, 255, 0.12);
-}
-
-/* =====================
-   GRUPOS DESPLEGABLES
-   ===================== */
-
-.menu-group {
-  display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
-}
-
-/* Botón del grupo */
-.menu-group-toggle {
-  justify-content: space-between;
-  letter-spacing: 0.2px;
-}
-
-/* Flecha */
-.menu-group-toggle .arrow {
-  font-size: 0.8rem;
-  opacity: 0.7;
-  transition: transform 0.3s ease;
-}
-
-/* Contenido oculto */
-.menu-group-content {
-  display: none;
-  flex-direction: column;
-  gap: 0.25rem;
-
-  padding: 0.4rem;
-  margin-top: 0.2rem;
-
-  background: rgba(255, 255, 255, 0.08);
-  border-radius: 16px;
-}
-
-/* Estado abierto */
-.menu-group.open .menu-group-content {
-  display: flex;
-}
-
-.menu-group.open .menu-group-toggle .arrow {
-  transform: rotate(180deg);
-}
-
-/* Links internos */
-.menu-group-content a {
-  font-size: 0.9rem;
-  padding-left: 1.1rem;
-  color: #ffffff;
-}
-
-/* =====================
-   SALIR – DESDRAMATIZADO
-   ===================== */
-
-.app-menu a[href="login.html"] {
-  margin-top: 0.4rem;
-
-  font-size: 0.85rem;
-  font-weight: 400;
-
-  opacity: 0.75;
-  color: #f2eaea;
-
-  justify-content: center;
-}
-
-.app-menu a[href="login.html"]:hover {
-  opacity: 1;
-  background: rgba(255, 255, 255, 0.12);
-}
-
-/* =====================
-   MÓVIL – AJUSTES FINOS
-   ===================== */
-
-@media (max-width: 600px) {
-  .app-menu {
-    margin: 0.75rem;
-    padding: 0.6rem;
-  }
-
-  .app-menu a,
-  .menu-group-toggle {
-    font-size: 0.9rem;
-  }
+a:hover {
+  text-decoration: underline;
 }
