@@ -95,11 +95,23 @@
 </main>
 
 <script type="module">
-  import { requireAuth } from "./assets/js/auth.js";
-  import { loadMenu } from "./assets/js/menu.js";
+import { requireAuth } from "./assets/js/auth.js";
+import { loadMenu } from "./assets/js/menu.js";
+import {
+  initAgendaPaciente,
+  loadAgendaPaciente,
+  saveAgendaPaciente
+} from "./assets/js/agenda-paciente.js";
 
-  await requireAuth();
-  await loadMenu();
+const user = await requireAuth();
+await loadMenu();
+
+initAgendaPaciente(user);
+await loadAgendaPaciente();
+
+document
+  .getElementById("guardar-agenda")
+  .addEventListener("click", saveAgendaPaciente);
 </script>
 
 </body>
