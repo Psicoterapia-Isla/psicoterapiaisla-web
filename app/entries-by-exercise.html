@@ -35,25 +35,26 @@ import {
   serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-// 🔐 Auth + menú
-await requireAuth();
-await loadMenu();
+async function init() {
 
-const { jsPDF } = window.jspdf;
-const container = document.getElementById("exercises");
+  // 🔐 Auth + menú
+  await requireAuth();
+  await loadMenu();
 
-// 🔎 Query entries
-const q = query(
-  collection(db, "entries"),
-  orderBy("createdAt", "desc")
-);
+  const { jsPDF } = window.jspdf;
+  const container = document.getElementById("exercises");
 
-const snap = await getDocs(q);
+  const q = query(
+    collection(db, "entries"),
+    orderBy("createdAt", "desc")
+  );
 
-// ⚠️ AQUÍ ESTÁ EL CAMBIO CLAVE (SIN return)
-if (snap.empty) {
-  container.innerHTML = "<p>No hay respuestas todavía.</p>";
-} else {
+  const snap = await getDocs(q);
+
+  if (snap.empty) {
+    container.innerHTML = "<p>No hay respuestas todavía.</p>";
+    return; // ← ahora SÍ es legal
+  }
 
   const grouped = {};
 
@@ -162,6 +163,9 @@ if (snap.empty) {
     container.appendChild(section);
   }
 }
+
+// 🚀 Arranque seguro
+init();
 </script>
 
 </body>
