@@ -1,13 +1,12 @@
-import { db } from "./firebase.js";
+// app/assets/js/agenda-terapeuta.js
+
 import { auth } from "./firebase.js";
+import { db } from "./firebase.js";
 import {
   doc,
   setDoc,
   getDoc
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-import {
-  onAuthStateChanged
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
 /* =========================
    ESTADO GLOBAL
@@ -15,24 +14,26 @@ import {
 let currentDate = new Date();
 let currentUser = null;
 
+/* =========================
+   UTILIDADES
+========================= */
 function formatDate(date) {
   return date.toISOString().split("T")[0];
 }
 
 /* =========================
-   INICIALIZACIÓN (AÑADIDO CLAVE)
+   INIT (OBLIGATORIO)
 ========================= */
-onAuthStateChanged(auth, async (user) => {
-  if (!user) return;
-
+export function initAgenda(user) {
+  if (!user) throw new Error("Usuario no autenticado en agenda");
   currentUser = user;
-  renderDate();
+
   bindDayNavigation();
-  await loadAgenda();
-});
+  renderDate();
+}
 
 /* =========================
-   NAVEGACIÓN DE DÍAS
+   NAVEGACIÓN DÍAS
 ========================= */
 function bindDayNavigation() {
   document.getElementById("prev-day")?.addEventListener("click", async () => {
@@ -49,9 +50,9 @@ function bindDayNavigation() {
 }
 
 /* =========================
-   FECHA
+   FECHA UI
 ========================= */
-function renderDate() {
+export function renderDate() {
   const el = document.getElementById("current-day");
   if (!el) return;
 
@@ -64,7 +65,7 @@ function renderDate() {
 }
 
 /* =========================
-   CARGAR AGENDA
+   CARGAR AGENDA (Firestore)
 ========================= */
 export async function loadAgenda() {
   if (!currentUser) return;
@@ -74,7 +75,7 @@ export async function loadAgenda() {
   const snap = await getDoc(ref);
 
   // limpiar siempre
-  document.querySelectorAll("[data-hour]").forEach(t => t.value = "");
+  document.querySelectorAll("[data-hour]").forEach(t => (t.value = ""));
   document.getElementById("reto-diario").value = "";
   document.getElementById("notas-contactos").value = "";
   document.getElementById("tiempo-fuera").value = "";
@@ -94,13 +95,10 @@ export async function loadAgenda() {
 }
 
 /* =========================
-   GUARDAR AGENDA
+   GUARDAR AGENDA (Firestore)
 ========================= */
 export async function saveAgenda() {
-  if (!currentUser) {
-    alert("Usuario no autenticado");
-    return;
-  }
+  if (!currentUser) return;
 
   const dateKey = formatDate(currentDate);
 
