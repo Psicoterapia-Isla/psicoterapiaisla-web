@@ -223,3 +223,51 @@ textarea {
 .hour-line textarea.has-text {
   min-height: 3.2em;
 }
+/* =========================
+   PLAN DEL DÍA – ALTURA INTELIGENTE
+   ========================= */
+
+/* Cada línea horaria */
+.hour-line textarea {
+  min-height: 22px;              /* línea compacta vacía */
+  max-height: 160px;
+  overflow-y: hidden;
+  resize: none;
+  transition: min-height 0.2s ease;
+}
+
+/* Cuando hay texto, respira */
+.hour-line textarea:not(:placeholder-shown),
+.hour-line textarea:focus {
+  min-height: 60px;
+}
+
+/* Ajuste automático al escribir */
+.hour-line textarea {
+  line-height: 1.4;
+}
+
+/* Reto diario más protagonista */
+#reto-diario {
+  min-height: 180px;
+}
+
+/* Notas */
+#notas-contactos {
+  min-height: 100px;
+}
+
+/* Espaciado visual tipo papel */
+.hour-line {
+  padding-bottom: 6px;
+}
+
+/* Mantener líneas visibles incluso vacías */
+.hour-line textarea {
+  background-image: linear-gradient(
+    to bottom,
+    transparent 95%,
+    rgba(0, 0, 0, 0.08) 96%
+  );
+  background-size: 100% 28px;
+}
