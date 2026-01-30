@@ -25,35 +25,45 @@ export function loadMenu() {
     // =====================
     // TERAPEUTA
     // =====================
-    if (role === "therapist") {
-      menu.innerHTML += `
-        <a href="agenda-terapeuta.html">Agenda profesional</a>
-
+    // 🧠 TERAPEUTA
+if (role === "therapist") {
+  menu.innerHTML += `
+    <div class="menu-group">
+      <button class="menu-group-toggle">
+        Espacio terapeuta
+        <span class="arrow">▾</span>
+      </button>
+      <div class="menu-group-content">
         <a href="diario-terapeuta.html">Diarios pacientes</a>
-
         <a href="entries-by-exercise.html">Respuestas por ejercicio</a>
         <a href="entries-by-patient.html">Respuestas por paciente</a>
-
         <a href="entries-by-exercise.html#pdf">Exportar informes (PDF)</a>
-
         <a href="exercises-admin.html">Gestionar ejercicios</a>
-      `;
-    }
+        <a href="agenda-terapeuta.html">Agenda profesional</a>
+      </div>
+    </div>
+  `;
+}
 
     // =====================
     // PACIENTE
     // =====================
     if (role === "patient") {
-      menu.innerHTML += `
-        <a href="agenda-paciente.html">Mi agenda</a>
-
+  menu.innerHTML += `
+    <div class="menu-group">
+      <button class="menu-group-toggle">
+        Mi espacio
+        <span class="arrow">▾</span>
+      </button>
+      <div class="menu-group-content">
         <a href="diario.html">Mi diario</a>
-
         <a href="exercises-list.html">Ejercicios</a>
-
         <a href="mis-entradas.html">Mis respuestas</a>
-      `;
-    }
+        <a href="agenda-paciente.html">Agenda</a>
+      </div>
+    </div>
+  `;
+}
 
     // =====================
     // SALIR
