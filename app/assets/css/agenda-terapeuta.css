@@ -209,3 +209,17 @@ textarea {
   margin-bottom: 0.4rem;
   display: block;
 }
+.hour-line textarea {
+  width: 100%;
+  resize: none;
+  overflow: hidden;
+  min-height: 1.4em;      /* línea fina cuando está vacío */
+  max-height: 12em;
+  line-height: 1.4;
+  transition: min-height 0.15s ease;
+}
+
+/* cuando tiene contenido */
+.hour-line textarea.has-text {
+  min-height: 3.2em;
+}
