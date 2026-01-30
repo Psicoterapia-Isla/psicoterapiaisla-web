@@ -124,3 +124,20 @@ export async function saveAgenda() {
 
   alert("Agenda guardada");
 }
+function autoResizeTextarea(el) {
+  el.style.height = "auto";
+  el.style.height = el.scrollHeight + "px";
+
+  if (el.value.trim()) {
+    el.classList.add("has-text");
+  } else {
+    el.classList.remove("has-text");
+  }
+}
+
+// aplicar a todas las horas
+document.querySelectorAll("[data-hour]").forEach(t => {
+  autoResizeTextarea(t);
+
+  t.addEventListener("input", () => autoResizeTextarea(t));
+});
