@@ -103,12 +103,19 @@ import {
   saveAgendaPaciente
 } from "./assets/js/agenda-paciente.js";
 
+// 1. Esperar al usuario
 const user = await requireAuth();
+
+// 2. Cargar menú
 await loadMenu();
 
+// 3. 🔴 ESTO ES LO QUE FALTABA
 initAgendaPaciente(user);
+
+// 4. Cargar datos del día
 await loadAgendaPaciente();
 
+// 5. Guardar
 document
   .getElementById("guardar-agenda")
   .addEventListener("click", saveAgendaPaciente);
