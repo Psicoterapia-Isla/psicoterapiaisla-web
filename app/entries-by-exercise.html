@@ -50,117 +50,119 @@ const q = query(
 
 const snap = await getDocs(q);
 
+// ⚠️ AQUÍ ESTÁ EL CAMBIO CLAVE (SIN return)
 if (snap.empty) {
   container.innerHTML = "<p>No hay respuestas todavía.</p>";
-  return;
-}
+} else {
 
-const grouped = {};
+  const grouped = {};
 
-snap.forEach(docSnap => {
-  const entry = docSnap.data();
-  entry._id = docSnap.id;
+  snap.forEach(docSnap => {
+    const entry = docSnap.data();
+    entry._id = docSnap.id;
 
-  if (!entry.type || typeof entry.data !== "object") return;
-  if (entry.type === "diario") return;
+    if (!entry.type || typeof entry.data !== "object") return;
+    if (entry.type === "diario") return;
 
-  if (!grouped[entry.type]) grouped[entry.type] = [];
-  grouped[entry.type].push(entry);
-});
+    if (!grouped[entry.type]) grouped[entry.type] = [];
+    grouped[entry.type].push(entry);
+  });
 
-for (const type of Object.keys(grouped)) {
-  const section = document.createElement("section");
-  section.className = "exercise-card";
-  section.innerHTML = `<h2>${type.replace(/_/g, " ")}</h2>`;
+  for (const type of Object.keys(grouped)) {
+    const section = document.createElement("section");
+    section.className = "exercise-card";
+    section.innerHTML = `<h2>${type.replace(/_/g, " ")}</h2>`;
 
-  for (const entry of grouped[type]) {
-    const alias = entry.alias || "Paciente";
-    const fecha = entry.createdAt?.toDate
-      ? entry.createdAt.toDate().toLocaleString()
-      : "";
+    for (const entry of grouped[type]) {
+      const alias = entry.alias || "Paciente";
+      const fecha = entry.createdAt?.toDate
+        ? entry.createdAt.toDate().toLocaleString()
+        : "";
 
-    const noteRef = doc(db, "therapist_notes", entry._id);
-    const noteSnap = await getDoc(noteRef);
-    const existingNote = noteSnap.exists() ? noteSnap.data().note : "";
+      const noteRef = doc(db, "therapist_notes", entry._id);
+      const noteSnap = await getDoc(noteRef);
+      const existingNote = noteSnap.exists() ? noteSnap.data().note : "";
 
-    const card = document.createElement("div");
-    card.className = "entry-card";
+      const card = document.createElement("div");
+      card.className = "entry-card";
 
-    let inner = `
-      <div class="entry-meta">
-        <strong>${alias}</strong> · ${fecha}
-      </div>
-    `;
-
-    for (const key in entry.data) {
-      inner += `
-        <div class="entry-field">
-          <strong>${key.replace(/_/g, " ")}</strong>
-          <span>${entry.data[key]}</span>
+      let inner = `
+        <div class="entry-meta">
+          <strong>${alias}</strong> · ${fecha}
         </div>
       `;
-    }
-
-    inner += `
-      <div class="therapist-note">
-        <label><strong>Notas del terapeuta</strong></label>
-        <textarea class="note-textarea">${existingNote}</textarea>
-        <button class="save-note-btn">Guardar nota</button>
-        <button class="export-pdf-btn">Exportar PDF</button>
-        <small class="note-status"></small>
-      </div>
-    `;
-
-    card.innerHTML = inner;
-    section.appendChild(card);
-
-    const textarea = card.querySelector(".note-textarea");
-    const saveBtn = card.querySelector(".save-note-btn");
-    const exportBtn = card.querySelector(".export-pdf-btn");
-    const status = card.querySelector(".note-status");
-
-    saveBtn.addEventListener("click", async () => {
-      status.textContent = "Guardando…";
-      await setDoc(noteRef, {
-        note: textarea.value,
-        updatedAt: serverTimestamp()
-      });
-      status.textContent = "Nota guardada ✔";
-      setTimeout(() => status.textContent = "", 2000);
-    });
-
-    exportBtn.addEventListener("click", () => {
-      const pdf = new jsPDF();
-      let y = 15;
-
-      pdf.setFontSize(16);
-      pdf.text(type.replace(/_/g, " "), 15, y);
-      y += 10;
-
-      pdf.setFontSize(10);
-      pdf.text(`Paciente: ${alias}`, 15, y);
-      y += 6;
-      pdf.text(`Fecha: ${fecha}`, 15, y);
-      y += 10;
 
       for (const key in entry.data) {
-        pdf.text(`${key}: ${entry.data[key]}`, 15, y);
-        y += 6;
+        inner += `
+          <div class="entry-field">
+            <strong>${key.replace(/_/g, " ")}</strong>
+            <span>${entry.data[key]}</span>
+          </div>
+        `;
       }
 
-      if (textarea.value) {
-        y += 8;
-        pdf.text("Notas del terapeuta:", 15, y);
-        y += 6;
-        pdf.text(textarea.value, 15, y, { maxWidth: 170 });
-      }
+      inner += `
+        <div class="therapist-note">
+          <label><strong>Notas del terapeuta</strong></label>
+          <textarea class="note-textarea">${existingNote}</textarea>
+          <button class="save-note-btn">Guardar nota</button>
+          <button class="export-pdf-btn">Exportar PDF</button>
+          <small class="note-status"></small>
+        </div>
+      `;
 
-      pdf.save(`${type}-${entry._id}.pdf`);
-    });
+      card.innerHTML = inner;
+      section.appendChild(card);
+
+      const textarea = card.querySelector(".note-textarea");
+      const saveBtn = card.querySelector(".save-note-btn");
+      const exportBtn = card.querySelector(".export-pdf-btn");
+      const status = card.querySelector(".note-status");
+
+      saveBtn.addEventListener("click", async () => {
+        status.textContent = "Guardando…";
+        await setDoc(noteRef, {
+          note: textarea.value,
+          updatedAt: serverTimestamp()
+        });
+        status.textContent = "Nota guardada ✔";
+        setTimeout(() => status.textContent = "", 2000);
+      });
+
+      exportBtn.addEventListener("click", () => {
+        const pdf = new jsPDF();
+        let y = 15;
+
+        pdf.setFontSize(16);
+        pdf.text(type.replace(/_/g, " "), 15, y);
+        y += 10;
+
+        pdf.setFontSize(10);
+        pdf.text(`Paciente: ${alias}`, 15, y);
+        y += 6;
+        pdf.text(`Fecha: ${fecha}`, 15, y);
+        y += 10;
+
+        for (const key in entry.data) {
+          pdf.text(`${key}: ${entry.data[key]}`, 15, y);
+          y += 6;
+        }
+
+        if (textarea.value) {
+          y += 8;
+          pdf.text("Notas del terapeuta:", 15, y);
+          y += 6;
+          pdf.text(textarea.value, 15, y, { maxWidth: 170 });
+        }
+
+        pdf.save(`${type}-${entry._id}.pdf`);
+      });
+    }
+
+    container.appendChild(section);
   }
-
-  container.appendChild(section);
 }
 </script>
+
 </body>
 </html>
