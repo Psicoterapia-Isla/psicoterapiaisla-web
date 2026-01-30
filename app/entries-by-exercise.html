@@ -14,33 +14,30 @@
 
 <header class="app-menu"></header>
 
-<script type="module">
-  import { requireAuth } from "./assets/js/auth.js";
-  import { loadMenu } from "./assets/js/menu.js";
-
-  await requireAuth();
-  await loadMenu();
-</script>
-
 <main class="app-container">
   <h1 class="page-title">Respuestas por ejercicio</h1>
   <div id="exercises" class="exercise-list"></div>
 </main>
 
 <script type="module">
-  import { loadMenu } from "./assets/js/menu.js";
-  import { requireAuth } from "./assets/js/auth.js";
-  import { db } from "./assets/js/firebase.js";
-  import {
-    collection,
-    query,
-    orderBy,
-    getDocs,
-    doc,
-    getDoc,
-    setDoc,
-    serverTimestamp
-  } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { requireAuth } from "./assets/js/auth.js";
+import { loadMenu } from "./assets/js/menu.js";
+import { db } from "./assets/js/firebase.js";
+import {
+  collection,
+  query,
+  orderBy,
+  getDocs
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+// Auth UNA SOLA VEZ
+const user = await requireAuth();
+
+// Menu UNA SOLA VEZ
+await loadMenu();
+
+// A partir de aquí, queries a entries
+</script>;
 
   // 🔐 Auth
   await requireAuth();
