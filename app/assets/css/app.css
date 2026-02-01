@@ -1,5 +1,5 @@
 body.app-body::before {
-  content: "CSS CARGADO";
+  content: "CSS NUEVO CARGADO";
   position: fixed;
   top: 0;
   left: 0;
