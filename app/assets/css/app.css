@@ -1,6 +1,6 @@
 /* =========================================================
-   PSICOTERAPIA ISLA · APP CSS FINAL
-   Seguro para móvil · sin colisiones
+   APP – PSICOTERAPIA ISLA
+   CSS FINAL UNIFICADO (NO TOCAR HTML / JS)
 ========================================================= */
 
 /* =========================
@@ -8,145 +8,139 @@
 ========================= */
 :root {
   --green-main: #2f5d50;
+  --green-dark: #254b41;
   --green-soft: #e9f5ef;
   --green-card: #dff1e7;
 
   --mauve-main: #6e5a7a;
-  --mauve-soft: #f1eaf4;
 
-  --text-main: #2b2b2b;
+  --text-main: #1f1f1f;
   --text-soft: #6b6b6b;
 
   --radius-lg: 22px;
   --radius-md: 14px;
 
-  --shadow-soft: 0 10px 30px rgba(0,0,0,0.06);
+  --shadow-soft: 0 10px 28px rgba(0,0,0,.08);
 }
 
 /* =========================
-   BASE GLOBAL APP
+   BASE
 ========================= */
 body.app-body {
   margin: 0;
   font-family: "Inter", system-ui, sans-serif;
   color: var(--text-main);
   background:
-    radial-gradient(circle at 20% 20%, rgba(233,245,239,0.6), transparent 40%),
-    radial-gradient(circle at 80% 30%, rgba(241,234,244,0.5), transparent 45%),
+    radial-gradient(circle at 20% 20%, rgba(233,245,239,.6), transparent 40%),
+    radial-gradient(circle at 80% 30%, rgba(241,234,244,.45), transparent 45%),
     #f6f4f1;
 }
 
-* {
-  box-sizing: border-box;
-}
-
-img {
-  max-width: 100%;
-  display: block;
-}
-
-/* =========================
-   CONTENEDOR ÚNICO
-========================= */
 .app-container {
   max-width: 860px;
   margin: 0 auto;
-  padding: 24px 16px 60px;
+  padding: 28px 18px 60px;
 }
 
 /* =========================
-   MENÚ SUPERIOR (FIJO)
+   MENÚ SUPERIOR (CLAVE)
 ========================= */
 .app-menu {
-  max-width: 860px;
-  margin: 16px auto 28px;
-  padding: 16px;
+  margin: 16px;
+  padding: 18px;
   border-radius: var(--radius-lg);
   background: linear-gradient(135deg, #4e7f73, #6b5a7a);
   box-shadow: var(--shadow-soft);
-
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
 }
 
 .app-menu a {
   color: #ffffffcc;
   text-decoration: none;
-  font-size: 0.95rem;
+  font-size: .95rem;
+  display: block;
+  margin: 6px 0;
 }
 
 .app-menu a:hover {
   color: #fff;
 }
 
+/* botón desplegable */
+.app-menu .menu-group-toggle {
+  background: rgba(255,255,255,.18);
+  border-radius: 999px;
+  padding: 14px 18px;
+  font-weight: 600;
+  color: #fff;
+  text-align: center;
+  margin: 10px 0;
+}
+
 /* =========================
    TÍTULOS
 ========================= */
 .page-title,
-.app-body h1 {
+h1 {
   font-size: 1.6rem;
   font-weight: 700;
   color: var(--green-main);
-  margin: 10px 0 24px;
+  margin: 24px 0 20px;
 }
 
-.app-body h2 {
+h2 {
   font-size: 1.25rem;
   color: var(--mauve-main);
-  margin: 20px 0 12px;
-}
-
-.app-body h3 {
-  font-size: 1.05rem;
-  color: var(--mauve-main);
-  margin: 16px 0 6px;
-}
-
-.app-body h4 {
-  font-size: 0.9rem;
-  color: var(--text-soft);
-  margin: 12px 0 4px;
+  margin-bottom: 14px;
 }
 
 /* =========================
-   CARDS (BASE ÚNICA)
+   CARDS (DIARIOS / RESPUESTAS)
 ========================= */
 .card,
-.entry-card,
-.exercise-card {
+.entry-card {
   background: #fff;
   border-radius: var(--radius-lg);
-  padding: 20px;
-  margin-bottom: 18px;
+  padding: 22px;
+  margin-bottom: 20px;
   box-shadow: var(--shadow-soft);
 }
 
-/* =========================
-   ENTRADAS / RESPUESTAS
-========================= */
-.entry-card p {
-  font-size: 0.95rem;
-  line-height: 1.5;
-  margin-bottom: 8px;
+/* título del ejercicio */
+.entry-card h3 {
+  margin: 0 0 6px;
+  color: var(--green-main);
 }
 
+/* fecha */
 .entry-card small {
-  font-size: 0.8rem;
   color: var(--text-soft);
+  display: block;
+  margin-bottom: 12px;
+}
+
+/* campos */
+.entry-card h4 {
+  font-size: .85rem;
+  color: var(--mauve-main);
+  margin: 14px 0 4px;
+}
+
+.entry-card p {
+  margin: 0;
+  font-size: .95rem;
 }
 
 /* =========================
    NOTAS TERAPEUTA
 ========================= */
 .therapist-note {
+  margin-top: 18px;
   background: var(--green-soft);
   padding: 16px;
   border-radius: var(--radius-md);
-  margin-top: 16px;
 }
 
-.note-textarea {
+textarea {
   width: 100%;
   min-height: 90px;
   border-radius: 12px;
@@ -158,94 +152,26 @@ img {
 /* =========================
    BOTONES
 ========================= */
-button,
-.save-note-btn,
-.export-pdf-btn {
+button {
   width: 100%;
   margin-top: 12px;
-  padding: 12px 16px;
+  padding: 12px 18px;
   border-radius: 999px;
   border: none;
-  font-size: 0.95rem;
-  cursor: pointer;
-}
-
-.save-note-btn {
+  font-weight: 600;
   background: var(--green-main);
   color: #fff;
 }
 
-.export-pdf-btn {
-  background: var(--mauve-main);
-  color: #fff;
-}
-
 /* =========================
-   AGENDA
+   MOBILE FINO
 ========================= */
-.agenda-card {
-  background: var(--green-card);
-  border-radius: var(--radius-lg);
-  padding: 22px;
-}
+@media (max-width: 600px) {
+  .app-container {
+    padding: 20px 14px 50px;
+  }
 
-/* =========================
-   LINKS
-========================= */
-a {
-  color: var(--mauve-main);
-}
-
-a:hover {
-  text-decoration: underline;
-}
-/* =========================
-   FIX MENÚ APP – AISLAMIENTO TOTAL
-   (móvil incluido)
-========================= */
-
-/* contenedor del menú */
-.app-menu {
-  display: block;
-}
-
-/* NO convertir enlaces en botones */
-.app-menu a {
-  width: auto !important;
-  padding: 6px 0 !important;
-  border-radius: 0 !important;
-  background: transparent !important;
-  color: #ffffffcc;
-  font-size: 0.95rem;
-}
-
-/* botón del desplegable */
-.app-menu .menu-group-toggle {
-  width: 100%;
-  padding: 12px 16px;
-  border-radius: 999px;
-  background: rgba(255,255,255,0.18);
-  color: #fff;
-  font-size: 1rem;
-}
-
-/* contenido del grupo SIEMPRE cerrado por defecto */
-.app-menu .menu-group-content {
-  max-height: 0;
-  overflow: hidden;
-}
-
-/* solo se abre cuando toca */
-.menu-group.open .menu-group-content {
-  max-height: 500px;
-}
-
-/* desactivar efectos de input sobre el menú */
-.app-menu button,
-.app-menu input,
-.app-menu select {
-  width: auto !important;
-  padding: initial !important;
-  font-size: inherit !important;
-  border-radius: initial !important;
+  .page-title {
+    font-size: 1.4rem;
+  }
 }
