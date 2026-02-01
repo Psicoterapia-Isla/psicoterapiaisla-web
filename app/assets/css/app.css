@@ -175,3 +175,63 @@ button {
     font-size: 1.4rem;
   }
 }
+/* =========================================================
+   AJUSTE FINO – DIARIOS TERAPÉUTICOS
+========================================================= */
+
+/* contenedor general */
+.entry-card {
+  padding: 18px 20px;
+}
+
+/* título del ejercicio o "diario" */
+.entry-card h3 {
+  font-size: 1.05rem;
+  margin-bottom: 2px;
+}
+
+/* fecha */
+.entry-card small {
+  font-size: 0.75rem;
+  color: var(--text-soft);
+  margin-bottom: 12px;
+}
+
+/* campos (nombre del campo) */
+.entry-card h4 {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  margin: 14px 0 4px;
+  color: var(--mauve-main);
+}
+
+/* valores largos (texto libre) */
+.entry-card p {
+  font-size: 0.9rem;
+  line-height: 1.4;
+  margin: 0;
+}
+
+/* valores cortos tipo WE / FF / etc */
+.entry-card p:not(:empty):not(:contains(" ")) {
+  display: inline-block;
+  background: var(--green-soft);
+  color: var(--green-main);
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  margin-top: 2px;
+}
+
+/* diario libre: texto más respirado */
+.entry-card > p:first-child {
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
+/* separar entradas entre sí */
+.entry-card + .entry-card {
+  margin-top: 18px;
+}
