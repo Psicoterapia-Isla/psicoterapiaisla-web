@@ -82,14 +82,20 @@ button {
 }
 
 /* =====================================================
-   MENÚ APP (DEFINITIVO)
+   MENÚ APP – ESTRUCTURA DEFINITIVA
 ===================================================== */
+
 .app-menu {
-  max-width: 960px;
-  margin: 24px auto;
-  padding: 18px 22px;
-  border-radius: 22px;
+  position: relative;
+  width: 100%;
   background: linear-gradient(135deg, #4e7f73, #6b5a7a);
+}
+
+.app-menu-inner {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 20px 24px 24px;
+  border-radius: 0 0 22px 22px;
   box-shadow: 0 12px 30px rgba(0,0,0,.12);
   color: #fff;
 }
@@ -108,13 +114,14 @@ button {
 }
 
 /* inicio */
-.app-menu > a:first-child {
+.app-menu > .app-menu-inner > a:first-child {
   font-weight: 600;
   margin-bottom: 12px;
 }
 
 /* grupo */
 .menu-group {
+  position: relative;
   margin-top: 10px;
 }
 
@@ -134,7 +141,7 @@ button {
   align-items: center;
 }
 
-/* contenido oculto */
+/* desplegable */
 .menu-group-content {
   display: none;
   margin-top: 10px;
@@ -146,9 +153,19 @@ button {
 }
 
 /* salir */
-.app-menu > a:last-child {
+.app-menu > .app-menu-inner > a:last-child {
   margin-top: 14px;
   opacity: 0.9;
+}
+
+/* =====================================================
+   MOBILE
+===================================================== */
+@media (max-width: 768px) {
+  .app-menu-inner {
+    padding: 16px 16px 20px;
+    border-radius: 0 0 18px 18px;
+  }
 }
 
 /* =====================================================
