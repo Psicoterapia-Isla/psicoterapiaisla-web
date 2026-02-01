@@ -362,3 +362,22 @@ footer {
   color: var(--text-soft);
   margin: 40px 0 20px;
 }
+/* =========================
+   FIX DESPLAZAMIENTO HORIZONTAL (MÓVIL)
+========================= */
+html, body {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+/* evitar que algo se salga del viewport */
+* {
+  box-sizing: border-box;
+}
+
+/* imágenes responsivas */
+img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
