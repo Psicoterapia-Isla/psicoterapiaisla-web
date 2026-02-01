@@ -199,3 +199,53 @@ a {
 a:hover {
   text-decoration: underline;
 }
+/* =========================
+   FIX MENÚ APP – AISLAMIENTO TOTAL
+   (móvil incluido)
+========================= */
+
+/* contenedor del menú */
+.app-menu {
+  display: block;
+}
+
+/* NO convertir enlaces en botones */
+.app-menu a {
+  width: auto !important;
+  padding: 6px 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  color: #ffffffcc;
+  font-size: 0.95rem;
+}
+
+/* botón del desplegable */
+.app-menu .menu-group-toggle {
+  width: 100%;
+  padding: 12px 16px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.18);
+  color: #fff;
+  font-size: 1rem;
+}
+
+/* contenido del grupo SIEMPRE cerrado por defecto */
+.app-menu .menu-group-content {
+  max-height: 0;
+  overflow: hidden;
+}
+
+/* solo se abre cuando toca */
+.menu-group.open .menu-group-content {
+  max-height: 500px;
+}
+
+/* desactivar efectos de input sobre el menú */
+.app-menu button,
+.app-menu input,
+.app-menu select {
+  width: auto !important;
+  padding: initial !important;
+  font-size: inherit !important;
+  border-radius: initial !important;
+}
