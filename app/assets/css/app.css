@@ -289,3 +289,47 @@ button {
 .entry-card + .entry-card {
   margin-top: 18px;
 }
+/* =========================
+   MOBILE ONLY (hasta 768px)
+========================= */
+@media (max-width: 768px) {
+
+  .app-menu {
+    margin: 12px 0 24px;
+    padding: 14px;
+    border-radius: 20px;
+  }
+
+  .app-menu a {
+    font-size: 0.9rem;
+  }
+
+  .app-container {
+    padding: 20px 16px 60px;
+  }
+
+  .entry-card {
+    padding: 16px;
+  }
+
+}
+/* =========================
+   DESKTOP ONLY (desde 769px)
+========================= */
+@media (min-width: 769px) {
+
+  .app-menu {
+    max-width: 900px;
+    margin: 24px auto 40px;
+    padding: 16px 22px;
+  }
+
+  .app-menu a {
+    font-size: 0.95rem;
+  }
+
+  .app-container {
+    padding-top: 20px;
+  }
+
+}
