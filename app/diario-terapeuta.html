@@ -1,26 +1,15 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8">
-  <title>Diarios pacientes</title>
-  <link rel="stylesheet" href="assets/css/app.css">
-</head>
-
-<body class="app-body">
+<body class="app-body app-diarios">
 
 <header class="app-menu"></header>
 
 <main class="app-container">
-
   <h1 class="page-title">Diarios terapéuticos</h1>
 
   <div class="card">
     <div id="entries"></div>
   </div>
-
 </main>
 
-<!-- SCRIPT PRINCIPAL -->
 <script type="module">
   import { requireAuth } from "./assets/js/auth.js";
   import { loadMenu } from "./assets/js/menu.js";
@@ -32,11 +21,9 @@
     getDocs
   } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-  // 🔐 Auth + menú (UNA SOLA VEZ)
   await requireAuth();
   await loadMenu();
 
-  // 🔹 Cargar títulos de ejercicios
   const exercisesSnap = await getDocs(collection(db, "exercises"));
   const exerciseTitles = {};
 
@@ -47,7 +34,6 @@
     }
   });
 
-  // 🔹 Cargar entradas
   const q = query(
     collection(db, "entries"),
     orderBy("createdAt", "desc")
@@ -61,7 +47,6 @@
     const card = document.createElement("div");
     card.className = "entry-card";
 
-    // 🟣 EJERCICIO
     if (entry.type) {
       const title = document.createElement("h3");
       title.textContent = exerciseTitles[entry.type] || entry.type;
@@ -84,10 +69,7 @@
         card.appendChild(fieldTitle);
         card.appendChild(fieldValue);
       });
-    }
-
-    // 🔵 DIARIO TEXTO
-    else {
+    } else {
       const text = document.createElement("p");
       text.textContent = entry.text || "(sin contenido)";
       card.appendChild(text);
@@ -98,4 +80,3 @@
 </script>
 
 </body>
-</html>
