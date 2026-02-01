@@ -1,6 +1,7 @@
 /* =========================================================
    APP – PSICOTERAPIA ISLA
-   CSS FINAL UNIFICADO (NO TOCAR HTML / JS)
+   CSS FINAL ESTABLE (REVISADO)
+   NO DUPLICACIONES · NO SELECTORES ILEGALES
 ========================================================= */
 
 /* =========================
@@ -43,44 +44,46 @@ body.app-body {
 }
 
 /* =========================
-   MENÚ SUPERIOR (CLAVE)
+   MENÚ SUPERIOR (ÚNICO)
 ========================= */
 .app-menu {
-  margin: 16px;
-  padding: 18px;
+  max-width: 900px;
+  margin: 20px auto 36px;
+  padding: 16px 20px;
   border-radius: var(--radius-lg);
   background: linear-gradient(135deg, #4e7f73, #6b5a7a);
   box-shadow: var(--shadow-soft);
 }
 
 .app-menu a {
-  color: #ffffffcc;
-  text-decoration: none;
-  font-size: .95rem;
   display: block;
   margin: 6px 0;
+  font-size: 0.95rem;
+  color: #ffffffdd;
+  text-decoration: none;
 }
 
 .app-menu a:hover {
-  color: #fff;
+  color: #ffffff;
 }
 
-/* botón desplegable */
+/* botón “Espacio terapeuta” */
 .app-menu .menu-group-toggle {
-  background: rgba(255,255,255,.18);
-  border-radius: 999px;
+  display: block;
+  width: 100%;
+  margin: 8px 0 12px;
   padding: 14px 18px;
-  font-weight: 600;
+  border-radius: 999px;
+  background: rgba(255,255,255,.18);
   color: #fff;
+  font-weight: 600;
   text-align: center;
-  margin: 10px 0;
 }
 
 /* =========================
    TÍTULOS
 ========================= */
-.page-title,
-h1 {
+.page-title {
   font-size: 1.6rem;
   font-weight: 700;
   color: var(--green-main);
@@ -94,58 +97,69 @@ h2 {
 }
 
 /* =========================
-   CARDS (DIARIOS / RESPUESTAS)
+   CARDS GENERALES
 ========================= */
 .card,
 .entry-card {
   background: #fff;
   border-radius: var(--radius-lg);
-  padding: 22px;
+  padding: 20px;
   margin-bottom: 20px;
   box-shadow: var(--shadow-soft);
 }
 
-/* título del ejercicio */
+/* =========================
+   DIARIOS / RESPUESTAS
+========================= */
+
+/* título (diario / nombre ejercicio) */
 .entry-card h3 {
-  margin: 0 0 6px;
+  margin: 0 0 4px;
+  font-size: 1rem;
   color: var(--green-main);
 }
 
 /* fecha */
 .entry-card small {
-  color: var(--text-soft);
   display: block;
   margin-bottom: 12px;
+  font-size: 0.75rem;
+  color: var(--text-soft);
 }
 
-/* campos */
+/* nombre del campo */
 .entry-card h4 {
-  font-size: .85rem;
+  margin: 10px 0 2px;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: .04em;
   color: var(--mauve-main);
-  margin: 14px 0 4px;
 }
 
+/* valor */
 .entry-card p {
-  margin: 0;
-  font-size: .95rem;
+  margin: 0 0 6px;
+  font-size: 0.95rem;
+  line-height: 1.45;
+  word-break: break-word;
 }
 
 /* =========================
-   NOTAS TERAPEUTA
+   NOTAS DEL TERAPEUTA
 ========================= */
 .therapist-note {
   margin-top: 18px;
-  background: var(--green-soft);
   padding: 16px;
   border-radius: var(--radius-md);
+  background: var(--green-soft);
 }
 
 textarea {
   width: 100%;
   min-height: 90px;
+  padding: 10px;
   border-radius: 12px;
   border: none;
-  padding: 10px;
   font-family: inherit;
 }
 
@@ -161,175 +175,42 @@ button {
   font-weight: 600;
   background: var(--green-main);
   color: #fff;
+  cursor: pointer;
 }
 
 /* =========================
-   MOBILE FINO
-========================= */
-@media (max-width: 600px) {
-  .app-container {
-    padding: 20px 14px 50px;
-  }
-
-  .page-title {
-    font-size: 1.4rem;
-  }
-}
-/* =========================================================
-   AJUSTE FINO – DIARIOS TERAPÉUTICOS
-========================================================= */
-
-/* contenedor general */
-.entry-card {
-  padding: 18px 20px;
-}
-
-/* título del ejercicio o "diario" */
-.entry-card h3 {
-  font-size: 1.05rem;
-  margin-bottom: 2px;
-}
-
-/* fecha */
-.entry-card small {
-  font-size: 0.75rem;
-  color: var(--text-soft);
-  margin-bottom: 12px;
-}
-
-/* campos (nombre del campo) */
-.entry-card h4 {
-  font-size: 0.7rem;
-  text-transform: uppercase;
-  letter-spacing: .04em;
-  margin: 14px 0 4px;
-  color: var(--mauve-main);
-}
-
-/* valores largos (texto libre) */
-.entry-card p {
-  font-size: 0.9rem;
-  line-height: 1.4;
-  margin: 0;
-}
-
-/* valores cortos tipo WE / FF / etc */
-.entry-card p:not(:empty):not(:contains(" ")) {
-  display: inline-block;
-  background: var(--green-soft);
-  color: var(--green-main);
-  padding: 4px 10px;
-  border-radius: 999px;
-  font-size: 0.8rem;
-  font-weight: 600;
-  margin-top: 2px;
-}
-
-/* diario libre: texto más respirado */
-.entry-card > p:first-child {
-  font-size: 0.95rem;
-  line-height: 1.6;
-}
-/* =========================
-   MENÚ APP – ESTABLE Y CONSISTENTE
-========================= */
-.app-menu {
-  max-width: 900px;
-  margin: 16px auto 32px;
-  padding: 14px 18px;
-  border-radius: 18px;
-  background: linear-gradient(135deg, #4e7f73, #6b5a7a);
-  box-shadow: var(--shadow-soft);
-}
-
-.app-menu a {
-  display: block;
-  color: #ffffffdd;
-  font-size: 0.9rem;
-  margin: 4px 0;
-  text-decoration: none;
-}
-
-.app-menu a:hover {
-  color: #fff;
-}
-/* =========================
-   DIARIOS TERAPÉUTICOS – LECTURA CLÍNICA
-========================= */
-
-.entry-card {
-  padding: 18px;
-}
-
-.entry-card h3 {
-  font-size: 1rem;
-  margin-bottom: 2px;
-}
-
-.entry-card small {
-  font-size: 0.75rem;
-  color: var(--text-soft);
-  display: block;
-  margin-bottom: 12px;
-}
-
-.entry-card h4 {
-  font-size: 0.7rem;
-  text-transform: uppercase;
-  color: var(--mauve-main);
-  margin: 10px 0 2px;
-}
-
-.entry-card p {
-  font-size: 0.95rem;
-  margin: 0 0 6px;
-  word-break: break-word;
-}
-/* separar entradas entre sí */
-.entry-card + .entry-card {
-  margin-top: 18px;
-}
-/* =========================
-   MOBILE ONLY (hasta 768px)
+   MOBILE (≤768px)
 ========================= */
 @media (max-width: 768px) {
-
-  .app-menu {
-    margin: 12px 0 24px;
-    padding: 14px;
-    border-radius: 20px;
-  }
-
-  .app-menu a {
-    font-size: 0.9rem;
-  }
 
   .app-container {
     padding: 20px 16px 60px;
   }
 
+  .page-title {
+    font-size: 1.4rem;
+  }
+
+  .app-menu {
+    margin: 14px 12px 28px;
+    padding: 14px 16px;
+  }
+
   .entry-card {
     padding: 16px;
   }
-
 }
+
 /* =========================
-   DESKTOP ONLY (desde 769px)
+   DESKTOP (≥769px)
 ========================= */
 @media (min-width: 769px) {
 
   .app-menu {
-    max-width: 900px;
     margin: 24px auto 40px;
-    padding: 16px 22px;
-  }
-
-  .app-menu a {
-    font-size: 0.95rem;
   }
 
   .app-container {
-    padding-top: 20px;
+    padding-top: 24px;
   }
-
 }
