@@ -209,3 +209,156 @@ footer {
   color: var(--text-soft);
   padding: 30px 18px 50px;
 }
+/* =========================================================
+   EXTENSIÓN VISUAL BASE – UNIFICACIÓN WEB + APP
+   Psicoterapia Isla
+   (añadir al FINAL de style.css)
+========================================================= */
+
+/* ---------- VARIABLES (si ya existen, no pasa nada) ---------- */
+:root {
+  --green-main: #2f5d50;
+  --green-soft: #e9f5ef;
+  --green-card: #dff1e7;
+
+  --mauve-main: #6e5a7a;
+  --mauve-soft: #f1eaf4;
+
+  --text-main: #2b2b2b;
+  --text-soft: #6b6b6b;
+
+  --radius-lg: 22px;
+  --radius-md: 14px;
+
+  --shadow-soft: 0 10px 30px rgba(0,0,0,0.06);
+}
+
+/* ---------- BODY / FONDO GENERAL ---------- */
+body {
+  font-family: "Inter", system-ui, sans-serif;
+  color: var(--text-main);
+  background:
+    radial-gradient(circle at 20% 20%, rgba(233,245,239,0.6), transparent 40%),
+    radial-gradient(circle at 80% 30%, rgba(241,234,244,0.5), transparent 45%),
+    radial-gradient(circle at 50% 80%, rgba(233,245,239,0.4), transparent 40%),
+    #f6f4f1;
+}
+
+/* ---------- HEADER / MENÚ ---------- */
+header {
+  margin: 20px auto 40px;
+  max-width: 1100px;
+  padding: 14px 22px;
+  background: linear-gradient(135deg, #4e7f73, #6b5a7a);
+  border-radius: 999px;
+  box-shadow: var(--shadow-soft);
+}
+
+header nav {
+  display: flex;
+  justify-content: center;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+
+header nav a {
+  color: #ffffffcc;
+  text-decoration: none;
+  font-size: 0.95rem;
+}
+
+header nav a:hover {
+  color: #fff;
+}
+
+/* ---------- CONTENEDORES PRINCIPALES ---------- */
+.hero,
+.content,
+.hero-text,
+.closing {
+  background: #fff;
+  border-radius: var(--radius-lg);
+  padding: 32px;
+  margin: 0 auto 40px;
+  max-width: 860px;
+  box-shadow: var(--shadow-soft);
+}
+
+/* ---------- TÍTULOS ---------- */
+h1 {
+  font-size: 1.9rem;
+  color: var(--green-main);
+  margin-bottom: 20px;
+}
+
+h2 {
+  font-size: 1.3rem;
+  color: var(--mauve-main);
+  margin-bottom: 16px;
+}
+
+/* ---------- IMÁGENES ---------- */
+.hero-image img,
+.image-pause img,
+.image-enfoque img {
+  width: 100%;
+  max-height: 420px;
+  object-fit: cover;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-soft);
+}
+
+.image-pause img {
+  max-height: 360px;
+}
+
+/* ---------- BOTONES CTA ---------- */
+.cta {
+  display: inline-block;
+  margin-top: 18px;
+  padding: 12px 22px;
+  border-radius: 999px;
+  background: var(--green-main);
+  color: #fff;
+  text-decoration: none;
+  font-size: 0.95rem;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.cta:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(0,0,0,0.12);
+}
+
+/* ---------- ANIMACIONES SUAVES ---------- */
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.hero,
+.content,
+.image-pause,
+.image-enfoque,
+.closing {
+  animation: fadeUp 0.8s ease both;
+}
+
+.hero { animation-delay: 0.1s; }
+.content { animation-delay: 0.2s; }
+.image-pause { animation-delay: 0.3s; }
+.closing { animation-delay: 0.4s; }
+
+/* ---------- FOOTER ---------- */
+footer {
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--text-soft);
+  margin: 40px 0 20px;
+}
