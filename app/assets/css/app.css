@@ -243,3 +243,51 @@ textarea {
 .menu-group.open > .menu-group-content {
   display: block;
 }
+/* =====================================================
+   FIX FINAL MENÚ DESPLEGABLE (PC + MÓVIL)
+   NO ROMPE HTML NI JS
+===================================================== */
+
+/* el menú es una columna real */
+.app-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* botón de grupo ocupa su línea */
+.menu-group {
+  display: flex;
+  flex-direction: column;
+}
+
+/* el contenido desplegable EMPUJA layout */
+.menu-group-content {
+  display: none;
+  padding-left: 12px;
+}
+
+/* abierto = visible y separado */
+.menu-group.open .menu-group-content {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* evitar que se monte visualmente */
+.menu-group-toggle {
+  position: relative;
+  z-index: 1;
+}
+
+/* enlaces siempre en bloque vertical */
+.menu-group-content a {
+  white-space: nowrap;
+}
+
+/* móvil: aún más claro */
+@media (max-width: 768px) {
+  .menu-group-content {
+    padding-left: 6px;
+  }
+}
