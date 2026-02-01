@@ -1,7 +1,6 @@
 /* =========================================================
    APP – PSICOTERAPIA ISLA
-   CSS FINAL ESTABLE (REVISADO)
-   NO DUPLICACIONES · NO SELECTORES ILEGALES
+   CSS FINAL LIMPIO Y ESTABLE
 ========================================================= */
 
 /* =========================
@@ -11,7 +10,6 @@
   --green-main: #2f5d50;
   --green-dark: #254b41;
   --green-soft: #e9f5ef;
-  --green-card: #dff1e7;
 
   --mauve-main: #6e5a7a;
 
@@ -38,40 +36,40 @@ body.app-body {
 }
 
 .app-container {
-  max-width: 860px;
+  max-width: 880px;
   margin: 0 auto;
-  padding: 28px 18px 60px;
+  padding: 24px 16px 64px;
 }
 
 /* =========================
-   MENÚ SUPERIOR (ÚNICO)
+   MENÚ SUPERIOR (ESTABLE)
 ========================= */
 .app-menu {
   max-width: 900px;
-  margin: 20px auto 36px;
-  padding: 16px 20px;
-  border-radius: var(--radius-lg);
+  margin: 16px auto 32px;
+  padding: 16px 18px;
+  border-radius: 22px;
   background: linear-gradient(135deg, #4e7f73, #6b5a7a);
   box-shadow: var(--shadow-soft);
 }
 
 .app-menu a {
   display: block;
-  margin: 6px 0;
-  font-size: 0.95rem;
   color: #ffffffdd;
+  font-size: 0.95rem;
+  margin: 6px 0;
   text-decoration: none;
 }
 
 .app-menu a:hover {
-  color: #ffffff;
+  color: #fff;
 }
 
-/* botón “Espacio terapeuta” */
+/* Botón "Espacio terapeuta" (NO se deforma) */
 .app-menu .menu-group-toggle {
   display: block;
   width: 100%;
-  margin: 8px 0 12px;
+  margin: 10px 0 12px;
   padding: 14px 18px;
   border-radius: 999px;
   background: rgba(255,255,255,.18);
@@ -83,7 +81,8 @@ body.app-body {
 /* =========================
    TÍTULOS
 ========================= */
-.page-title {
+.page-title,
+h1 {
   font-size: 1.6rem;
   font-weight: 700;
   color: var(--green-main);
@@ -97,69 +96,65 @@ h2 {
 }
 
 /* =========================
-   CARDS GENERALES
+   CARDS (DIARIOS / RESPUESTAS)
 ========================= */
 .card,
 .entry-card {
   background: #fff;
   border-radius: var(--radius-lg);
-  padding: 20px;
-  margin-bottom: 20px;
+  padding: 18px 20px;
+  margin-bottom: 18px;
   box-shadow: var(--shadow-soft);
 }
 
-/* =========================
-   DIARIOS / RESPUESTAS
-========================= */
-
-/* título (diario / nombre ejercicio) */
+/* Título del ejercicio o diario */
 .entry-card h3 {
   margin: 0 0 4px;
   font-size: 1rem;
   color: var(--green-main);
 }
 
-/* fecha */
+/* Fecha */
 .entry-card small {
   display: block;
-  margin-bottom: 12px;
   font-size: 0.75rem;
   color: var(--text-soft);
+  margin-bottom: 12px;
 }
 
-/* nombre del campo */
+/* Campos */
 .entry-card h4 {
-  margin: 10px 0 2px;
   font-size: 0.7rem;
   text-transform: uppercase;
-  letter-spacing: .04em;
+  letter-spacing: .05em;
   color: var(--mauve-main);
+  margin: 12px 0 2px;
 }
 
-/* valor */
+/* Texto */
 .entry-card p {
-  margin: 0 0 6px;
   font-size: 0.95rem;
   line-height: 1.45;
+  margin: 0 0 6px;
   word-break: break-word;
 }
 
 /* =========================
-   NOTAS DEL TERAPEUTA
+   NOTAS TERAPEUTA
 ========================= */
 .therapist-note {
-  margin-top: 18px;
+  margin-top: 16px;
+  background: var(--green-soft);
   padding: 16px;
   border-radius: var(--radius-md);
-  background: var(--green-soft);
 }
 
 textarea {
   width: 100%;
   min-height: 90px;
-  padding: 10px;
   border-radius: 12px;
   border: none;
+  padding: 10px;
   font-family: inherit;
 }
 
@@ -175,42 +170,30 @@ button {
   font-weight: 600;
   background: var(--green-main);
   color: #fff;
-  cursor: pointer;
 }
 
 /* =========================
-   MOBILE (≤768px)
+   MOBILE FIRST
 ========================= */
 @media (max-width: 768px) {
-
   .app-container {
-    padding: 20px 16px 60px;
+    padding: 20px 14px 56px;
   }
 
   .page-title {
     font-size: 1.4rem;
   }
-
-  .app-menu {
-    margin: 14px 12px 28px;
-    padding: 14px 16px;
-  }
-
-  .entry-card {
-    padding: 16px;
-  }
 }
 
 /* =========================
-   DESKTOP (≥769px)
+   DESKTOP
 ========================= */
 @media (min-width: 769px) {
-
-  .app-menu {
-    margin: 24px auto 40px;
+  .app-container {
+    padding-top: 28px;
   }
 
-  .app-container {
-    padding-top: 24px;
+  .page-title {
+    font-size: 1.7rem;
   }
 }
