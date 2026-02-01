@@ -1,4 +1,14 @@
-/* =========================================================
+body.app-body::before {
+  content: "CSS CARGADO";
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 999999;
+  background: red;
+  color: white;
+  padding: 6px 10px;
+  font-size: 12px;
+}/* =========================================================
    APP – PSICOTERAPIA ISLA
    CSS FINAL LIMPIO Y ESTABLE
 ========================================================= */
