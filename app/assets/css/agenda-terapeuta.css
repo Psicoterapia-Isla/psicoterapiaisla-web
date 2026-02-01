@@ -1,273 +1,144 @@
-/* =================================================
-   AGENDA PROFESIONAL – Psicoterapia Isla
-   Réplica planificador en papel
-================================================= */
+/* =====================================================
+   AGENDA TERAPEUTA
+   SOLO CONTENIDO INTERNO
+   (hereda app.css)
+===================================================== */
 
-/* Fondo general tipo hoja */
-.app-body {
-  background: #F7F5EF;
+/* =========================
+   NAVEGACIÓN DE DÍA
+========================= */
+.day-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 24px;
 }
 
-/* Título principal */
-.page-title {
-  color: #2F5D50;
-  font-size: 2.2rem;
-  letter-spacing: 0.05em;
-  margin-bottom: 2rem;
-}
-
-/* Card principal */
-.card {
-  background: #CFEED6;
-  border-radius: 30px;
-  padding: 2.5rem;
-}
-
-/* Grid superior */
-.grid-2 {
-  display: grid;
-  grid-template-columns: 2fr 1fr;
-  gap: 2rem;
-}
-
-/* Bloques */
-.block {
-  background: #BFE7C8;
-  border-radius: 24px;
-  padding: 2rem;
-}
-
-/* Títulos de bloque */
-.section-title {
-  color: #2F5D50;
-  font-size: 1.05rem;
-  letter-spacing: 0.1em;
-  margin-bottom: 1.5rem;
-  text-transform: uppercase;
-}
-
-/* =============================
-   PLAN DEL DÍA
-============================= */
-.list {
-  display: grid;
-  grid-template-columns: 60px 1fr;
-  row-gap: 0.7rem;
-}
-
-.list-item {
-  grid-column: 1 / 2;
-  color: #2F5D50;
-  font-weight: 500;
-  font-size: 0.95rem;
-}
-
-.list-item::after {
-  content: "";
-  grid-column: 2 / 3;
-  display: block;
-  border-bottom: 1px dashed rgba(47,93,80,0.35);
-  margin-left: 1rem;
-  transform: translateY(-0.4rem);
-}
-
-/* =============================
-   TEXTAREAS / INPUTS
-============================= */
-textarea,
-input {
-  width: 100%;
-  background: transparent;
-  border: none;
-  border-bottom: 1px dashed rgba(47,93,80,0.35);
-  font-size: 0.95rem;
-  padding: 0.4rem 0;
-  resize: none;
-}
-
-textarea {
-  min-height: 220px;
-}
-
-/* Notas */
-.block label {
-  color: #2F5D50;
-  font-size: 0.85rem;
-  letter-spacing: 0.05em;
-  margin-top: 1.2rem;
-  display: block;
-}
-
-/* =============================
-   BOTÓN
-============================= */
-button {
-  margin-top: 2rem;
-  background: #2F5D50;
+.day-nav button {
+  background: #355f53;
   color: #fff;
   border: none;
-  border-radius: 22px;
-  padding: 0.8rem 1.8rem;
-  font-size: 0.85rem;
-  letter-spacing: 0.1em;
+  border-radius: 999px;
+  padding: 8px 14px;
   cursor: pointer;
 }
 
-button:hover {
-  opacity: 0.9;
+.day-nav span {
+  font-family: "Playfair Display", serif;
+  font-size: 1.4rem;
+  color: #355f53;
 }
 
-/* =============================
-   RESPONSIVE
-============================= */
-@media (max-width: 900px) {
-  .grid-2 {
-    grid-template-columns: 1fr;
-  }
-}
-/* =============================
-   AJUSTES RÉPLICA PAPEL
-============================= */
-
-/* Inputs integrados (no cajas blancas) */
-textarea,
-input {
-  background: transparent;
-  border-radius: 0;
-  border: none;
-  border-bottom: 1px dashed rgba(47,93,80,0.35);
-  padding: 0.6rem 0;
+/* =========================
+   BLOQUES
+========================= */
+.block {
+  margin-bottom: 24px;
 }
 
-/* Líneas de escritura tipo papel */
-textarea {
-  background-image:
-    repeating-linear-gradient(
-      to bottom,
-      transparent,
-      transparent 26px,
-      rgba(47,93,80,0.25) 27px
-    );
-  line-height: 27px;
+.block-green.light {
+  background: #e7f2ed;
+  border-radius: 22px;
+  padding: 20px;
 }
 
-/* Reto diario más alto como en el original */
-.grid-2 .block textarea {
-  min-height: 260px;
-}
-
-/* Plan del día ocupa todo el ancho */
-.list {
-  grid-template-columns: 70px 1fr;
-}
-
-.list-item::after {
-  border-bottom: 1px dashed rgba(47,93,80,0.35);
-  margin-left: 0.5rem;
-}
-
-/* Botón más orgánico */
-button {
-  font-weight: 500;
-  border-radius: 999px;
-}
-
-/* Tipografía más editorial (si no cargas otra) */
-.page-title,
+/* =========================
+   TÍTULOS DE SECCIÓN
+========================= */
 .section-title {
-  font-family: "Georgia", serif;
+  font-family: "Playfair Display", serif;
+  font-size: 1.3rem;
+  margin-bottom: 12px;
+  color: #355f53;
 }
 
-.block,
-textarea,
-input {
-  font-family: system-ui, -apple-system, sans-serif;
+/* =========================
+   GRID
+========================= */
+.grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
 }
-/* Plan del día */
+
+/* =========================
+   EMOCIONES
+========================= */
+.emotion-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 10px;
+}
+
+.emotion-grid label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.95rem;
+}
+
+/* =========================
+   PLAN HORARIO
+========================= */
 .list {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: 10px;
 }
 
-.list-item {
-  font-size: 0.85rem;
-  color: var(--text-muted);
-  border-bottom: 1px dashed var(--green-border);
-  padding: 0.35rem 0;
-}
-
-/* Reto diario */
-textarea {
-  min-height: 120px;
-}
-
-/* Notas */
-.block label {
-  font-size: 0.8rem;
-  color: var(--text-muted);
-  margin-bottom: 0.4rem;
-  display: block;
-}
-.hour-line textarea {
-  width: 100%;
-  resize: none;
-  overflow: hidden;
-  min-height: 1.4em;      /* línea fina cuando está vacío */
-  max-height: 12em;
-  line-height: 1.4;
-  transition: min-height 0.15s ease;
-}
-
-/* cuando tiene contenido */
-.hour-line textarea.has-text {
-  min-height: 3.2em;
-}
-/* =========================
-   PLAN DEL DÍA – ALTURA INTELIGENTE
-   ========================= */
-
-/* Cada línea horaria */
-.hour-line textarea {
-  min-height: 22px;              /* línea compacta vacía */
-  max-height: 160px;
-  overflow-y: hidden;
-  resize: none;
-  transition: min-height 0.2s ease;
-}
-
-/* Cuando hay texto, respira */
-.hour-line textarea:not(:placeholder-shown),
-.hour-line textarea:focus {
-  min-height: 60px;
-}
-
-/* Ajuste automático al escribir */
-.hour-line textarea {
-  line-height: 1.4;
-}
-
-/* Reto diario más protagonista */
-#reto-diario {
-  min-height: 180px;
-}
-
-/* Notas */
-#notas-contactos {
-  min-height: 100px;
-}
-
-/* Espaciado visual tipo papel */
 .hour-line {
-  padding-bottom: 6px;
+  display: grid;
+  grid-template-columns: 60px 1fr;
+  align-items: start;
+  gap: 10px;
 }
 
-/* Mantener líneas visibles incluso vacías */
+.hour-line span {
+  font-size: 0.85rem;
+  color: #555;
+  padding-top: 6px;
+}
+
 .hour-line textarea {
-  background-image: linear-gradient(
-    to bottom,
-    transparent 95%,
-    rgba(0, 0, 0, 0.08) 96%
-  );
-  background-size: 100% 28px;
+  min-height: 42px;
+}
+
+/* =========================
+   BOTÓN GUARDAR
+========================= */
+#guardar-agenda {
+  margin-top: 24px;
+  width: 100%;
+  background: #355f53;
+  color: #fff;
+  border: none;
+  border-radius: 999px;
+  padding: 14px;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+#guardar-agenda:hover {
+  background: #2c4f45;
+}
+
+/* =========================
+   MOBILE
+========================= */
+@media (max-width: 768px) {
+
+  .grid-2 {
+    grid-template-columns: 1fr;
+  }
+
+  .day-nav span {
+    font-size: 1.2rem;
+    text-align: center;
+    flex: 1;
+  }
+
+  .hour-line {
+    grid-template-columns: 50px 1fr;
+  }
 }
