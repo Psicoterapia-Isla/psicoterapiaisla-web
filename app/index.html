@@ -14,7 +14,6 @@
 
   <!-- CONTENIDO -->
   <main class="app-container">
-
     <h1 class="page-title">Tu espacio personal</h1>
 
     <p>
@@ -22,7 +21,7 @@
       Solo tú y tu terapeuta podéis acceder.
     </p>
 
-    <section style="margin-top: 2rem;">
+    <section>
       <h2>¿Qué puedes hacer aquí?</h2>
       <ul>
         <li>Escribir en tu diario personal</li>
@@ -31,20 +30,17 @@
       </ul>
     </section>
 
-    <section style="margin-top: 2rem;">
+    <section>
       <a href="diario.html">→ Ir al diario personal</a><br>
-      <a href="ejercicio.html">→ Ver ejercicios terapéuticos</a>
+      <a href="ejercicios.html">→ Ver ejercicios terapéuticos</a>
     </section>
-
   </main>
 
-  <!-- SCRIPTS -->
+  <!-- SCRIPTS SIEMPRE AL FINAL -->
+  <script type="module" src="assets/js/menu.js"></script>
   <script type="module">
     import { requireAuth } from "./assets/js/auth.js";
-    import { loadMenu } from "./assets/js/menu.js";
-
-    await requireAuth();
-    await loadMenu();
+    requireAuth();
   </script>
 
 </body>
