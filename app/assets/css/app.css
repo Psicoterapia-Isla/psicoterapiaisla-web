@@ -230,7 +230,61 @@ button {
   font-size: 0.95rem;
   line-height: 1.6;
 }
+/* =========================
+   MENÚ APP – ESTABLE Y CONSISTENTE
+========================= */
+.app-menu {
+  max-width: 900px;
+  margin: 16px auto 32px;
+  padding: 14px 18px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #4e7f73, #6b5a7a);
+  box-shadow: var(--shadow-soft);
+}
 
+.app-menu a {
+  display: block;
+  color: #ffffffdd;
+  font-size: 0.9rem;
+  margin: 4px 0;
+  text-decoration: none;
+}
+
+.app-menu a:hover {
+  color: #fff;
+}
+/* =========================
+   DIARIOS TERAPÉUTICOS – LECTURA CLÍNICA
+========================= */
+
+.entry-card {
+  padding: 18px;
+}
+
+.entry-card h3 {
+  font-size: 1rem;
+  margin-bottom: 2px;
+}
+
+.entry-card small {
+  font-size: 0.75rem;
+  color: var(--text-soft);
+  display: block;
+  margin-bottom: 12px;
+}
+
+.entry-card h4 {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  color: var(--mauve-main);
+  margin: 10px 0 2px;
+}
+
+.entry-card p {
+  font-size: 0.95rem;
+  margin: 0 0 6px;
+  word-break: break-word;
+}
 /* separar entradas entre sí */
 .entry-card + .entry-card {
   margin-top: 18px;
