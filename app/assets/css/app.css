@@ -1,7 +1,89 @@
-/* =========================
-   MENÚ APP – FIX DEFINITIVO
-========================= */
+/* =====================================================
+   RESET SUAVE (NO ROMPE NADA)
+===================================================== */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
 
+html {
+  font-size: 16px;
+}
+
+body {
+  margin: 0;
+  font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  background: #f6f4ef;
+  color: #2e2e2e;
+  line-height: 1.5;
+}
+
+/* =====================================================
+   ESTRUCTURA BASE APP
+===================================================== */
+.app-body {
+  min-height: 100vh;
+}
+
+.app-container {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 32px 24px;
+}
+
+/* =====================================================
+   TÍTULOS
+===================================================== */
+.page-title,
+h1 {
+  font-family: "Playfair Display", serif;
+  font-size: 2.4rem;
+  margin: 0 0 16px;
+  color: #355f53;
+}
+
+h2 {
+  font-family: "Playfair Display", serif;
+  font-size: 1.6rem;
+  margin: 32px 0 12px;
+}
+
+/* =====================================================
+   TARJETAS / CONTENEDORES
+===================================================== */
+.card {
+  background: #ffffff;
+  border-radius: 22px;
+  padding: 24px;
+  box-shadow: 0 10px 30px rgba(0,0,0,.08);
+  margin-bottom: 24px;
+}
+
+/* =====================================================
+   BOTONES GENERALES
+===================================================== */
+button {
+  font-family: inherit;
+  font-size: 1rem;
+}
+
+.btn-primary {
+  background: #355f53;
+  color: #fff;
+  border: none;
+  border-radius: 999px;
+  padding: 12px 24px;
+  cursor: pointer;
+}
+
+.btn-primary:hover {
+  background: #2c4f45;
+}
+
+/* =====================================================
+   MENÚ APP (DEFINITIVO)
+===================================================== */
 .app-menu {
   max-width: 960px;
   margin: 24px auto;
@@ -12,19 +94,31 @@
   color: #fff;
 }
 
-/* primera fila: Inicio + selector */
+/* enlaces */
+.app-menu a {
+  display: block;
+  color: #ffffffdd;
+  text-decoration: none;
+  font-size: 0.95rem;
+  margin: 6px 0;
+}
+
+.app-menu a:hover {
+  color: #ffffff;
+}
+
+/* inicio */
 .app-menu > a:first-child {
   font-weight: 600;
   margin-bottom: 12px;
-  display: inline-block;
 }
 
-/* grupo desplegable */
+/* grupo */
 .menu-group {
   margin-top: 10px;
 }
 
-/* botón selector */
+/* botón desplegable */
 .menu-group-toggle {
   width: 100%;
   background: rgba(255,255,255,.18);
@@ -34,6 +128,7 @@
   color: #fff;
   font-weight: 600;
   cursor: pointer;
+
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -46,84 +141,72 @@
   padding-left: 8px;
 }
 
-/* visible cuando está abierto */
 .menu-group.open .menu-group-content {
   display: block;
 }
 
-/* enlaces */
-.menu-group-content a,
-.app-menu > a {
-  display: block;
-  color: #ffffffdd;
-  text-decoration: none;
-  font-size: 0.95rem;
-  margin: 6px 0;
-}
-
-.menu-group-content a:hover,
-.app-menu > a:hover {
-  color: #fff;
-}
-
-/* salir separado */
+/* salir */
 .app-menu > a:last-child {
   margin-top: 14px;
   opacity: 0.9;
 }
 
-/* =========================
+/* =====================================================
+   LISTADOS (diarios, entradas, respuestas)
+===================================================== */
+.list-item {
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(0,0,0,.08);
+}
+
+.list-item:last-child {
+  border-bottom: none;
+}
+
+/* =====================================================
+   TEXTOS AUXILIARES
+===================================================== */
+small,
+.meta {
+  font-size: 0.85rem;
+  color: #6b6b6b;
+}
+
+/* =====================================================
+   FORMULARIOS
+===================================================== */
+input,
+textarea,
+select {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid #d5d5d5;
+  font-family: inherit;
+  font-size: 1rem;
+}
+
+textarea {
+  resize: vertical;
+  min-height: 120px;
+}
+
+/* =====================================================
    MOBILE
-========================= */
+===================================================== */
 @media (max-width: 768px) {
+
+  .app-container {
+    padding: 24px 16px;
+  }
+
+  .page-title,
+  h1 {
+    font-size: 2rem;
+  }
+
   .app-menu {
     margin: 16px;
     padding: 16px;
   }
-}
-/* =========================
-   FIX DEFINITIVO MENÚ APP
-   (override final)
-========================= */
-
-.app-menu,
-.app-menu * {
-  box-sizing: border-box;
-}
-
-.app-menu a {
-  color: #ffffffdd !important;
-  text-decoration: none !important;
-  font-family: "Inter", system-ui, sans-serif;
-}
-
-.app-menu a:hover {
-  color: #ffffff !important;
-}
-
-.menu-group-content a {
-  display: block;
-  margin: 6px 0;
-}
-
-.menu-group-toggle {
-  all: unset;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  width: 100%;
-  background: rgba(255,255,255,.18);
-  border-radius: 999px;
-  padding: 12px 18px;
-  color: #fff;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.menu-group-content {
-  display: none;
-}
-
-.menu-group.open .menu-group-content {
-  display: block;
 }
