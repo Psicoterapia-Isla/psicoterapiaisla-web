@@ -210,3 +210,36 @@ textarea {
     padding: 16px;
   }
 }
+/* =====================================================
+   MENÚ APP — NORMALIZACIÓN FINAL
+===================================================== */
+
+.app-menu * {
+  box-sizing: border-box;
+}
+
+.menu-group {
+  display: block;
+}
+
+.menu-group-toggle {
+  all: unset;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  background: rgba(255,255,255,.18);
+  border-radius: 999px;
+  padding: 12px 18px;
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.menu-group-content {
+  display: none;
+}
+
+.menu-group.open > .menu-group-content {
+  display: block;
+}
