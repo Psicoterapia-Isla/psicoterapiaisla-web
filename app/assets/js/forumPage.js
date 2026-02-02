@@ -7,7 +7,8 @@ import {
   serverTimestamp,
   query,
   orderBy,
-  onSnapshot
+  onSnapshot,
+  getDoc
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 import {
@@ -31,17 +32,22 @@ const textarea = document.getElementById("post-content");
 const placeholder = document.getElementById("forum-placeholder");
 
 /* =========================
-   AUTH
+   AUTH + ROLE REAL
 ========================= */
 const auth = getAuth();
 let currentUser = null;
+let isTherapist = false;
 
-onAuthStateChanged(auth, (user) => {
+onAuthStateChanged(auth, async (user) => {
   currentUser = user;
+  if (!user) return;
+
+  const snap = await getDoc(doc(db, "users", user.uid));
+  isTherapist = snap.exists() && snap.data().role === "therapist";
 });
 
 /* =========================
-   OBTENER TEMA
+   TEMA DESDE URL
 ========================= */
 const params = new URLSearchParams(window.location.search);
 const topicId = params.get("topic");
@@ -108,17 +114,18 @@ onSnapshot(postsQuery, (snapshot) => {
       <p>${post.content}</p>
 
       ${
-        currentUser && post.authorRole === "therapist"
+        isTherapist
           ? `<button class="btn-danger delete-post">Eliminar</button>`
           : ""
       }
     `;
 
     /* =========================
-       ELIMINAR POST
+       ELIMINAR POST (SOLO TERAPEUTA)
     ========================= */
-    const deleteBtn = el.querySelector(".delete-post");
-    if (deleteBtn) {
+    if (isTherapist) {
+      const deleteBtn = el.querySelector(".delete-post");
+
       deleteBtn.addEventListener("click", async () => {
         const ok = confirm("¿Eliminar este mensaje?");
         if (!ok) return;
@@ -156,7 +163,7 @@ form.addEventListener("submit", async (e) => {
   await addDoc(postsRef, {
     content,
     authorId: user.uid,
-    authorRole: "therapist",
+    authorRole: isTherapist ? "therapist" : "patient",
     createdAt: serverTimestamp()
   });
 
