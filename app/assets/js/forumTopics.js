@@ -28,8 +28,7 @@ const titleInput = document.getElementById("topic-title");
 const descInput = document.getElementById("topic-description");
 
 if (!topicsContainer) {
-  console.error("No existe #forum-topics en el HTML");
-  throw new Error("forum-topics missing");
+  throw new Error("forum-topics no existe en el HTML");
 }
 
 /* =========================
@@ -37,15 +36,14 @@ if (!topicsContainer) {
 ========================= */
 const auth = getAuth();
 let currentUser = null;
-let currentRole = "patient";
 
 onAuthStateChanged(auth, (user) => {
   currentUser = user;
-  if (!user) return;
+  if (!user && form) form.style.display = "none";
 });
 
 /* =========================
-   REFERENCIA TEMAS
+   REFERENCIA A TEMAS
 ========================= */
 const topicsRef = collection(
   db,
@@ -57,7 +55,7 @@ const topicsRef = collection(
 /* =========================
    LISTAR TEMAS
 ========================= */
-onSnapshot(topicsRef, async (snapshot) => {
+onSnapshot(topicsRef, (snapshot) => {
   topicsContainer.innerHTML = "";
 
   if (snapshot.empty) {
@@ -65,7 +63,7 @@ onSnapshot(topicsRef, async (snapshot) => {
     return;
   }
 
-  snapshot.forEach(docSnap => {
+  snapshot.forEach((docSnap) => {
     const topic = docSnap.data();
 
     const card = document.createElement("article");
@@ -75,16 +73,16 @@ onSnapshot(topicsRef, async (snapshot) => {
       <h3>${topic.title}</h3>
       ${topic.description ? `<p>${topic.description}</p>` : ""}
       <div class="forum-topic-actions">
-        <button class="btn-secondary enter-topic">Entrar al tema</button>
+        <button class="btn-secondary enter-topic">Entrar</button>
       </div>
     `;
 
-    // Entrar al tema
+    /* Entrar al tema */
     card.querySelector(".enter-topic").addEventListener("click", () => {
       window.location.href = `foro.html?topic=${docSnap.id}`;
     });
 
-    // Botón eliminar (solo terapeuta)
+    /* Eliminar tema (solo creador / terapeuta actual) */
     if (currentUser && topic.createdBy === currentUser.uid) {
       const deleteBtn = document.createElement("button");
       deleteBtn.className = "btn-danger";
@@ -94,7 +92,7 @@ onSnapshot(topicsRef, async (snapshot) => {
         e.stopPropagation();
 
         const ok = confirm(
-          `¿Eliminar el tema "${topic.title}"?\n\nSe perderán todos sus mensajes.`
+          `¿Eliminar el tema "${topic.title}"?\n\nSe eliminarán también sus mensajes.`
         );
         if (!ok) return;
 
@@ -120,27 +118,22 @@ onSnapshot(topicsRef, async (snapshot) => {
    CREAR TEMA
 ========================= */
 if (form) {
-  onAuthStateChanged(auth, (user) => {
-    if (!user) {
-      form.style.display = "none";
-      return;
-    }
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
 
-    form.addEventListener("submit", async (e) => {
-      e.preventDefault();
+    if (!currentUser) return;
 
-      const title = titleInput.value.trim();
-      if (!title) return;
+    const title = titleInput.value.trim();
+    if (!title) return;
 
-      await addDoc(topicsRef, {
-        title,
-        description: descInput.value.trim(),
-        createdBy: user.uid,
-        createdAt: serverTimestamp()
-      });
-
-      titleInput.value = "";
-      descInput.value = "";
+    await addDoc(topicsRef, {
+      title,
+      description: descInput.value.trim(),
+      createdBy: currentUser.uid,
+      createdAt: serverTimestamp()
     });
+
+    titleInput.value = "";
+    descInput.value = "";
   });
 }
