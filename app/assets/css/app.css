@@ -236,3 +236,58 @@ textarea {
     color: #fff;
   }
 }
+/* =====================================================
+   MENÚ HORIZONTAL (PC) — BOTONES EN FILA
+===================================================== */
+
+.app-menu-inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+/* cada botón/grupo ocupa su sitio */
+.app-menu-inner > button,
+.app-menu-inner > .menu-group {
+  flex: 0 0 auto;
+}
+
+/* desplegables se abren HACIA ABAJO */
+.menu-group {
+  position: relative;
+}
+
+.menu-group-content {
+  position: absolute;
+  top: 110%;
+  left: 0;
+  background: rgba(0,0,0,0.15);
+  border-radius: 14px;
+  padding: 10px;
+  min-width: 220px;
+  z-index: 20;
+}
+
+/* enlaces dentro del desplegable */
+.menu-group-content a {
+  display: block;
+  padding: 6px 8px;
+}
+
+/* =====================================================
+   MÓVIL: menú vuelve a columna (como ahora)
+===================================================== */
+
+@media (max-width: 768px) {
+  .app-menu-inner {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .menu-group-content {
+    position: static;
+    background: transparent;
+    padding-left: 10px;
+  }
+}
