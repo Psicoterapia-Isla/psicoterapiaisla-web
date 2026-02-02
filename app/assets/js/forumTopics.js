@@ -36,7 +36,7 @@ const auth = getAuth();
 
 onAuthStateChanged(auth, (user) => {
   if (!user) {
-    form.style.display = "none";
+    if (form) form.style.display = "none";
     return;
   }
 
@@ -51,7 +51,7 @@ onAuthStateChanged(auth, (user) => {
   );
 
   /* =========================
-     LISTAR TEMAS (YA CON USER)
+     LISTAR TEMAS
   ========================= */
   onSnapshot(topicsRef, (snapshot) => {
     topicsContainer.innerHTML = "";
@@ -71,26 +71,30 @@ onAuthStateChanged(auth, (user) => {
         <h3>${topic.title}</h3>
         ${topic.description ? `<p>${topic.description}</p>` : ""}
         <div class="forum-topic-actions">
-          <button class="btn-secondary enter-topic">
+          <button type="button" class="btn-secondary enter-topic">
             Entrar al tema
           </button>
         </div>
       `;
 
-      // Entrar al tema
-      card.querySelector(".enter-topic").addEventListener("click", () => {
-        window.location.href = `foro.html?topic=${docSnap.id}`;
-      });
+      /* =========================
+         ENTRAR AL TEMA
+      ========================= */
+      card.querySelector(".enter-topic")
+        .addEventListener("click", () => {
+          window.location.href = `foro.html?topic=${docSnap.id}`;
+        });
 
-      // 🗑️ ELIMINAR → SOLO CREADOR
+      /* =========================
+         ELIMINAR → SOLO CREADOR
+      ========================= */
       if (topic.createdBy === user.uid) {
         const deleteBtn = document.createElement("button");
+        deleteBtn.type = "button";
         deleteBtn.className = "btn-danger";
         deleteBtn.textContent = "Eliminar";
 
-        deleteBtn.addEventListener("click", async (e) => {
-          e.stopPropagation();
-
+        deleteBtn.addEventListener("click", async () => {
           const ok = confirm(
             `¿Eliminar el tema "${topic.title}"?\n\nSe eliminarán también sus mensajes.`
           );
@@ -118,25 +122,22 @@ onAuthStateChanged(auth, (user) => {
   /* =========================
      CREAR TEMA
   ========================= */
-  form.addEventListener("submit", async (e) => {
-    e.preventDefault();
+  if (form) {
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
 
-    const title = titleInput.value.trim();
-    if (!title) return;
+      const title = titleInput.value.trim();
+      if (!title) return;
 
-    await addDoc(collection(
-      db,
-      FORUMS_COLLECTION,
-      FORUM_ID,
-      TOPICS_COLLECTION
-    ), {
-      title,
-      description: descInput.value.trim(),
-      createdBy: user.uid,
-      createdAt: serverTimestamp()
+      await addDoc(topicsRef, {
+        title,
+        description: descInput.value.trim(),
+        createdBy: user.uid,
+        createdAt: serverTimestamp()
+      });
+
+      titleInput.value = "";
+      descInput.value = "";
     });
-
-    titleInput.value = "";
-    descInput.value = "";
-  });
+  }
 });
