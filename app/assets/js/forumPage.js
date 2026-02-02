@@ -1,15 +1,19 @@
 import { initForumData } from "./forum.js";
 import { db } from "./firebase.js";
+import { FORUM_ID } from "./forumConfig.js";
+
 import {
   collection,
   addDoc,
-  serverTimestamp
+  serverTimestamp,
+  query,
+  orderBy,
+  onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
 import {
   getAuth
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-
-const FORUM_ID = "aGuX3GfOqrglDg5cElpv";
 
 const container = document.getElementById("forum-posts");
 const form = document.getElementById("new-post-form");
@@ -18,12 +22,19 @@ const textarea = document.getElementById("post-content");
 const auth = getAuth();
 
 /* =========================
-   RENDER POSTS
+   LISTEN POSTS (CORRECTO)
 ========================= */
-listenForumPosts(posts => {
+const postsRef = query(
+  collection(db, "forums", FORUM_ID, "posts"),
+  orderBy("createdAt", "asc")
+);
+
+onSnapshot(postsRef, (snapshot) => {
   container.innerHTML = "";
 
-  posts.forEach(post => {
+  snapshot.forEach(doc => {
+    const post = doc.data();
+
     const el = document.createElement("article");
     el.className = "forum-post card";
 
@@ -57,7 +68,7 @@ form.addEventListener("submit", async (e) => {
     {
       content,
       authorId: user.uid,
-      authorRole: "therapist", // de momento fijo (tú)
+      authorRole: "therapist", // por ahora fijo
       createdAt: serverTimestamp(),
       isClosed: false,
       isHidden: false,
