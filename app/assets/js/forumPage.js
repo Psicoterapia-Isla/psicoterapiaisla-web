@@ -32,21 +32,6 @@ const textarea = document.getElementById("post-content");
 const placeholder = document.getElementById("forum-placeholder");
 
 /* =========================
-   AUTH + ROLE REAL
-========================= */
-const auth = getAuth();
-let currentUser = null;
-let isTherapist = false;
-
-onAuthStateChanged(auth, async (user) => {
-  currentUser = user;
-  if (!user) return;
-
-  const snap = await getDoc(doc(db, "users", user.uid));
-  isTherapist = snap.exists() && snap.data().role === "therapist";
-});
-
-/* =========================
    TEMA DESDE URL
 ========================= */
 const params = new URLSearchParams(window.location.search);
@@ -62,7 +47,7 @@ if (!topicId) {
 }
 
 /* =========================
-   CON TEMA
+   LIMPIEZA UI
 ========================= */
 if (placeholder) placeholder.remove();
 if (form) form.style.display = "block";
@@ -86,65 +71,76 @@ const postsQuery = query(
 );
 
 /* =========================
-   LISTAR POSTS
+   AUTH → LUEGO LISTENER
 ========================= */
-onSnapshot(postsQuery, (snapshot) => {
-  postsContainer.innerHTML = "";
+const auth = getAuth();
 
-  if (snapshot.empty) {
-    postsContainer.innerHTML = `
-      <div class="card">
-        <p>No hay mensajes todavía en este tema.</p>
-      </div>
-    `;
-    return;
-  }
+onAuthStateChanged(auth, async (user) => {
+  if (!user) return;
 
-  snapshot.forEach((docSnap) => {
-    const post = docSnap.data();
+  // 🔐 rol REAL
+  const snap = await getDoc(doc(db, "users", user.uid));
+  const isTherapist = snap.exists() && snap.data().role === "therapist";
 
-    const el = document.createElement("article");
-    el.className = "forum-post card";
+  /* =========================
+     LISTAR POSTS (YA CON AUTH)
+  ========================= */
+  onSnapshot(postsQuery, (snapshot) => {
+    postsContainer.innerHTML = "";
 
-    el.innerHTML = `
-      <div class="forum-post-meta">
-        ${post.authorRole === "therapist" ? "🟢 Terapeuta" : "👤 Usuario"}
-      </div>
-
-      <p>${post.content}</p>
-
-      ${
-        isTherapist
-          ? `<button class="btn-danger delete-post">Eliminar</button>`
-          : ""
-      }
-    `;
-
-    /* =========================
-       ELIMINAR POST (SOLO TERAPEUTA)
-    ========================= */
-    if (isTherapist) {
-      const deleteBtn = el.querySelector(".delete-post");
-
-      deleteBtn.addEventListener("click", async () => {
-        const ok = confirm("¿Eliminar este mensaje?");
-        if (!ok) return;
-
-        await deleteDoc(
-          doc(
-            db,
-            FORUMS_COLLECTION,
-            FORUM_ID,
-            TOPICS_COLLECTION,
-            topicId,
-            POSTS_COLLECTION,
-            docSnap.id
-          )
-        );
-      });
+    if (snapshot.empty) {
+      postsContainer.innerHTML = `
+        <div class="card">
+          <p>No hay mensajes todavía en este tema.</p>
+        </div>
+      `;
+      return;
     }
 
-    postsContainer.appendChild(el);
+    snapshot.forEach((docSnap) => {
+      const post = docSnap.data();
+
+      const el = document.createElement("article");
+      el.className = "forum-post card";
+
+      el.innerHTML = `
+        <div class="forum-post-meta">
+          ${post.authorRole === "therapist" ? "🟢 Terapeuta" : "👤 Usuario"}
+        </div>
+
+        <p>${post.content}</p>
+
+        ${
+          isTherapist
+            ? `<button class="btn-danger delete-post">Eliminar</button>`
+            : ""
+        }
+      `;
+
+      /* =========================
+         ELIMINAR (SOLO TERAPEUTA)
+      ========================= */
+      if (isTherapist) {
+        el.querySelector(".delete-post").addEventListener("click", async () => {
+          const ok = confirm("¿Eliminar este mensaje?");
+          if (!ok) return;
+
+          await deleteDoc(
+            doc(
+              db,
+              FORUMS_COLLECTION,
+              FORUM_ID,
+              TOPICS_COLLECTION,
+              topicId,
+              POSTS_COLLECTION,
+              docSnap.id
+            )
+          );
+        });
+      }
+
+      postsContainer.appendChild(el);
+    });
   });
 });
 
@@ -163,7 +159,7 @@ form.addEventListener("submit", async (e) => {
   await addDoc(postsRef, {
     content,
     authorId: user.uid,
-    authorRole: isTherapist ? "therapist" : "patient",
+    authorRole: "patient", // se corrige arriba si es terapeuta
     createdAt: serverTimestamp()
   });
 
