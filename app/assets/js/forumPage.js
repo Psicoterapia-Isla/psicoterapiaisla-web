@@ -11,7 +11,8 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 import {
-  getAuth
+  getAuth,
+  onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
 const container = document.getElementById("forum-posts");
@@ -21,33 +22,43 @@ const textarea = document.getElementById("post-content");
 const auth = getAuth();
 
 /* =========================
-   LISTEN POSTS
+   LISTEN POSTS (SAFE)
 ========================= */
-const postsQuery = query(
-  collection(db, "forums", FORUM_ID, "posts"),
-  orderBy("createdAt", "asc")
-);
+onAuthStateChanged(auth, (user) => {
+  if (!user) return;
 
-onSnapshot(postsQuery, (snapshot) => {
-  container.innerHTML = "";
+  const postsQuery = query(
+    collection(db, "forums", FORUM_ID, "posts"),
+    orderBy("createdAt", "asc")
+  );
 
-  snapshot.forEach(doc => {
-    const post = doc.data();
+  onSnapshot(
+    postsQuery,
+    (snapshot) => {
+      container.innerHTML = "";
 
-    const el = document.createElement("article");
-    el.className = "forum-post card";
+      snapshot.forEach(doc => {
+        const post = doc.data();
 
-    el.innerHTML = `
-      <div class="forum-post-meta">
-        ${post.authorRole === "therapist" ? "🟢 Terapeuta" : "👤 Usuario"}
-      </div>
-      <p class="forum-post-content">
-        ${post.content}
-      </p>
-    `;
+        const el = document.createElement("article");
+        el.className = "forum-post card";
 
-    container.appendChild(el);
-  });
+        el.innerHTML = `
+          <div class="forum-post-meta">
+            ${post.authorRole === "therapist" ? "🟢 Terapeuta" : "👤 Usuario"}
+          </div>
+          <p class="forum-post-content">
+            ${post.content}
+          </p>
+        `;
+
+        container.appendChild(el);
+      });
+    },
+    (error) => {
+      console.error("Error leyendo posts del foro:", error);
+    }
+  );
 });
 
 /* =========================
