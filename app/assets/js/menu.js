@@ -6,7 +6,7 @@ document.addEventListener("DOMContentLoaded", () => {
   loadMenu();
 });
 
-export async function loadMenu() {
+export function loadMenu() {
   const menu = document.querySelector(".app-menu");
   if (!menu) return;
 
@@ -17,49 +17,39 @@ export async function loadMenu() {
     const role = snap.exists() ? snap.data().role : "patient";
 
     menu.innerHTML = `
-      <nav class="menu-bar">
-        <div class="menu-left">
-          <a href="index.html" class="menu-home">Inicio</a>
+      <div class="app-menu-inner">
 
-          ${role === "therapist" ? therapistMenu() : ""}
-          ${role === "patient" ? patientMenu() : ""}
-        </div>
+        <button class="menu-group-toggle" onclick="location.href='index.html'">
+          Inicio
+        </button>
 
-        <div class="menu-right">
-  <a href="foro-temas.html" class="menu-forum">Foro</a>
-  <a href="login.html" class="menu-exit">Salir</a>
-</div>
-      </nav>
+        <button class="menu-group-toggle" onclick="location.href='foro.html'">
+          Foro
+        </button>
+
+        ${role === "therapist" ? therapistBlock() : ""}
+        ${role === "patient" ? patientBlock() : ""}
+
+        <button class="menu-group-toggle" onclick="location.href='login.html'">
+          Salir
+        </button>
+
+      </div>
     `;
-
-    menu.querySelectorAll(".menu-group-toggle").forEach(btn => {
-      btn.addEventListener("click", () => {
-        const group = btn.closest(".menu-group");
-
-        // cerrar otros
-        menu.querySelectorAll(".menu-group.open").forEach(g => {
-          if (g !== group) g.classList.remove("open");
-        });
-
-        group.classList.toggle("open");
-      });
-    });
   });
 }
 
-function therapistMenu() {
+function therapistBlock() {
   return `
     <div class="menu-group">
       <button class="menu-group-toggle">
         Espacio terapeuta
-        <span class="arrow">▾</span>
       </button>
-
       <div class="menu-group-content">
         <a href="diario-terapeuta.html">Diarios pacientes</a>
         <a href="entries-by-exercise.html">Respuestas por ejercicio</a>
         <a href="entries-by-patient.html">Respuestas por paciente</a>
-        <a href="entries-by-exercise.html#pdf">Exportar informes (PDF)</a>
+        <a href="entries-by-exercise.html#pdf">Exportar informes</a>
         <a href="exercises-admin.html">Gestionar ejercicios</a>
         <a href="agenda-terapeuta.html">Agenda profesional</a>
       </div>
@@ -67,14 +57,12 @@ function therapistMenu() {
   `;
 }
 
-function patientMenu() {
+function patientBlock() {
   return `
     <div class="menu-group">
       <button class="menu-group-toggle">
         Mi espacio
-        <span class="arrow">▾</span>
       </button>
-
       <div class="menu-group-content">
         <a href="diario.html">Mi diario</a>
         <a href="exercises-list.html">Ejercicios</a>
