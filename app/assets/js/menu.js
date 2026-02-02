@@ -19,30 +19,20 @@ export function loadMenu() {
     menu.innerHTML = `
       <div class="app-menu-inner">
 
-        <button class="menu-group-toggle" onclick="location.href='index.html'">
-          Inicio
-        </button>
+        <!-- BOTONES NORMALES -->
+        <a href="index.html" class="menu-btn">Inicio</a>
+        <a href="foro.html" class="menu-btn">Foro</a>
 
-        <div class="menu-group">
-          <button class="menu-group-toggle">
-            Foro
-          </button>
-          <div class="menu-group-content">
-            <a href="foro.html">Entrar al foro</a>
-          </div>
-        </div>
-
+        <!-- DESPLEGABLES -->
         ${role === "therapist" ? therapistBlock() : ""}
         ${role === "patient" ? patientBlock() : ""}
 
-        <button class="menu-group-toggle" onclick="location.href='login.html'">
-          Salir
-        </button>
+        <a href="login.html" class="menu-btn">Salir</a>
 
       </div>
     `;
 
-    // activar desplegables
+    // activar SOLO desplegables
     menu.querySelectorAll(".menu-group-toggle").forEach(btn => {
       btn.addEventListener("click", () => {
         const group = btn.closest(".menu-group");
@@ -61,7 +51,7 @@ export function loadMenu() {
 function therapistBlock() {
   return `
     <div class="menu-group">
-      <button class="menu-group-toggle">
+      <button class="menu-group-toggle menu-btn">
         Espacio terapeuta
       </button>
       <div class="menu-group-content">
@@ -79,7 +69,7 @@ function therapistBlock() {
 function patientBlock() {
   return `
     <div class="menu-group">
-      <button class="menu-group-toggle">
+      <button class="menu-group-toggle menu-btn">
         Mi espacio
       </button>
       <div class="menu-group-content">
