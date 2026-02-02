@@ -46,8 +46,8 @@ if (!topicId) {
    CON TEMA → LIMPIAR VISTA
 ========================= */
 if (placeholder) placeholder.remove();
-postsContainer.innerHTML = "";
-form.style.display = "block";
+if (postsContainer) postsContainer.innerHTML = "";
+if (form) form.style.display = "block";
 
 /* =========================
    REFERENCIA POSTS
@@ -64,13 +64,13 @@ const postsRef = collection(
 const q = query(postsRef, orderBy("createdAt", "asc"));
 
 /* =========================
-   LISTAR POSTS (JUSTO AQUÍ)
+   LISTAR POSTS (DEBAJO DEL TEMA)
 ========================= */
 onSnapshot(q, (snapshot) => {
   postsContainer.innerHTML = "";
 
-  snapshot.forEach(doc => {
-    const post = doc.data();
+  snapshot.forEach(docSnap => {
+    const post = docSnap.data();
 
     const el = document.createElement("article");
     el.className = "forum-post card";
@@ -89,21 +89,23 @@ onSnapshot(q, (snapshot) => {
 /* =========================
    CREAR POST
 ========================= */
-form.addEventListener("submit", async (e) => {
-  e.preventDefault();
+if (form) {
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
 
-  const user = auth.currentUser;
-  if (!user) return;
+    const user = auth.currentUser;
+    if (!user) return;
 
-  const content = textarea.value.trim();
-  if (!content) return;
+    const content = textarea.value.trim();
+    if (!content) return;
 
-  await addDoc(postsRef, {
-    content,
-    authorId: user.uid,
-    authorRole: "therapist",
-    createdAt: serverTimestamp()
+    await addDoc(postsRef, {
+      content,
+      authorId: user.uid,
+      authorRole: "therapist",
+      createdAt: serverTimestamp()
+    });
+
+    textarea.value = "";
   });
-
-  textarea.value = "";
-});
+}
