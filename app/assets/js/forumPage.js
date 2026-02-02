@@ -19,40 +19,38 @@ import { getAuth } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth
 
 const auth = getAuth();
 
-const container = document.getElementById("forum-posts");
+/* =========================
+   DOM
+========================= */
+const postsContainer = document.getElementById("forum-posts");
 const form = document.getElementById("new-post-form");
 const textarea = document.getElementById("post-content");
+const placeholder = document.getElementById("forum-placeholder");
 
 /* =========================
-   OBTENER TEMA DESDE URL
+   PARAMS
 ========================= */
 const params = new URLSearchParams(window.location.search);
 const topicId = params.get("topic");
 
 /* =========================
-   SI NO HAY TEMA → NO ROMPER
+   SIN TEMA → SOLO PLACEHOLDER
 ========================= */
 if (!topicId) {
-  console.warn("No hay tema seleccionado todavía");
-
-  // Desactivar formulario
   if (form) form.style.display = "none";
-
-  // Mensaje claro en la UI
-  if (container) {
-    container.innerHTML = `
-      <div class="card">
-        <p>Selecciona un tema del foro para ver los mensajes.</p>
-      </div>
-    `;
-  }
-
-  // ⛔ MUY IMPORTANTE: cortar aquí
-  throw new Error("Forum sin topic (controlado)");
+  if (postsContainer) postsContainer.innerHTML = "";
+  return;
 }
 
 /* =========================
-   REFERENCIA A POSTS
+   CON TEMA → LIMPIAR VISTA
+========================= */
+if (placeholder) placeholder.remove();
+postsContainer.innerHTML = "";
+form.style.display = "block";
+
+/* =========================
+   REFERENCIA POSTS
 ========================= */
 const postsRef = collection(
   db,
@@ -63,13 +61,13 @@ const postsRef = collection(
   POSTS_COLLECTION
 );
 
-/* =========================
-   LISTEN POSTS
-========================= */
 const q = query(postsRef, orderBy("createdAt", "asc"));
 
+/* =========================
+   LISTAR POSTS (JUSTO AQUÍ)
+========================= */
 onSnapshot(q, (snapshot) => {
-  container.innerHTML = "";
+  postsContainer.innerHTML = "";
 
   snapshot.forEach(doc => {
     const post = doc.data();
@@ -84,12 +82,12 @@ onSnapshot(q, (snapshot) => {
       <p>${post.content}</p>
     `;
 
-    container.appendChild(el);
+    postsContainer.appendChild(el);
   });
 });
 
 /* =========================
-   CREATE POST
+   CREAR POST
 ========================= */
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
