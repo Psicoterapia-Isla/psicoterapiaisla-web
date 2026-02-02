@@ -19,24 +19,44 @@ export function loadMenu() {
     menu.innerHTML = `
       <div class="app-menu-inner">
 
-        <!-- BOTONES NORMALES -->
-        <a href="index.html" class="menu-btn">Inicio</a>
-        <a href="foro.html" class="menu-btn">Foro</a>
+        <!-- INICIO -->
+        <button class="menu-group-toggle" data-link="index.html">
+          Inicio
+        </button>
 
-        <!-- DESPLEGABLES -->
+        <!-- FORO (DESPLEGABLE) -->
+        <div class="menu-group">
+          <button class="menu-group-toggle">
+            Foro
+          </button>
+          <div class="menu-group-content">
+            <a href="foro.html">Temas del foro</a>
+          </div>
+        </div>
+
+        <!-- BLOQUES POR ROL -->
         ${role === "therapist" ? therapistBlock() : ""}
         ${role === "patient" ? patientBlock() : ""}
 
-        <a href="login.html" class="menu-btn">Salir</a>
+        <!-- SALIR -->
+        <button class="menu-group-toggle" data-link="login.html">
+          Salir
+        </button>
 
       </div>
     `;
 
-    // activar SOLO desplegables
-    menu.querySelectorAll(".menu-group-toggle").forEach(btn => {
+    /* navegación directa */
+    menu.querySelectorAll("[data-link]").forEach(btn => {
       btn.addEventListener("click", () => {
-        const group = btn.closest(".menu-group");
-        if (!group) return;
+        window.location.href = btn.dataset.link;
+      });
+    });
+
+    /* desplegables */
+    menu.querySelectorAll(".menu-group > .menu-group-toggle").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const group = btn.parentElement;
 
         menu.querySelectorAll(".menu-group.open").forEach(g => {
           if (g !== group) g.classList.remove("open");
@@ -51,7 +71,7 @@ export function loadMenu() {
 function therapistBlock() {
   return `
     <div class="menu-group">
-      <button class="menu-group-toggle menu-btn">
+      <button class="menu-group-toggle">
         Espacio terapeuta
       </button>
       <div class="menu-group-content">
@@ -69,7 +89,7 @@ function therapistBlock() {
 function patientBlock() {
   return `
     <div class="menu-group">
-      <button class="menu-group-toggle menu-btn">
+      <button class="menu-group-toggle">
         Mi espacio
       </button>
       <div class="menu-group-content">
