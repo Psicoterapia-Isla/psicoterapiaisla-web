@@ -4,22 +4,30 @@
   <meta charset="UTF-8" />
   <title>Foro | Psicoterapia Isla</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
   <link rel="stylesheet" href="assets/css/app.css">
 </head>
 
 <body class="app-body">
 
-<header class="app-menu"></header>
+<!-- MENÚ -->
+<header class="app-menu">
+  <div class="app-menu-inner"></div>
+</header>
 
 <main class="app-container forum-layout">
 
-  <!-- COLUMNA IZQUIERDA (contenido principal) -->
+  <!-- COLUMNA IZQUIERDA: CONTENIDO -->
   <section class="forum-main">
 
     <h1>Foro</h1>
 
-    <!-- MENSAJES DEL TEMA -->
-    <section id="forum-posts" class="forum-posts"></section>
+    <section class="card" id="forum-placeholder">
+      Selecciona un tema del foro para ver los mensajes.
+    </section>
+
+    <!-- MENSAJES -->
+    <section id="forum-posts"></section>
 
     <!-- NUEVO MENSAJE -->
     <form id="new-post-form" class="card">
@@ -36,36 +44,40 @@
 
   </section>
 
-  <!-- COLUMNA DERECHA (temas del foro) -->
-  <aside class="forum-sidebar card">
+  <!-- COLUMNA DERECHA: TEMAS -->
+  <aside class="forum-sidebar">
 
-    <h2>Temas del foro</h2>
+    <section class="card">
+      <h2>Temas del foro</h2>
 
-    <section id="forum-topics"></section>
+      <div id="forum-topics"></div>
 
-    <!-- Crear tema (terapeuta) -->
-    <form id="new-topic-form">
-      <input
-        type="text"
-        id="topic-title"
-        placeholder="Título del tema"
-        required
-      />
+      <!-- Crear tema (terapeuta) -->
+      <form id="new-topic-form">
+        <input
+          type="text"
+          id="topic-title"
+          placeholder="Título del tema"
+          required
+        />
 
-      <textarea
-        id="topic-description"
-        placeholder="Descripción del tema"
-      ></textarea>
+        <textarea
+          id="topic-description"
+          placeholder="Descripción del tema"
+        ></textarea>
 
-      <button type="submit" class="btn-primary">
-        Crear tema
-      </button>
-    </form>
+        <button type="submit" class="btn-primary">
+          Crear tema
+        </button>
+      </form>
+    </section>
 
   </aside>
 
 </main>
 
+<!-- SCRIPTS (ORDEN IMPORTANTE) -->
+<script type="module" src="assets/js/menu.js"></script>
 <script type="module" src="assets/js/forumTopics.js"></script>
 <script type="module" src="assets/js/forumPage.js"></script>
 
