@@ -1,5 +1,4 @@
 import { db } from "./firebase.js";
-import { FORUM_ID } from "./forumConfig.js";
 import {
   collection,
   query,
@@ -7,16 +6,17 @@ import {
   onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-export function listenForumPosts(renderFn) {
-  const postsRef = collection(db, "forums", FORUM_ID, "posts");
+const FORUM_ID = "aGuX3GfOqrglDg5cElpv"; // el que ya tienes
 
+export function listenForumPosts(callback) {
+  const postsRef = collection(db, "forums", FORUM_ID, "posts");
   const q = query(postsRef, orderBy("createdAt", "asc"));
 
-  return onSnapshot(q, snapshot => {
-    const posts = snapshot.docs
-      .map(doc => ({ id: doc.id, ...doc.data() }))
-      .filter(p => !p.isHidden); // 🔒 respeta moderación
-
-    renderFn(posts);
+  onSnapshot(q, snapshot => {
+    const posts = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+    callback(posts);
   });
 }
