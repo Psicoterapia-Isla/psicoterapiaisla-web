@@ -6,18 +6,37 @@ import {
   serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-import { FORUM_ID, FORUMS_COLLECTION, TOPICS_COLLECTION } from "./forumConfig.js";
-import { getAuth } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import {
+  FORUM_ID,
+  FORUMS_COLLECTION,
+  TOPICS_COLLECTION
+} from "./forumConfig.js";
 
-const auth = getAuth();
+import {
+  getAuth,
+  onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
+/* =========================
+   ELEMENTOS DOM
+========================= */
 const topicsContainer = document.getElementById("forum-topics");
 const form = document.getElementById("new-topic-form");
 const titleInput = document.getElementById("topic-title");
 const descInput = document.getElementById("topic-description");
 
+if (!topicsContainer) {
+  console.error("No existe #forum-topics en el HTML");
+  return;
+}
+
 /* =========================
-   LISTAR TEMAS
+   AUTH
+========================= */
+const auth = getAuth();
+
+/* =========================
+   REFERENCIA TEMAS
 ========================= */
 const topicsRef = collection(
   db,
@@ -26,8 +45,16 @@ const topicsRef = collection(
   TOPICS_COLLECTION
 );
 
+/* =========================
+   LISTAR TEMAS
+========================= */
 onSnapshot(topicsRef, (snapshot) => {
   topicsContainer.innerHTML = "";
+
+  if (snapshot.empty) {
+    topicsContainer.innerHTML = `<p>No hay temas creados todavía.</p>`;
+    return;
+  }
 
   snapshot.forEach(doc => {
     const topic = doc.data();
@@ -37,34 +64,43 @@ onSnapshot(topicsRef, (snapshot) => {
 
     el.innerHTML = `
       <h3>${topic.title}</h3>
-      <p>${topic.description}</p>
+      <p>${topic.description || ""}</p>
       <button class="btn-secondary">Entrar</button>
     `;
 
-    el.querySelector("button").onclick = () => {
+    el.querySelector("button").addEventListener("click", () => {
       window.location.href = `/app/foro.html?topic=${doc.id}`;
-    };
+    });
 
     topicsContainer.appendChild(el);
   });
 });
 
 /* =========================
-   CREAR TEMA (TERAPEUTA)
+   CREAR TEMA (SOLO AUTENTICADO)
 ========================= */
-form.addEventListener("submit", async (e) => {
-  e.preventDefault();
+if (form) {
+  onAuthStateChanged(auth, (user) => {
+    if (!user) {
+      form.style.display = "none";
+      return;
+    }
 
-  const user = auth.currentUser;
-  if (!user) return;
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
 
-  await addDoc(topicsRef, {
-    title: titleInput.value.trim(),
-    description: descInput.value.trim(),
-    createdBy: user.uid,
-    createdAt: serverTimestamp()
+      const title = titleInput.value.trim();
+      if (!title) return;
+
+      await addDoc(topicsRef, {
+        title,
+        description: descInput.value.trim(),
+        createdBy: user.uid,
+        createdAt: serverTimestamp()
+      });
+
+      titleInput.value = "";
+      descInput.value = "";
+    });
   });
-
-  titleInput.value = "";
-  descInput.value = "";
-});
+}
