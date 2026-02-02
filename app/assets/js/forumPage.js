@@ -38,29 +38,23 @@ const params = new URLSearchParams(window.location.search);
 const topicId = params.get("topic");
 
 /* =========================
-   AUTH
-========================= */
-const auth = getAuth();
-
-/* =========================
-   SI NO HAY TEMA
-   (NO usar return en módulos)
+   SIN TEMA → SOLO UI
 ========================= */
 if (!topicId) {
   if (form) form.style.display = "none";
   if (postsContainer) postsContainer.innerHTML = "";
+  // ⛔ NO return aquí
 } else {
-  initForumWithTopic();
+  if (placeholder) placeholder.remove();
+  if (form) form.style.display = "block";
 }
 
 /* =========================
-   INIT CON TEMA
+   AUTH
 ========================= */
-function initForumWithTopic() {
-  if (placeholder) placeholder.remove();
-  form.style.display = "block";
-  postsContainer.innerHTML = "";
+const auth = getAuth();
 
+if (topicId) {
   const postsRef = collection(
     db,
     FORUMS_COLLECTION,
@@ -85,7 +79,7 @@ function initForumWithTopic() {
       if (snapshot.empty) {
         postsContainer.innerHTML = `
           <div class="card">
-            <p>No hay mensajes todavía en este tema.</p>
+            <p>No hay mensajes todavía.</p>
           </div>
         `;
         return;
@@ -111,20 +105,8 @@ function initForumWithTopic() {
 
         if (isTherapist) {
           el.querySelector(".delete-post").addEventListener("click", async () => {
-            const ok = confirm("¿Eliminar este mensaje?");
-            if (!ok) return;
-
-            await deleteDoc(
-              doc(
-                db,
-                FORUMS_COLLECTION,
-                FORUM_ID,
-                TOPICS_COLLECTION,
-                topicId,
-                POSTS_COLLECTION,
-                docSnap.id
-              )
-            );
+            if (!confirm("¿Eliminar este mensaje?")) return;
+            await deleteDoc(doc(postsRef, docSnap.id));
           });
         }
 
@@ -148,7 +130,7 @@ function initForumWithTopic() {
     await addDoc(postsRef, {
       content,
       authorId: user.uid,
-      authorRole: "patient", // se puede mejorar luego
+      authorRole: "patient",
       createdAt: serverTimestamp()
     });
 
