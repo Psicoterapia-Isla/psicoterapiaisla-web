@@ -1,4 +1,4 @@
-import { listenForumPosts } from "./forum.js";
+import { initForumData } from "./forum.js";
 import { db } from "./firebase.js";
 import {
   collection,
