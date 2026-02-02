@@ -1,6 +1,4 @@
 import { db } from "./firebase.js";
-import { FORUM_ID } from "./forumConfig.js";
-
 import {
   collection,
   addDoc,
@@ -11,54 +9,59 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 import {
-  getAuth,
-  onAuthStateChanged
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+  FORUM_ID,
+  FORUMS_COLLECTION,
+  TOPICS_COLLECTION,
+  POSTS_COLLECTION
+} from "./forumConfig.js";
+
+import { getAuth } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+const auth = getAuth();
+
+const params = new URLSearchParams(window.location.search);
+const topicId = params.get("topic");
+
+if (!topicId) {
+  console.error("No topic seleccionado");
+}
 
 const container = document.getElementById("forum-posts");
 const form = document.getElementById("new-post-form");
 const textarea = document.getElementById("post-content");
 
-const auth = getAuth();
+const postsRef = collection(
+  db,
+  FORUMS_COLLECTION,
+  FORUM_ID,
+  TOPICS_COLLECTION,
+  topicId,
+  POSTS_COLLECTION
+);
 
 /* =========================
-   LISTEN POSTS (SAFE)
+   LISTEN POSTS
 ========================= */
-onAuthStateChanged(auth, (user) => {
-  if (!user) return;
+const q = query(postsRef, orderBy("createdAt", "asc"));
 
-  const postsQuery = query(
-    collection(db, "forums", FORUM_ID, "posts"),
-    orderBy("createdAt", "asc")
-  );
+onSnapshot(q, (snapshot) => {
+  container.innerHTML = "";
 
-  onSnapshot(
-    postsQuery,
-    (snapshot) => {
-      container.innerHTML = "";
+  snapshot.forEach(doc => {
+    const post = doc.data();
 
-      snapshot.forEach(doc => {
-        const post = doc.data();
+    const el = document.createElement("article");
+    el.className = "forum-post card";
 
-        const el = document.createElement("article");
-        el.className = "forum-post card";
+    el.innerHTML = `
+      <div class="forum-post-meta">
+        ${post.authorRole === "therapist" ? "🟢 Terapeuta" : "👤 Usuario"}
+      </div>
+      <p>${post.content}</p>
+    `;
 
-        el.innerHTML = `
-          <div class="forum-post-meta">
-            ${post.authorRole === "therapist" ? "🟢 Terapeuta" : "👤 Usuario"}
-          </div>
-          <p class="forum-post-content">
-            ${post.content}
-          </p>
-        `;
-
-        container.appendChild(el);
-      });
-    },
-    (error) => {
-      console.error("Error leyendo posts del foro:", error);
-    }
-  );
+    container.appendChild(el);
+  });
 });
 
 /* =========================
@@ -70,21 +73,12 @@ form.addEventListener("submit", async (e) => {
   const user = auth.currentUser;
   if (!user) return;
 
-  const content = textarea.value.trim();
-  if (!content) return;
-
-  await addDoc(
-    collection(db, "forums", FORUM_ID, "posts"),
-    {
-      content,
-      authorId: user.uid,
-      authorRole: "therapist",
-      createdAt: serverTimestamp(),
-      isClosed: false,
-      isHidden: false,
-      reportedCount: 0
-    }
-  );
+  await addDoc(postsRef, {
+    content: textarea.value.trim(),
+    authorId: user.uid,
+    authorRole: "therapist",
+    createdAt: serverTimestamp()
+  });
 
   textarea.value = "";
 });
