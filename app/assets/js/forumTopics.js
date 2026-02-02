@@ -43,12 +43,12 @@ onAuthStateChanged(auth, async (user) => {
     return;
   }
 
-  // 🔐 obtener rol real
+  // 🔐 obtener rol REAL desde users
   const userSnap = await getDoc(doc(db, "users", user.uid));
   const role = userSnap.exists() ? userSnap.data().role : "patient";
   const isTherapist = role === "therapist";
 
-  // 👉 ocultar formulario si NO es terapeuta
+  // ⛔ ocultar formulario si NO es terapeuta
   if (!isTherapist && form) {
     form.style.display = "none";
   }
@@ -95,7 +95,7 @@ onAuthStateChanged(auth, async (user) => {
         window.location.href = `foro.html?topic=${docSnap.id}`;
       });
 
-      // 🗑️ eliminar → solo terapeuta creador
+      // 🗑️ eliminar tema → SOLO terapeuta creador
       if (isTherapist && topic.createdBy === user.uid) {
         const deleteBtn = document.createElement("button");
         deleteBtn.className = "btn-danger";
@@ -120,7 +120,8 @@ onAuthStateChanged(auth, async (user) => {
           );
         });
 
-        card.querySelector(".forum-topic-actions")
+        card
+          .querySelector(".forum-topic-actions")
           .appendChild(deleteBtn);
       }
 
@@ -138,12 +139,20 @@ onAuthStateChanged(auth, async (user) => {
       const title = titleInput.value.trim();
       if (!title) return;
 
-      await addDoc(topicsRef, {
-        title,
-        description: descInput.value.trim(),
-        createdBy: user.uid,
-        createdAt: serverTimestamp()
-      });
+      await addDoc(
+        collection(
+          db,
+          FORUMS_COLLECTION,
+          FORUM_ID,
+          TOPICS_COLLECTION
+        ),
+        {
+          title,
+          description: descInput.value.trim(),
+          createdBy: user.uid,
+          createdAt: serverTimestamp()
+        }
+      );
 
       titleInput.value = "";
       descInput.value = "";
