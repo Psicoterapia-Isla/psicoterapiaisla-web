@@ -2,6 +2,8 @@ import { db } from "./firebase.js";
 import {
   collection,
   addDoc,
+  deleteDoc,
+  doc,
   onSnapshot,
   serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
@@ -34,6 +36,13 @@ if (!topicsContainer) {
    AUTH
 ========================= */
 const auth = getAuth();
+let currentUser = null;
+let currentRole = "patient";
+
+onAuthStateChanged(auth, (user) => {
+  currentUser = user;
+  if (!user) return;
+});
 
 /* =========================
    REFERENCIA TEMAS
@@ -46,9 +55,9 @@ const topicsRef = collection(
 );
 
 /* =========================
-   LISTAR TEMAS (CLICABLES)
+   LISTAR TEMAS
 ========================= */
-onSnapshot(topicsRef, (snapshot) => {
+onSnapshot(topicsRef, async (snapshot) => {
   topicsContainer.innerHTML = "";
 
   if (snapshot.empty) {
@@ -59,26 +68,56 @@ onSnapshot(topicsRef, (snapshot) => {
   snapshot.forEach(docSnap => {
     const topic = docSnap.data();
 
-    const li = document.createElement("li");
-    li.className = "forum-topic card";
-    li.style.cursor = "pointer";
+    const card = document.createElement("article");
+    card.className = "forum-topic card";
 
-    li.innerHTML = `
+    card.innerHTML = `
       <h3>${topic.title}</h3>
       ${topic.description ? `<p>${topic.description}</p>` : ""}
-      <small>Entrar al tema</small>
+      <div class="forum-topic-actions">
+        <button class="btn-secondary enter-topic">Entrar al tema</button>
+      </div>
     `;
 
-    li.addEventListener("click", () => {
+    // Entrar al tema
+    card.querySelector(".enter-topic").addEventListener("click", () => {
       window.location.href = `foro.html?topic=${docSnap.id}`;
     });
 
-    topicsContainer.appendChild(li);
+    // Botón eliminar (solo terapeuta)
+    if (currentUser && topic.createdBy === currentUser.uid) {
+      const deleteBtn = document.createElement("button");
+      deleteBtn.className = "btn-danger";
+      deleteBtn.textContent = "Eliminar";
+
+      deleteBtn.addEventListener("click", async (e) => {
+        e.stopPropagation();
+
+        const ok = confirm(
+          `¿Eliminar el tema "${topic.title}"?\n\nSe perderán todos sus mensajes.`
+        );
+        if (!ok) return;
+
+        await deleteDoc(
+          doc(
+            db,
+            FORUMS_COLLECTION,
+            FORUM_ID,
+            TOPICS_COLLECTION,
+            docSnap.id
+          )
+        );
+      });
+
+      card.querySelector(".forum-topic-actions").appendChild(deleteBtn);
+    }
+
+    topicsContainer.appendChild(card);
   });
 });
 
 /* =========================
-   CREAR TEMA (AUTENTICADO)
+   CREAR TEMA
 ========================= */
 if (form) {
   onAuthStateChanged(auth, (user) => {
