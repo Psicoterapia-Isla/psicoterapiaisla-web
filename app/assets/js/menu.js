@@ -26,10 +26,9 @@ export async function loadMenu() {
         </div>
 
         <div class="menu-right">
-          <!-- reservado para foro / diálogo -->
-          <!-- <a href="foro.html" class="menu-forum">Foro</a> -->
-          <a href="login.html" class="menu-exit">Salir</a>
-        </div>
+  <a href="foro-temas.html" class="menu-forum">Foro</a>
+  <a href="login.html" class="menu-exit">Salir</a>
+</div>
       </nav>
     `;
 
