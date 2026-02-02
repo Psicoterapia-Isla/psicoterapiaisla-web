@@ -15,9 +15,8 @@ import {
   POSTS_COLLECTION
 } from "./forumConfig.js";
 
-import { getAuth } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-
-const auth = getAuth();
+import { getAuth } from
+  "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
 /* =========================
    DOM
@@ -28,29 +27,35 @@ const textarea = document.getElementById("post-content");
 const placeholder = document.getElementById("forum-placeholder");
 
 /* =========================
-   PARAMS
+   AUTH
+========================= */
+const auth = getAuth();
+
+/* =========================
+   OBTENER TEMA DESDE URL
 ========================= */
 const params = new URLSearchParams(window.location.search);
 const topicId = params.get("topic");
 
 /* =========================
-   SIN TEMA → SOLO PLACEHOLDER
+   SIN TEMA → SOLO MENSAJE
 ========================= */
 if (!topicId) {
   if (form) form.style.display = "none";
   if (postsContainer) postsContainer.innerHTML = "";
+  // el placeholder ya está en el HTML
   return;
 }
 
 /* =========================
-   CON TEMA → LIMPIAR VISTA
+   CON TEMA → PREPARAR VISTA
 ========================= */
 if (placeholder) placeholder.remove();
-if (postsContainer) postsContainer.innerHTML = "";
 if (form) form.style.display = "block";
+postsContainer.innerHTML = "";
 
 /* =========================
-   REFERENCIA POSTS
+   REFERENCIA A POSTS
 ========================= */
 const postsRef = collection(
   db,
@@ -61,15 +66,27 @@ const postsRef = collection(
   POSTS_COLLECTION
 );
 
-const q = query(postsRef, orderBy("createdAt", "asc"));
+const postsQuery = query(
+  postsRef,
+  orderBy("createdAt", "asc")
+);
 
 /* =========================
-   LISTAR POSTS (DEBAJO DEL TEMA)
+   LISTAR POSTS
 ========================= */
-onSnapshot(q, (snapshot) => {
+onSnapshot(postsQuery, (snapshot) => {
   postsContainer.innerHTML = "";
 
-  snapshot.forEach(docSnap => {
+  if (snapshot.empty) {
+    postsContainer.innerHTML = `
+      <div class="card">
+        <p>No hay mensajes todavía en este tema.</p>
+      </div>
+    `;
+    return;
+  }
+
+  snapshot.forEach((docSnap) => {
     const post = docSnap.data();
 
     const el = document.createElement("article");
@@ -89,23 +106,21 @@ onSnapshot(q, (snapshot) => {
 /* =========================
    CREAR POST
 ========================= */
-if (form) {
-  form.addEventListener("submit", async (e) => {
-    e.preventDefault();
+form.addEventListener("submit", async (e) => {
+  e.preventDefault();
 
-    const user = auth.currentUser;
-    if (!user) return;
+  const user = auth.currentUser;
+  if (!user) return;
 
-    const content = textarea.value.trim();
-    if (!content) return;
+  const content = textarea.value.trim();
+  if (!content) return;
 
-    await addDoc(postsRef, {
-      content,
-      authorId: user.uid,
-      authorRole: "therapist",
-      createdAt: serverTimestamp()
-    });
-
-    textarea.value = "";
+  await addDoc(postsRef, {
+    content,
+    authorId: user.uid,
+    authorRole: "therapist", // de momento fijo como pediste
+    createdAt: serverTimestamp()
   });
-}
+
+  textarea.value = "";
+});
