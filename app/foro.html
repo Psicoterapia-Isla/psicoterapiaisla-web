@@ -4,7 +4,6 @@
   <meta charset="UTF-8" />
   <title>Foro | Psicoterapia Isla</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
   <link rel="stylesheet" href="assets/css/app.css">
 </head>
 
@@ -17,20 +16,21 @@
 
 <main class="app-container forum-layout">
 
-  <!-- COLUMNA IZQUIERDA: CONTENIDO -->
+  <!-- COLUMNA IZQUIERDA -->
   <section class="forum-main">
 
     <h1>Foro</h1>
 
-    <section class="card" id="forum-placeholder">
+    <!-- MENSAJE INICIAL -->
+    <section id="forum-placeholder" class="card">
       Selecciona un tema del foro para ver los mensajes.
     </section>
 
     <!-- MENSAJES -->
-    <section id="forum-posts"></section>
+    <section id="forum-posts" class="forum-posts"></section>
 
-    <!-- NUEVO MENSAJE -->
-    <form id="new-post-form" class="card">
+    <!-- NUEVO MENSAJE (solo visible con tema) -->
+    <form id="new-post-form" class="card" style="display:none;">
       <textarea
         id="post-content"
         placeholder="Escribe tu mensaje…"
@@ -44,15 +44,16 @@
 
   </section>
 
-  <!-- COLUMNA DERECHA: TEMAS -->
+  <!-- COLUMNA DERECHA -->
   <aside class="forum-sidebar">
 
     <section class="card">
       <h2>Temas del foro</h2>
 
+      <!-- LISTADO DE TEMAS -->
       <div id="forum-topics"></div>
 
-      <!-- Crear tema (terapeuta) -->
+      <!-- CREAR TEMA -->
       <form id="new-topic-form">
         <input
           type="text"
@@ -76,7 +77,7 @@
 
 </main>
 
-<!-- SCRIPTS (ORDEN IMPORTANTE) -->
+<!-- SCRIPTS -->
 <script type="module" src="assets/js/menu.js"></script>
 <script type="module" src="assets/js/forumTopics.js"></script>
 <script type="module" src="assets/js/forumPage.js"></script>
