@@ -21,15 +21,15 @@
 
     <h1>Foro</h1>
 
-    <!-- MENSAJE INICIAL -->
+    <!-- MENSAJE INICIAL (solo sin tema) -->
     <section id="forum-placeholder" class="card">
       Selecciona un tema del foro para ver los mensajes.
     </section>
 
-    <!-- MENSAJES -->
+    <!-- MENSAJES (SE RELLENA DINÁMICAMENTE) -->
     <section id="forum-posts" class="forum-posts"></section>
 
-    <!-- NUEVO MENSAJE (solo visible con tema) -->
+    <!-- NUEVO MENSAJE (oculto hasta que haya tema) -->
     <form id="new-post-form" class="card" style="display:none;">
       <textarea
         id="post-content"
@@ -51,7 +51,7 @@
       <h2>Temas del foro</h2>
 
       <!-- LISTADO DE TEMAS -->
-      <div id="forum-topics"></div>
+      <ul id="forum-topics"></ul>
 
       <!-- CREAR TEMA -->
       <form id="new-topic-form">
@@ -77,7 +77,7 @@
 
 </main>
 
-<!-- SCRIPTS -->
+<!-- SCRIPTS (ORDEN CORRECTO) -->
 <script type="module" src="assets/js/menu.js"></script>
 <script type="module" src="assets/js/forumTopics.js"></script>
 <script type="module" src="assets/js/forumPage.js"></script>
