@@ -2,6 +2,8 @@ import { db } from "./firebase.js";
 import {
   collection,
   addDoc,
+  deleteDoc,
+  doc,
   serverTimestamp,
   query,
   orderBy,
@@ -15,8 +17,10 @@ import {
   POSTS_COLLECTION
 } from "./forumConfig.js";
 
-import { getAuth } from
-  "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import {
+  getAuth,
+  onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
 /* =========================
    DOM
@@ -30,32 +34,36 @@ const placeholder = document.getElementById("forum-placeholder");
    AUTH
 ========================= */
 const auth = getAuth();
+let currentUser = null;
+
+onAuthStateChanged(auth, (user) => {
+  currentUser = user;
+});
 
 /* =========================
-   OBTENER TEMA DESDE URL
+   OBTENER TEMA
 ========================= */
 const params = new URLSearchParams(window.location.search);
 const topicId = params.get("topic");
 
 /* =========================
-   SIN TEMA → SOLO MENSAJE
+   SIN TEMA
 ========================= */
 if (!topicId) {
   if (form) form.style.display = "none";
   if (postsContainer) postsContainer.innerHTML = "";
-  // el placeholder ya está en el HTML
   return;
 }
 
 /* =========================
-   CON TEMA → PREPARAR VISTA
+   CON TEMA
 ========================= */
 if (placeholder) placeholder.remove();
 if (form) form.style.display = "block";
 postsContainer.innerHTML = "";
 
 /* =========================
-   REFERENCIA A POSTS
+   REFERENCIA POSTS
 ========================= */
 const postsRef = collection(
   db,
@@ -96,8 +104,38 @@ onSnapshot(postsQuery, (snapshot) => {
       <div class="forum-post-meta">
         ${post.authorRole === "therapist" ? "🟢 Terapeuta" : "👤 Usuario"}
       </div>
+
       <p>${post.content}</p>
+
+      ${
+        currentUser && post.authorRole === "therapist"
+          ? `<button class="btn-danger delete-post">Eliminar</button>`
+          : ""
+      }
     `;
+
+    /* =========================
+       ELIMINAR POST
+    ========================= */
+    const deleteBtn = el.querySelector(".delete-post");
+    if (deleteBtn) {
+      deleteBtn.addEventListener("click", async () => {
+        const ok = confirm("¿Eliminar este mensaje?");
+        if (!ok) return;
+
+        await deleteDoc(
+          doc(
+            db,
+            FORUMS_COLLECTION,
+            FORUM_ID,
+            TOPICS_COLLECTION,
+            topicId,
+            POSTS_COLLECTION,
+            docSnap.id
+          )
+        );
+      });
+    }
 
     postsContainer.appendChild(el);
   });
@@ -118,7 +156,7 @@ form.addEventListener("submit", async (e) => {
   await addDoc(postsRef, {
     content,
     authorId: user.uid,
-    authorRole: "therapist", // de momento fijo como pediste
+    authorRole: "therapist",
     createdAt: serverTimestamp()
   });
 
