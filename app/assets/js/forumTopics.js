@@ -27,7 +27,7 @@ const descInput = document.getElementById("topic-description");
 
 if (!topicsContainer) {
   console.error("No existe #forum-topics en el HTML");
-  return;
+  throw new Error("forum-topics missing");
 }
 
 /* =========================
@@ -46,7 +46,7 @@ const topicsRef = collection(
 );
 
 /* =========================
-   LISTAR TEMAS
+   LISTAR TEMAS (CLICABLES)
 ========================= */
 onSnapshot(topicsRef, (snapshot) => {
   topicsContainer.innerHTML = "";
@@ -56,28 +56,29 @@ onSnapshot(topicsRef, (snapshot) => {
     return;
   }
 
-  snapshot.forEach(doc => {
-    const topic = doc.data();
+  snapshot.forEach(docSnap => {
+    const topic = docSnap.data();
 
-    const el = document.createElement("article");
-    el.className = "forum-topic card";
+    const li = document.createElement("li");
+    li.className = "forum-topic card";
+    li.style.cursor = "pointer";
 
-    el.innerHTML = `
+    li.innerHTML = `
       <h3>${topic.title}</h3>
-      <p>${topic.description || ""}</p>
-      <button class="btn-secondary">Entrar</button>
+      ${topic.description ? `<p>${topic.description}</p>` : ""}
+      <small>Entrar al tema</small>
     `;
 
-    el.querySelector("button").addEventListener("click", () => {
-      window.location.href = `/app/foro.html?topic=${doc.id}`;
+    li.addEventListener("click", () => {
+      window.location.href = `foro.html?topic=${docSnap.id}`;
     });
 
-    topicsContainer.appendChild(el);
+    topicsContainer.appendChild(li);
   });
 });
 
 /* =========================
-   CREAR TEMA (SOLO AUTENTICADO)
+   CREAR TEMA (AUTENTICADO)
 ========================= */
 if (form) {
   onAuthStateChanged(auth, (user) => {
