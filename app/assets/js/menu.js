@@ -23,9 +23,14 @@ export function loadMenu() {
           Inicio
         </button>
 
-        <button class="menu-group-toggle" onclick="location.href='foro.html'">
-          Foro
-        </button>
+        <div class="menu-group">
+          <button class="menu-group-toggle">
+            Foro
+          </button>
+          <div class="menu-group-content">
+            <a href="foro.html">Entrar al foro</a>
+          </div>
+        </div>
 
         ${role === "therapist" ? therapistBlock() : ""}
         ${role === "patient" ? patientBlock() : ""}
@@ -36,6 +41,20 @@ export function loadMenu() {
 
       </div>
     `;
+
+    // activar desplegables
+    menu.querySelectorAll(".menu-group-toggle").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const group = btn.closest(".menu-group");
+        if (!group) return;
+
+        menu.querySelectorAll(".menu-group.open").forEach(g => {
+          if (g !== group) g.classList.remove("open");
+        });
+
+        group.classList.toggle("open");
+      });
+    });
   });
 }
 
