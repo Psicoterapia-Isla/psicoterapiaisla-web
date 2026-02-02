@@ -1,4 +1,3 @@
-import { initForumData } from "./forum.js";
 import { db } from "./firebase.js";
 import { FORUM_ID } from "./forumConfig.js";
 
@@ -22,14 +21,14 @@ const textarea = document.getElementById("post-content");
 const auth = getAuth();
 
 /* =========================
-   LISTEN POSTS (CORRECTO)
+   LISTEN POSTS
 ========================= */
-const postsRef = query(
+const postsQuery = query(
   collection(db, "forums", FORUM_ID, "posts"),
   orderBy("createdAt", "asc")
 );
 
-onSnapshot(postsRef, (snapshot) => {
+onSnapshot(postsQuery, (snapshot) => {
   container.innerHTML = "";
 
   snapshot.forEach(doc => {
@@ -68,7 +67,7 @@ form.addEventListener("submit", async (e) => {
     {
       content,
       authorId: user.uid,
-      authorRole: "therapist", // por ahora fijo
+      authorRole: "therapist",
       createdAt: serverTimestamp(),
       isClosed: false,
       isHidden: false,
