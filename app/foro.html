@@ -15,7 +15,29 @@
 
   <h1>Foro</h1>
 <section class="card">
+<section class="card">
+  <h2>Temas del foro</h2>
 
+  <ul id="forum-topics"></ul>
+
+  <!-- Visible solo para terapeuta (luego afinamos) -->
+  <form id="new-topic-form">
+    <input
+      type="text"
+      id="topic-title"
+      placeholder="Título del tema"
+      required
+    />
+    <textarea
+      id="topic-description"
+      placeholder="Descripción del tema"
+    ></textarea>
+
+    <button type="submit" class="btn-primary">
+      Crear tema
+    </button>
+  </form>
+</section>
   <form id="new-post-form">
     <textarea
       id="post-content"
