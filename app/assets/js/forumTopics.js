@@ -5,7 +5,8 @@ import {
   deleteDoc,
   doc,
   onSnapshot,
-  serverTimestamp
+  serverTimestamp,
+  getDoc
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 import {
@@ -14,8 +15,10 @@ import {
   TOPICS_COLLECTION
 } from "./forumConfig.js";
 
-import { getAuth, onAuthStateChanged } from
-  "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import {
+  getAuth,
+  onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
 /* =========================
    DOM
@@ -30,14 +33,24 @@ if (!topicsContainer) {
 }
 
 /* =========================
-   AUTH → LUEGO LISTADO
+   AUTH + ROL
 ========================= */
 const auth = getAuth();
 
-onAuthStateChanged(auth, (user) => {
+onAuthStateChanged(auth, async (user) => {
   if (!user) {
     if (form) form.style.display = "none";
     return;
+  }
+
+  // 🔐 obtener rol real
+  const userSnap = await getDoc(doc(db, "users", user.uid));
+  const role = userSnap.exists() ? userSnap.data().role : "patient";
+  const isTherapist = role === "therapist";
+
+  // 👉 ocultar formulario si NO es terapeuta
+  if (!isTherapist && form) {
+    form.style.display = "none";
   }
 
   /* =========================
@@ -71,30 +84,26 @@ onAuthStateChanged(auth, (user) => {
         <h3>${topic.title}</h3>
         ${topic.description ? `<p>${topic.description}</p>` : ""}
         <div class="forum-topic-actions">
-          <button type="button" class="btn-secondary enter-topic">
+          <button class="btn-secondary enter-topic">
             Entrar al tema
           </button>
         </div>
       `;
 
-      /* =========================
-         ENTRAR AL TEMA
-      ========================= */
-      card.querySelector(".enter-topic")
-        .addEventListener("click", () => {
-          window.location.href = `foro.html?topic=${docSnap.id}`;
-        });
+      // Entrar al tema
+      card.querySelector(".enter-topic").addEventListener("click", () => {
+        window.location.href = `foro.html?topic=${docSnap.id}`;
+      });
 
-      /* =========================
-         ELIMINAR → SOLO CREADOR
-      ========================= */
-      if (topic.createdBy === user.uid) {
+      // 🗑️ eliminar → solo terapeuta creador
+      if (isTherapist && topic.createdBy === user.uid) {
         const deleteBtn = document.createElement("button");
-        deleteBtn.type = "button";
         deleteBtn.className = "btn-danger";
         deleteBtn.textContent = "Eliminar";
 
-        deleteBtn.addEventListener("click", async () => {
+        deleteBtn.addEventListener("click", async (e) => {
+          e.stopPropagation();
+
           const ok = confirm(
             `¿Eliminar el tema "${topic.title}"?\n\nSe eliminarán también sus mensajes.`
           );
@@ -120,9 +129,9 @@ onAuthStateChanged(auth, (user) => {
   });
 
   /* =========================
-     CREAR TEMA
+     CREAR TEMA (SOLO TERAPEUTA)
   ========================= */
-  if (form) {
+  if (isTherapist && form) {
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
 
