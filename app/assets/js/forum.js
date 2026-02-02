@@ -1,22 +1,29 @@
-import { db } from "./firebase.js";
+import { getAuth, onAuthStateChanged } from
+  "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
 import {
   collection,
-  query,
-  orderBy,
   onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-const FORUM_ID = "aGuX3GfOqrglDg5cElpv"; // el que ya tienes
+import { db } from "./firebase.js";
+import { FORUMS_COLLECTION } from "./forumConfig.js";
 
-export function listenForumPosts(callback) {
-  const postsRef = collection(db, "forums", FORUM_ID, "posts");
-  const q = query(postsRef, orderBy("createdAt", "asc"));
+export function initForumData(onForumsUpdate) {
+  const auth = getAuth();
 
-  onSnapshot(q, snapshot => {
-    const posts = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
-    callback(posts);
+  onAuthStateChanged(auth, (user) => {
+    if (!user) return;
+
+    const forumsRef = collection(db, FORUMS_COLLECTION);
+
+    onSnapshot(forumsRef, (snapshot) => {
+      const forums = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+
+      onForumsUpdate(forums);
+    });
   });
 }
