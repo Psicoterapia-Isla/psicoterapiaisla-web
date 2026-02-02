@@ -11,52 +11,63 @@
 
 <header class="app-menu"></header>
 
-<main class="app-container">
+<main class="app-container forum-layout">
 
-  <h1>Foro</h1>
-<section class="card">
-<section class="card">
-  <h2>Temas del foro</h2>
+  <!-- COLUMNA IZQUIERDA (contenido principal) -->
+  <section class="forum-main">
 
-  <ul id="forum-topics"></ul>
+    <h1>Foro</h1>
 
-  <!-- Visible solo para terapeuta (luego afinamos) -->
-  <form id="new-topic-form">
-    <input
-      type="text"
-      id="topic-title"
-      placeholder="Título del tema"
-      required
-    />
-    <textarea
-      id="topic-description"
-      placeholder="Descripción del tema"
-    ></textarea>
+    <!-- MENSAJES DEL TEMA -->
+    <section id="forum-posts" class="forum-posts"></section>
 
-    <button type="submit" class="btn-primary">
-      Crear tema
-    </button>
-  </form>
-</section>
-  <form id="new-post-form">
-    <textarea
-      id="post-content"
-      placeholder="Escribe tu mensaje…"
-      required
-    ></textarea>
+    <!-- NUEVO MENSAJE -->
+    <form id="new-post-form" class="card">
+      <textarea
+        id="post-content"
+        placeholder="Escribe tu mensaje…"
+        required
+      ></textarea>
 
-    <button type="submit" class="btn-primary">
-      Publicar
-    </button>
-  </form>
+      <button type="submit" class="btn-primary">
+        Publicar
+      </button>
+    </form>
 
-</section>
-  <!-- CONTENEDOR ÚNICO DEL FORO -->
-  <section id="forum-posts"></section>
+  </section>
+
+  <!-- COLUMNA DERECHA (temas del foro) -->
+  <aside class="forum-sidebar card">
+
+    <h2>Temas del foro</h2>
+
+    <section id="forum-topics"></section>
+
+    <!-- Crear tema (terapeuta) -->
+    <form id="new-topic-form">
+      <input
+        type="text"
+        id="topic-title"
+        placeholder="Título del tema"
+        required
+      />
+
+      <textarea
+        id="topic-description"
+        placeholder="Descripción del tema"
+      ></textarea>
+
+      <button type="submit" class="btn-primary">
+        Crear tema
+      </button>
+    </form>
+
+  </aside>
 
 </main>
 
-<script type="module" src="assets/js/forumPage.js"></script>
 <script type="module" src="assets/js/forumTopics.js"></script>
+<script type="module" src="assets/js/forumPage.js"></script>
+
 </body>
 </html>
