@@ -1,71 +1,70 @@
 import { db } from "./firebase.js";
-import { FORUM_ID } from "./forumConfig.js";
-
 import {
   collection,
   addDoc,
   onSnapshot,
-  serverTimestamp,
-  query,
-  orderBy
+  serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-import {
-  getAuth,
-  onAuthStateChanged
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-
-const topicsList = document.getElementById("forum-topics");
-const newTopicForm = document.getElementById("new-topic-form");
-const titleInput = document.getElementById("topic-title");
-const descriptionInput = document.getElementById("topic-description");
+import { FORUM_ID, FORUMS_COLLECTION, TOPICS_COLLECTION } from "./forumConfig.js";
+import { getAuth } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
 const auth = getAuth();
+
+const topicsContainer = document.getElementById("forum-topics");
+const form = document.getElementById("new-topic-form");
+const titleInput = document.getElementById("topic-title");
+const descInput = document.getElementById("topic-description");
 
 /* =========================
    LISTAR TEMAS
 ========================= */
-const topicsRef = collection(db, "forums", FORUM_ID, "topics");
-const topicsQuery = query(topicsRef, orderBy("createdAt", "asc"));
+const topicsRef = collection(
+  db,
+  FORUMS_COLLECTION,
+  FORUM_ID,
+  TOPICS_COLLECTION
+);
 
-onSnapshot(topicsQuery, (snapshot) => {
-  topicsList.innerHTML = "";
+onSnapshot(topicsRef, (snapshot) => {
+  topicsContainer.innerHTML = "";
 
   snapshot.forEach(doc => {
     const topic = doc.data();
 
-    const li = document.createElement("li");
-    li.className = "forum-topic";
+    const el = document.createElement("article");
+    el.className = "forum-topic card";
 
-    li.innerHTML = `
-      <strong>${topic.title}</strong><br />
-      <small>${topic.description || ""}</small>
+    el.innerHTML = `
+      <h3>${topic.title}</h3>
+      <p>${topic.description}</p>
+      <button class="btn-secondary">Entrar</button>
     `;
 
-    topicsList.appendChild(li);
+    el.querySelector("button").onclick = () => {
+      window.location.href = `/app/foro.html?topic=${doc.id}`;
+    };
+
+    topicsContainer.appendChild(el);
   });
 });
 
 /* =========================
    CREAR TEMA (TERAPEUTA)
 ========================= */
-onAuthStateChanged(auth, (user) => {
+form.addEventListener("submit", async (e) => {
+  e.preventDefault();
+
+  const user = auth.currentUser;
   if (!user) return;
 
-  newTopicForm.addEventListener("submit", async (e) => {
-    e.preventDefault();
-
-    const title = titleInput.value.trim();
-    if (!title) return;
-
-    await addDoc(topicsRef, {
-      title,
-      description: descriptionInput.value.trim(),
-      createdBy: user.uid,
-      createdAt: serverTimestamp()
-    });
-
-    titleInput.value = "";
-    descriptionInput.value = "";
+  await addDoc(topicsRef, {
+    title: titleInput.value.trim(),
+    description: descInput.value.trim(),
+    createdBy: user.uid,
+    createdAt: serverTimestamp()
   });
+
+  titleInput.value = "";
+  descInput.value = "";
 });
