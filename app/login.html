@@ -21,10 +21,26 @@
       Acceso privado para pacientes de Psicoterapia Isla.
     </p>
 
-    <form>
-      <!-- email -->
-      <!-- contraseña -->
-      <!-- botón -->
+    <form id="login-form">
+
+      <input
+        type="email"
+        id="email"
+        placeholder="Email"
+        required
+      />
+
+      <input
+        type="password"
+        id="password"
+        placeholder="Contraseña"
+        required
+      />
+
+      <button type="submit" class="btn-primary" id="login-btn">
+        Entrar
+      </button>
+
     </form>
 
   </section>
@@ -34,9 +50,11 @@
 <script type="module">
   import { login } from "/app/assets/js/auth.js";
 
-  const button = document.getElementById("login-btn");
+  const form = document.getElementById("login-form");
 
-  button.addEventListener("click", async () => {
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+
     const email = document.getElementById("email").value.trim();
     const password = document.getElementById("password").value.trim();
 
