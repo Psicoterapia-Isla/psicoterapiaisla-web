@@ -136,14 +136,12 @@ textarea {
   flex-wrap: wrap;
 }
 
-/* botones del menú */
 .app-menu-inner button,
 .app-menu-inner a {
   background: rgba(255,255,255,0.18);
   border: none;
   border-radius: 999px;
   padding: 10px 18px;
-
   color: #fff;
   font-size: 0.95rem;
   text-decoration: none;
@@ -169,12 +167,10 @@ textarea {
   top: 120%;
   left: 50%;
   transform: translateX(-50%);
-
   background: #ffffff;
   border-radius: 14px;
   padding: 10px 12px;
   min-width: 220px;
-
   box-shadow: 0 12px 30px rgba(0,0,0,0.15);
   z-index: 50;
 }
@@ -233,11 +229,21 @@ textarea {
 
 .forum-topic {
   cursor: pointer;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .forum-topic h3 {
   margin: 0 0 4px;
   font-size: 1rem;
+}
+
+/* 🔴 FIX CRÍTICO — TEXTOS LARGOS */
+.forum-topic h3,
+.forum-topic p {
+  overflow-wrap: break-word;
+  word-break: break-word;
+  hyphens: auto;
 }
 
 .forum-topic-actions {
@@ -301,10 +307,10 @@ textarea {
     display: none;
   }
 }
+
 /* =====================================================
    MENÚ — TODOS LOS BOTONES MISMO NIVEL VISUAL
 ===================================================== */
-
 .app-menu-inner > button,
 .app-menu-inner > .menu-group > .menu-group-toggle {
   background: rgba(255,255,255,0.18);
