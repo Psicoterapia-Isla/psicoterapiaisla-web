@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <title>Agenda profesional</title>
+  <title>Agenda profesional | Psicoterapia Isla</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
   <link rel="stylesheet" href="assets/css/app.css">
@@ -14,24 +14,25 @@
 <header class="app-menu"></header>
 
 <main class="app-container">
-  <h1 class="page-title">
+
+  <!-- TÍTULO -->
+  <h1>Agenda profesional</h1>
 
   <!-- NAVEGACIÓN DE DÍAS -->
-  <div class="day-nav">
+  <div class="day-nav card">
     <button id="prev-day">◀️</button>
     <span id="current-day"></span>
     <button id="next-day">▶️</button>
   </div>
 
-  <h1 class="page-title">Agenda profesional</h1>
-
-  <div class="card">
+  <!-- CONTENIDO PRINCIPAL -->
+  <section class="card">
 
     <div class="grid-2">
 
       <!-- PLAN DEL DÍA -->
-      <div class="block">
-        <h2 class="section-title">Plan del día</h2>
+      <section class="block">
+        <h2>Plan del día</h2>
 
         <div class="list">
           <div class="hour-line"><span>06:00</span><textarea data-hour="06:00"></textarea></div>
@@ -53,30 +54,43 @@
           <div class="hour-line"><span>22:00</span><textarea data-hour="22:00"></textarea></div>
           <div class="hour-line"><span>23:00</span><textarea data-hour="23:00"></textarea></div>
         </div>
-      </div>
+      </section>
 
       <!-- RETO DIARIO -->
-      <div class="block">
-        <h2 class="section-title">Reto diario</h2>
-        <textarea id="reto-diario" placeholder="Reto terapéutico del día…"></textarea>
-      </div>
+      <section class="block">
+        <h2>Reto diario</h2>
+        <textarea
+          id="reto-diario"
+          placeholder="Reto terapéutico del día…"
+        ></textarea>
+      </section>
 
     </div>
 
     <!-- NOTAS -->
-    <div class="block" style="margin-top:2rem;">
-      <h2 class="section-title">Notas del día</h2>
+    <section class="block" style="margin-top:2rem;">
+      <h2>Notas del día</h2>
 
       <label>¿Con quién he hablado hoy?</label>
       <textarea id="notas-contactos"></textarea>
 
       <label style="margin-top:1rem;">Tiempo fuera de casa</label>
-      <input id="tiempo-fuera" type="text" placeholder="Ej. 2 horas">
-    </div>
+      <input
+        id="tiempo-fuera"
+        type="text"
+        placeholder="Ej. 2 horas"
+      >
+    </section>
 
-    <button id="guardar-agenda">Guardar agenda</button>
+    <!-- GUARDAR -->
+    <button
+      id="guardar-agenda"
+      class="btn-primary"
+    >
+      Guardar agenda
+    </button>
 
-  </div>
+  </section>
 
 </main>
 
