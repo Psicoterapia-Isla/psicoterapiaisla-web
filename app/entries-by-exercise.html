@@ -11,79 +11,82 @@
 
 <body class="app-body">
 
-<header class="app-menu"></header>
-
-<main class="app-container">
-
-  <!-- TÍTULO -->
-  <h1>Respuestas de ejercicios</h1>
+  <!-- MENÚ (se rellena por JS) -->
+  <header class="app-menu"></header>
 
   <!-- CONTENIDO -->
-  <section id="entries"></section>
+  <main class="app-container">
 
-</main>
+    <h1 class="page-title">Respuestas de ejercicios</h1>
 
-<script type="module">
-  import { requireAuth } from "./assets/js/auth.js";
-  import { loadMenu } from "./assets/js/menu.js";
-  import { db } from "./assets/js/firebase.js";
+    <div id="entries"></div>
 
-  import {
-    collection,
-    query,
-    orderBy,
-    getDocs
-  } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+  </main>
 
-  // 🔐 Auth + menú
-  await requireAuth();
-  await loadMenu();
+  <!-- SCRIPTS -->
+  <script type="module">
+    import { requireAuth } from "./assets/js/auth.js";
+    import { loadMenu } from "./assets/js/menu.js";
+    import { db } from "./assets/js/firebase.js";
 
-  const container = document.getElementById("entries");
+    import {
+      collection,
+      query,
+      orderBy,
+      getDocs
+    } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-  // 🔎 Cargar respuestas
-  const q = query(
-    collection(db, "entries"),
-    orderBy("createdAt", "desc")
-  );
+    // 🔐 Auth + menú
+    await requireAuth();
+    await loadMenu();
 
-  const snap = await getDocs(q);
+    const container = document.getElementById("entries");
 
-  if (snap.empty) {
-    container.innerHTML = "<p>No hay respuestas todavía.</p>";
-    return;
-  }
+    // 🔎 Cargar respuestas
+    const q = query(
+      collection(db, "entries"),
+      orderBy("createdAt", "desc")
+    );
 
-  snap.forEach(docSnap => {
-    const entry = docSnap.data();
+    const snap = await getDocs(q);
 
-    if (!entry.data) return;
-
-    const card = document.createElement("section");
-    card.className = "card";
-
-    let html = `
-      <h2>${entry.exerciseTitle || entry.type}</h2>
-      <small style="opacity:.7">
-        ${entry.createdAt?.toDate
-          ? entry.createdAt.toDate().toLocaleString()
-          : ""}
-      </small>
-    `;
-
-    for (const key in entry.data) {
-      html += `
-        <p>
-          <strong>${key.replace(/_/g, " ")}</strong><br>
-          ${entry.data[key]}
-        </p>
-      `;
+    if (snap.empty) {
+      container.innerHTML = "<p>No hay respuestas todavía.</p>";
+      return;
     }
 
-    card.innerHTML = html;
-    container.appendChild(card);
-  });
-</script>
+    snap.forEach(docSnap => {
+      const entry = docSnap.data();
+
+      if (!entry.data) return;
+
+      const card = document.createElement("div");
+      card.className = "card";
+
+      let html = `
+        <h2>${entry.exerciseTitle || entry.type || "Ejercicio"}</h2>
+        <small style="opacity:.7">
+          ${
+            entry.createdAt?.toDate
+              ? entry.createdAt.toDate().toLocaleString()
+              : ""
+          }
+        </small>
+      `;
+
+      for (const key in entry.data) {
+        html += `
+          <p>
+            <strong>${key.replace(/_/g, " ")}</strong><br>
+            ${entry.data[key]}
+          </p>
+        `;
+      }
+
+      card.innerHTML = html;
+      container.appendChild(card);
+    });
+  </script>
 
 </body>
 </html>
