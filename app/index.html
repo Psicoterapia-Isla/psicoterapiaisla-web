@@ -4,44 +4,65 @@
   <meta charset="UTF-8">
   <title>Espacio terapéutico | Psicoterapia Isla</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- CSS global -->
   <link rel="stylesheet" href="assets/css/app.css">
 </head>
 
 <body class="app-body">
 
-  <!-- MENÚ -->
-  <header class="app-menu"></header>
+<!-- MENÚ -->
+<header class="app-menu"></header>
 
-  <!-- CONTENIDO -->
-  <main class="app-container">
-    <h1 class="page-title">Tu espacio personal</h1>
+<!-- CONTENIDO -->
+<main class="app-container">
 
+  <h1>Tu espacio personal</h1>
+
+  <div class="card">
     <p>
       Este espacio es privado y seguro.
       Solo tú y tu terapeuta podéis acceder.
     </p>
+  </div>
 
-    <section>
-      <h2>¿Qué puedes hacer aquí?</h2>
-      <ul>
-        <li>Escribir en tu diario personal</li>
-        <li>Realizar ejercicios terapéuticos</li>
-        <li>Subir materiales si lo necesitas</li>
-      </ul>
-    </section>
+  <section class="card">
+    <h2>¿Qué puedes hacer aquí?</h2>
+    <ul>
+      <li>Escribir en tu diario personal</li>
+      <li>Realizar ejercicios terapéuticos</li>
+      <li>Consultar y responder ejercicios asignados</li>
+    </ul>
+  </section>
 
-    <section>
-      <a href="diario.html">→ Ir al diario personal</a><br>
-      <a href="ejercicios.html">→ Ver ejercicios terapéuticos</a>
-    </section>
-  </main>
+  <section class="card">
+    <h2>Accesos rápidos</h2>
 
-  <!-- SCRIPTS SIEMPRE AL FINAL -->
-  <script type="module" src="assets/js/menu.js"></script>
-  <script type="module">
-    import { requireAuth } from "./assets/js/auth.js";
-    requireAuth();
-  </script>
+    <div style="display:flex; gap:12px; flex-wrap:wrap;">
+      <button
+        class="btn-primary"
+        onclick="window.location.href='diario.html'">
+        Diario personal
+      </button>
+
+      <button
+        class="btn-primary"
+        onclick="window.location.href='exercises-list.html'">
+        Ejercicios terapéuticos
+      </button>
+    </div>
+  </section>
+
+</main>
+
+<script type="module">
+  import { requireAuth } from "./assets/js/auth.js";
+  import { loadMenu } from "./assets/js/menu.js";
+
+  // 🔐 Auth + menú (patrón estándar)
+  await requireAuth();
+  await loadMenu();
+</script>
 
 </body>
 </html>
