@@ -2,8 +2,10 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Respuestas por ejercicio</title>
+  <title>Respuestas por ejercicio | Psicoterapia Isla</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- CSS base -->
   <link rel="stylesheet" href="assets/css/app.css">
 
   <!-- jsPDF -->
@@ -15,49 +17,52 @@
 <header class="app-menu"></header>
 
 <main class="app-container">
-  <h1 class="page-title">
 
-<main class="app-container">
-  <h1 class="page-title">Respuestas por ejercicio</h1>
-  <div id="exercises" class="exercise-list"></div>
+  <!-- TÍTULO -->
+  <h1>Respuestas por ejercicio</h1>
+
+  <!-- CONTENIDO -->
+  <section id="exercises"></section>
+
 </main>
 
 <script type="module">
-import { requireAuth } from "./assets/js/auth.js";
-import { loadMenu } from "./assets/js/menu.js";
-import { db } from "./assets/js/firebase.js";
+  import { requireAuth } from "./assets/js/auth.js";
+  import { loadMenu } from "./assets/js/menu.js";
+  import { db } from "./assets/js/firebase.js";
 
-import {
-  collection,
-  query,
-  orderBy,
-  getDocs,
-  doc,
-  getDoc,
-  setDoc,
-  serverTimestamp
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+  import {
+    collection,
+    query,
+    orderBy,
+    getDocs,
+    doc,
+    getDoc,
+    setDoc,
+    serverTimestamp
+  } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-// 1️⃣ Auth + menú
-await requireAuth();
-await loadMenu();
+  // 🔐 Auth + menú
+  await requireAuth();
+  await loadMenu();
 
-// 2️⃣ Setup
-const { jsPDF } = window.jspdf;
-const container = document.getElementById("exercises");
+  const { jsPDF } = window.jspdf;
+  const container = document.getElementById("exercises");
 
-// 3️⃣ Query
-const q = query(
-  collection(db, "entries"),
-  orderBy("createdAt", "desc")
-);
+  // 🔎 Query entradas
+  const q = query(
+    collection(db, "entries"),
+    orderBy("createdAt", "desc")
+  );
 
-const snap = await getDocs(q);
+  const snap = await getDocs(q);
 
-if (snap.empty) {
-  container.innerHTML = "<p>No hay respuestas todavía.</p>";
-} else {
+  if (snap.empty) {
+    container.innerHTML = "<p>No hay respuestas todavía.</p>";
+    return;
+  }
 
+  // Agrupar por ejercicio
   const grouped = {};
 
   snap.forEach(docSnap => {
@@ -71,12 +76,16 @@ if (snap.empty) {
     grouped[entry.type].push(entry);
   });
 
+  // Render
   for (const type of Object.keys(grouped)) {
+
     const section = document.createElement("section");
-    section.className = "exercise-card";
+    section.className = "card";
+
     section.innerHTML = `<h2>${type.replace(/_/g, " ")}</h2>`;
 
     for (const entry of grouped[type]) {
+
       const alias = entry.alias || "Paciente";
       const fecha = entry.createdAt?.toDate
         ? entry.createdAt.toDate().toLocaleString()
@@ -87,34 +96,36 @@ if (snap.empty) {
       const existingNote = noteSnap.exists() ? noteSnap.data().note : "";
 
       const card = document.createElement("div");
-      card.className = "entry-card";
+      card.className = "card";
 
-      let inner = `
-        <div class="entry-meta">
+      let html = `
+        <small style="opacity:.7">
           <strong>${alias}</strong> · ${fecha}
-        </div>
+        </small>
       `;
 
       for (const key in entry.data) {
-        inner += `
-          <div class="entry-field">
-            <strong>${key.replace(/_/g, " ")}</strong>
-            <span>${entry.data[key]}</span>
-          </div>
+        html += `
+          <p>
+            <strong>${key.replace(/_/g, " ")}</strong><br>
+            ${entry.data[key]}
+          </p>
         `;
       }
 
-      inner += `
-        <div class="therapist-note">
-          <label><strong>Notas del terapeuta</strong></label>
-          <textarea class="note-textarea">${existingNote}</textarea>
-          <button class="save-note-btn">Guardar nota</button>
-          <button class="export-pdf-btn">Exportar PDF</button>
-          <small class="note-status"></small>
+      html += `
+        <label><strong>Notas del terapeuta</strong></label>
+        <textarea class="note-textarea">${existingNote}</textarea>
+
+        <div style="display:flex; gap:8px; margin-top:8px;">
+          <button class="btn-secondary save-note-btn">Guardar nota</button>
+          <button class="btn-secondary export-pdf-btn">Exportar PDF</button>
         </div>
+
+        <small class="note-status"></small>
       `;
 
-      card.innerHTML = inner;
+      card.innerHTML = html;
       section.appendChild(card);
 
       const textarea = card.querySelector(".note-textarea");
@@ -147,7 +158,7 @@ if (snap.empty) {
         y += 10;
 
         for (const key in entry.data) {
-          pdf.text(`${key}: ${entry.data[key]}`, 15, y);
+          pdf.text(`${key}: ${entry.data[key]}`, 15, y, { maxWidth: 170 });
           y += 6;
         }
 
@@ -164,7 +175,6 @@ if (snap.empty) {
 
     container.appendChild(section);
   }
-}
 </script>
 
 </body>
