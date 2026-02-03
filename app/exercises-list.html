@@ -17,7 +17,7 @@
 <!-- CONTENIDO -->
 <main class="app-container">
 
-  <h1>Ejercicios terapéuticos</h1>
+  <h1 class="page-title">Ejercicios terapéuticos</h1>
 
   <section id="exercises-list"></section>
 
@@ -32,45 +32,43 @@
     collection,
     query,
     where,
-    orderBy,
     getDocs
   } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-  // 🔐 Auth + menú
-  await requireAuth();
-  await loadMenu();
+  async function init() {
+    // 🔐 Auth + menú
+    await requireAuth();
+    await loadMenu();
 
-  const container = document.getElementById("exercises-list");
+    const container = document.getElementById("exercises-list");
 
-  // 📥 Cargar ejercicios activos
-  const q = query(
-    collection(db, "exercises"),
-    where("active", "==", true),
-    orderBy("createdAt", "desc")
-  );
+    // 📥 Cargar ejercicios activos (SIN orderBy)
+    const q = query(
+      collection(db, "exercises"),
+      where("active", "==", true)
+    );
 
-  const snap = await getDocs(q);
+    const snap = await getDocs(q);
 
-  if (snap.empty) {
-    container.innerHTML = `
-      <div class="card">
-        <p>No hay ejercicios disponibles todavía.</p>
-      </div>
-    `;
-  } else {
+    if (snap.empty) {
+      container.innerHTML = `
+        <div class="card">
+          <p>No hay ejercicios disponibles todavía.</p>
+        </div>
+      `;
+      return;
+    }
 
     snap.forEach(docSnap => {
       const exercise = docSnap.data();
 
       const card = document.createElement("article");
-      card.className = "card forum-topic";
+      card.className = "card";
 
       card.innerHTML = `
         <h2>${exercise.title}</h2>
         ${exercise.description ? `<p>${exercise.description}</p>` : ""}
-        <button class="btn-primary">
-          Empezar ejercicio
-        </button>
+        <button class="btn-primary">Empezar ejercicio</button>
       `;
 
       card.querySelector("button").addEventListener("click", () => {
@@ -80,6 +78,8 @@
       container.appendChild(card);
     });
   }
+
+  init();
 </script>
 
 </body>
