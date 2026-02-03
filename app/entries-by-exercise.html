@@ -2,10 +2,11 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Respuestas por ejercicio</title>
+  <title>Respuestas de ejercicios | Psicoterapia Isla</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- CSS base -->
   <link rel="stylesheet" href="assets/css/app.css">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 
 <body class="app-body">
@@ -13,31 +14,34 @@
 <header class="app-menu"></header>
 
 <main class="app-container">
-  <h1 class="page-title">Respuestas por ejercicio</h1>
-  <div id="exercises"></div>
+
+  <!-- TÍTULO -->
+  <h1>Respuestas de ejercicios</h1>
+
+  <!-- CONTENIDO -->
+  <section id="entries"></section>
+
 </main>
 
 <script type="module">
   import { requireAuth } from "./assets/js/auth.js";
   import { loadMenu } from "./assets/js/menu.js";
   import { db } from "./assets/js/firebase.js";
+
   import {
     collection,
     query,
     orderBy,
-    getDocs,
-    doc,
-    getDoc,
-    setDoc,
-    serverTimestamp
+    getDocs
   } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
+  // 🔐 Auth + menú
   await requireAuth();
   await loadMenu();
 
-  const { jsPDF } = window.jspdf;
-  const container = document.getElementById("exercises");
+  const container = document.getElementById("entries");
 
+  // 🔎 Cargar respuestas
   const q = query(
     collection(db, "entries"),
     orderBy("createdAt", "desc")
@@ -50,43 +54,35 @@
     return;
   }
 
-  const grouped = {};
-
   snap.forEach(docSnap => {
     const entry = docSnap.data();
-    entry._id = docSnap.id;
 
-    if (!entry.type || typeof entry.data !== "object") return;
-    if (entry.type === "diario") return;
+    if (!entry.data) return;
 
-    if (!grouped[entry.type]) grouped[entry.type] = [];
-    grouped[entry.type].push(entry);
-  });
+    const card = document.createElement("section");
+    card.className = "card";
 
-  for (const type in grouped) {
-    const section = document.createElement("section");
-    section.className = "exercise-card";
-    section.innerHTML = `<h2>${type.replace(/_/g, " ")}</h2>`;
+    let html = `
+      <h2>${entry.exerciseTitle || entry.type}</h2>
+      <small style="opacity:.7">
+        ${entry.createdAt?.toDate
+          ? entry.createdAt.toDate().toLocaleString()
+          : ""}
+      </small>
+    `;
 
-    for (const entry of grouped[type]) {
-      const card = document.createElement("div");
-      card.className = "entry-card";
-
-      card.innerHTML = `
-        <p>${entry.createdAt?.toDate().toLocaleString() || ""}</p>
+    for (const key in entry.data) {
+      html += `
+        <p>
+          <strong>${key.replace(/_/g, " ")}</strong><br>
+          ${entry.data[key]}
+        </p>
       `;
-
-      for (const key in entry.data) {
-        card.innerHTML += `
-          <p><strong>${key.replace(/_/g, " ")}:</strong><br>${entry.data[key]}</p>
-        `;
-      }
-
-      section.appendChild(card);
     }
 
-    container.appendChild(section);
-  }
+    card.innerHTML = html;
+    container.appendChild(card);
+  });
 </script>
 
 </body>
