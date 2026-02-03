@@ -47,8 +47,8 @@ function patientMenu() {
         <a href="espacio.html">Espacio personal</a>
         <a href="diario.html">Escribir diario</a>
         <a href="mi-diario.html">Mi diario</a>
-        <a href="exercises-list.html">Ejercicios</a>
-        <a href="agenda-paciente.html">Agenda</a>
+        <a href="exercises-list.html">Ejercicios terapéuticos</a>
+        <a href="agenda-paciente.html">Agenda personal</a>
       </div>
     </div>
   `;
@@ -63,7 +63,7 @@ function therapistMenu() {
       <button class="menu-group-toggle">Espacio terapeuta</button>
       <div class="menu-group-content">
         <a href="agenda-terapeuta.html">Agenda profesional</a>
-        <a href="diario-terapeuta.html">Diario pacientes</a>
+        <a href="diario-terapeuta.html">Diarios de pacientes</a>
         <a href="entries-by-exercise.html">Respuestas por ejercicio</a>
         <a href="entries-by-patient.html">Respuestas por paciente</a>
         <a href="crear-ejercicio.html">Gestionar ejercicios</a>
