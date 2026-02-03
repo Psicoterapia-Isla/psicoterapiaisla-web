@@ -11,37 +11,25 @@
 
 <header class="app-menu"></header>
 
-<main class="app-container">
-  <h1 class="page-title">
+<main class="app-container auth-layout">
 
-  <main class="login-container">
-    <div class="login-box">
+  <section class="auth-card">
 
-      <h1>Espacio terapéutico</h1>
-      <p class="login-subtitle">Acceso privado para pacientes</p>
+    <h1>Espacio terapéutico</h1>
 
-      <form id="login-form">
-        <label>
-          Email
-          <input type="email" id="email" required>
-        </label>
+    <p class="auth-intro">
+      Acceso privado para pacientes de Psicoterapia Isla.
+    </p>
 
-        <label>
-          Contraseña
-          <input type="password" id="password" required>
-        </label>
+    <form>
+      <!-- email -->
+      <!-- contraseña -->
+      <!-- botón -->
+    </form>
 
-        <button type="button" id="login-btn">Entrar</button>
-      </form>
+  </section>
 
-      <p class="legal-note">
-        Este espacio es complementario al proceso terapéutico y no sustituye
-        la atención profesional ni es un canal de urgencias.<br>
-        En caso de emergencia, contacta con el 112.
-      </p>
-
-    </div>
-  </main>
+</main>
 
 <script type="module">
   import { login } from "/app/assets/js/auth.js";
