@@ -20,7 +20,7 @@ body {
 }
 
 /* =====================================================
-   ESTRUCTURA BASE APP
+   ESTRUCTURA BASE
 ===================================================== */
 .app-body {
   min-height: 100vh;
@@ -37,14 +37,14 @@ body {
 ===================================================== */
 h1 {
   font-family: "Playfair Display", serif;
-  font-size: 2.4rem;
+  font-size: 2.2rem;
   margin: 0 0 24px;
   color: #355f53;
 }
 
 h2 {
   font-family: "Playfair Display", serif;
-  font-size: 1.5rem;
+  font-size: 1.4rem;
   margin: 0 0 16px;
 }
 
@@ -53,9 +53,9 @@ h2 {
 ===================================================== */
 .card {
   background: #fff;
-  border-radius: 22px;
+  border-radius: 20px;
   padding: 24px;
-  box-shadow: 0 10px 30px rgba(0,0,0,.08);
+  box-shadow: 0 8px 24px rgba(0,0,0,.08);
   margin-bottom: 24px;
 }
 
@@ -64,6 +64,7 @@ h2 {
 ===================================================== */
 button {
   font-family: inherit;
+  font-size: 0.95rem;
 }
 
 .btn-primary {
@@ -71,12 +72,30 @@ button {
   color: #fff;
   border: none;
   border-radius: 999px;
-  padding: 12px 24px;
+  padding: 10px 22px;
   cursor: pointer;
 }
 
 .btn-primary:hover {
   background: #2c4f45;
+}
+
+.btn-secondary {
+  background: transparent;
+  border: 1px solid #355f53;
+  color: #355f53;
+  border-radius: 999px;
+  padding: 8px 18px;
+  cursor: pointer;
+}
+
+.btn-danger {
+  background: transparent;
+  border: 1px solid #a33;
+  color: #a33;
+  border-radius: 999px;
+  padding: 8px 18px;
+  cursor: pointer;
 }
 
 /* =====================================================
@@ -98,64 +117,54 @@ textarea {
 }
 
 /* =====================================================
-   MENÚ SUPERIOR (LIMPIO Y ESTABLE)
+   MENÚ SUPERIOR (NORMALIZADO)
 ===================================================== */
 .app-menu {
   background: linear-gradient(135deg, #4e7f73, #6b5a7a);
-  padding: 16px 0;
 }
 
 .menu-bar {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 0 24px;
+  padding: 16px 24px;
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
+  align-items: center;
 }
 
 .menu-left,
 .menu-right {
   display: flex;
-  gap: 16px;
+  gap: 12px;
 }
 
+.menu-group-toggle,
 .menu-bar a {
-  color: #fff;
-  text-decoration: none;
-  font-size: 0.95rem;
-  opacity: 0.9;
-}
-
-.menu-bar a:hover {
-  opacity: 1;
-}
-
-/* desplegables */
-.menu-group {
-  position: relative;
-}
-
-.menu-group-toggle {
   background: rgba(255,255,255,.18);
   border: none;
   border-radius: 999px;
-  padding: 10px 16px;
+  padding: 8px 16px;
   color: #fff;
+  font-size: 0.9rem;
   cursor: pointer;
+  text-decoration: none;
+}
+
+.menu-group {
+  position: relative;
 }
 
 .menu-group-content {
   display: none;
   position: absolute;
-  top: 44px;
+  top: 110%;
   left: 0;
   background: #fff;
-  border-radius: 16px;
+  border-radius: 14px;
   padding: 12px;
-  box-shadow: 0 12px 30px rgba(0,0,0,.15);
+  box-shadow: 0 10px 24px rgba(0,0,0,.15);
   min-width: 220px;
-  z-index: 10;
+  z-index: 20;
 }
 
 .menu-group.open .menu-group-content {
@@ -166,10 +175,11 @@ textarea {
   display: block;
   color: #355f53;
   padding: 6px 0;
+  text-decoration: none;
 }
 
 /* =====================================================
-   FORO — LAYOUT PC
+   FORO — LAYOUT CORRECTO
 ===================================================== */
 .forum-layout {
   display: grid;
@@ -181,29 +191,48 @@ textarea {
   min-width: 0;
 }
 
+/* Tema seleccionado */
+#forum-placeholder {
+  font-style: italic;
+  opacity: 0.7;
+}
+
+/* POSTS VAN JUSTO DEBAJO */
+#forum-posts {
+  margin-top: 0;
+}
+
+/* Cada mensaje */
+.forum-post {
+  margin-bottom: 16px;
+}
+
+.forum-post-meta {
+  font-size: 0.8rem;
+  opacity: 0.7;
+  margin-bottom: 6px;
+}
+
+/* Sidebar */
 .forum-sidebar {
   position: sticky;
   top: 32px;
-  height: fit-content;
 }
 
-/* temas */
+/* Temas */
 .forum-topic {
-  margin-bottom: 16px;
+  cursor: pointer;
 }
 
 .forum-topic h3 {
   margin: 0 0 4px;
-  font-size: 1.05rem;
+  font-size: 1rem;
 }
 
-.forum-topic button {
+.forum-topic-actions {
+  display: flex;
+  gap: 8px;
   margin-top: 8px;
-}
-
-/* posts */
-.forum-posts article {
-  margin-bottom: 16px;
 }
 
 /* =====================================================
@@ -229,65 +258,9 @@ textarea {
     position: static;
     box-shadow: none;
     background: transparent;
-    padding: 8px 0;
   }
 
   .menu-group-content a {
     color: #fff;
-  }
-}
-/* =====================================================
-   MENÚ HORIZONTAL (PC) — BOTONES EN FILA
-===================================================== */
-
-.app-menu-inner {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 12px;
-}
-
-/* cada botón/grupo ocupa su sitio */
-.app-menu-inner > button,
-.app-menu-inner > .menu-group {
-  flex: 0 0 auto;
-}
-
-/* desplegables se abren HACIA ABAJO */
-.menu-group {
-  position: relative;
-}
-
-.menu-group-content {
-  position: absolute;
-  top: 110%;
-  left: 0;
-  background: rgba(0,0,0,0.15);
-  border-radius: 14px;
-  padding: 10px;
-  min-width: 220px;
-  z-index: 20;
-}
-
-/* enlaces dentro del desplegable */
-.menu-group-content a {
-  display: block;
-  padding: 6px 8px;
-}
-
-/* =====================================================
-   MÓVIL: menú vuelve a columna (como ahora)
-===================================================== */
-
-@media (max-width: 768px) {
-  .app-menu-inner {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .menu-group-content {
-    position: static;
-    background: transparent;
-    padding-left: 10px;
   }
 }
