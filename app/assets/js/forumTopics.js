@@ -38,18 +38,20 @@ if (!topicsContainer) {
 const auth = getAuth();
 
 onAuthStateChanged(auth, async (user) => {
+  // sin login → no foro
   if (!user) {
-    // sin login → no crear temas
     if (form) form.style.display = "none";
     return;
   }
 
-  // rol REAL desde users
+  /* =========================
+     ROL REAL
+  ========================= */
   const userSnap = await getDoc(doc(db, "users", user.uid));
   const role = userSnap.exists() ? userSnap.data().role : "patient";
   const isTherapist = role === "therapist";
 
-  // solo terapeuta ve el formulario
+  // solo terapeuta puede crear temas
   if (!isTherapist && form) {
     form.style.display = "none";
   }
@@ -91,12 +93,14 @@ onAuthStateChanged(auth, async (user) => {
         </div>
       `;
 
-      // Entrar al tema
-      card.querySelector(".enter-topic").addEventListener("click", () => {
-        window.location.href = `foro.html?topic=${docSnap.id}`;
-      });
+      /* ===== ENTRAR AL TEMA (SIEMPRE FUNCIONA) ===== */
+      card.querySelector(".enter-topic")
+        .addEventListener("click", (e) => {
+          e.stopPropagation();
+          window.location.href = `foro.html?topic=${docSnap.id}`;
+        });
 
-      // 🗑️ Eliminar tema → SOLO TERAPEUTA
+      /* ===== ELIMINAR (SOLO TERAPEUTA) ===== */
       if (isTherapist) {
         const deleteBtn = document.createElement("button");
         deleteBtn.className = "btn-danger";
@@ -121,8 +125,7 @@ onAuthStateChanged(auth, async (user) => {
           );
         });
 
-        card
-          .querySelector(".forum-topic-actions")
+        card.querySelector(".forum-topic-actions")
           .appendChild(deleteBtn);
       }
 
