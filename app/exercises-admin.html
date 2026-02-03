@@ -18,7 +18,9 @@
   <!-- TÍTULO -->
   <h1>Crear ejercicio</h1>
 
-  <!-- FORMULARIO -->
+  <!-- ======================
+       FORMULARIO CREAR
+  ====================== -->
   <section class="card">
     <form id="exercise-form">
 
@@ -65,8 +67,21 @@
     </form>
   </section>
 
+  <!-- ======================
+       LISTADO ADMIN
+  ====================== -->
+  <hr>
+
+  <section>
+    <h2>Ejercicios creados</h2>
+    <div id="admin-exercises-list"></div>
+  </section>
+
 </main>
 
+<!-- ======================
+     SCRIPT
+====================== -->
 <script type="module">
   import { requireAuth } from "./assets/js/auth.js";
   import { loadMenu } from "./assets/js/menu.js";
@@ -77,82 +92,130 @@
     getDoc,
     collection,
     addDoc,
+    getDocs,
+    updateDoc,
     serverTimestamp
   } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-  // 🔐 Auth + menú
-  const user = await requireAuth();
-  await loadMenu();
+  /* ======================
+     INIT
+  ====================== */
+  async function init() {
+    const user = await requireAuth();
+    await loadMenu();
 
-  // 👩‍⚕️ Verificar rol terapeuta
-  const userRef = doc(db, "users", user.uid);
-  const userSnap = await getDoc(userRef);
-
-  if (!userSnap.exists() || userSnap.data().role !== "therapist") {
-    alert("Acceso solo para terapeutas");
-    window.location.href = "index.html";
-  }
-
-  // 🧩 UI dinámica de campos
-  const fieldsContainer = document.getElementById("fields");
-  const addFieldBtn = document.getElementById("add-field");
-
-  addFieldBtn.addEventListener("click", () => {
-    const input = document.createElement("input");
-    input.type = "text";
-    input.placeholder = "nombre_del_campo (ej: emociones_presentes)";
-    input.className = "field-input";
-    input.style.marginBottom = "8px";
-    fieldsContainer.appendChild(input);
-  });
-
-  // 💾 Guardar ejercicio
-  const form = document.getElementById("exercise-form");
-
-  form.addEventListener("submit", async (e) => {
-    e.preventDefault();
-
-    const title = document.getElementById("title").value.trim();
-    const description = document.getElementById("description").value.trim();
-    const active = document.getElementById("active").checked;
-
-    const fieldInputs = document.querySelectorAll(".field-input");
-    const fields = Array.from(fieldInputs)
-      .map(i => i.value.trim())
-      .filter(v => v !== "");
-
-    if (!title || fields.length === 0) {
-      alert("El ejercicio necesita título y al menos un campo");
+    // Verificar rol terapeuta
+    const userSnap = await getDoc(doc(db, "users", user.uid));
+    if (!userSnap.exists() || userSnap.data().role !== "therapist") {
+      alert("Acceso solo para terapeutas");
+      window.location.href = "index.html";
       return;
     }
 
-    const slug = title
-      .toLowerCase()
-      .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
-      .replace(/[^a-z0-9]+/g, "_")
-      .replace(/^_|_$/g, "");
+    setupForm(user);
+    loadAdminExercises();
+  }
 
-    await addDoc(collection(db, "exercises"), {
-      title,
-      description,
-      slug,
-      fields,
-      active,
-      createdAt: serverTimestamp(),
-      createdBy: user.uid
+  /* ======================
+     FORMULARIO
+  ====================== */
+  function setupForm(user) {
+    const fieldsContainer = document.getElementById("fields");
+    const addFieldBtn = document.getElementById("add-field");
+    const form = document.getElementById("exercise-form");
+
+    addFieldBtn.addEventListener("click", () => {
+      const input = document.createElement("input");
+      input.type = "text";
+      input.placeholder = "nombre_del_campo (ej: emociones_presentes)";
+      input.className = "field-input";
+      input.style.marginBottom = "8px";
+      fieldsContainer.appendChild(input);
     });
 
-    alert("Ejercicio guardado correctamente");
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
 
-    form.reset();
-    fieldsContainer.innerHTML = "";
-  });
+      const title = document.getElementById("title").value.trim();
+      const description = document.getElementById("description").value.trim();
+      const active = document.getElementById("active").checked;
+
+      const fields = Array.from(
+        document.querySelectorAll(".field-input")
+      )
+        .map(i => i.value.trim())
+        .filter(Boolean);
+
+      if (!title || fields.length === 0) {
+        alert("El ejercicio necesita título y al menos un campo");
+        return;
+      }
+
+      const slug = title
+        .toLowerCase()
+        .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9]+/g, "_")
+        .replace(/^_|_$/g, "");
+
+      await addDoc(collection(db, "exercises"), {
+        title,
+        description,
+        slug,
+        fields,
+        active,
+        createdAt: serverTimestamp(),
+        createdBy: user.uid
+      });
+
+      form.reset();
+      fieldsContainer.innerHTML = "";
+
+      loadAdminExercises();
+    });
+  }
+
+  /* ======================
+     LISTADO ADMIN
+  ====================== */
+  async function loadAdminExercises() {
+    const container = document.getElementById("admin-exercises-list");
+    container.innerHTML = "";
+
+    const snap = await getDocs(collection(db, "exercises"));
+
+    if (snap.empty) {
+      container.innerHTML = "<p>No hay ejercicios creados.</p>";
+      return;
+    }
+
+    snap.forEach(docSnap => {
+      const ex = docSnap.data();
+
+      const card = document.createElement("div");
+      card.className = "card";
+
+      card.innerHTML = `
+        <h3>${ex.title}</h3>
+        ${ex.description ? `<p>${ex.description}</p>` : ""}
+        <p><strong>Estado:</strong> ${ex.active ? "Activo" : "Inactivo"}</p>
+        <button class="btn-secondary">
+          ${ex.active ? "Desactivar" : "Activar"}
+        </button>
+      `;
+
+      card.querySelector("button").addEventListener("click", async () => {
+        await updateDoc(doc(db, "exercises", docSnap.id), {
+          active: !ex.active
+        });
+        loadAdminExercises();
+      });
+
+      container.appendChild(card);
+    });
+  }
+
+  init();
 </script>
-<hr>
 
-<section>
-  <h2>Ejercicios creados</h2>
-  <div id="admin-exercises-list"></div>
-</section>
 </body>
 </html>
