@@ -1,103 +1,91 @@
-import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import { db } from "./firebase.js";
-import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+/* =====================================================
+   MENÚ SUPERIOR — CENTRADO Y EN FILA (FIX DEFINITIVO)
+===================================================== */
 
-document.addEventListener("DOMContentLoaded", () => {
-  loadMenu();
-});
-
-export function loadMenu() {
-  const menu = document.querySelector(".app-menu");
-  if (!menu) return;
-
-  onAuthStateChanged(getAuth(), async (user) => {
-    if (!user) return;
-
-    const snap = await getDoc(doc(db, "users", user.uid));
-    const role = snap.exists() ? snap.data().role : "patient";
-
-    menu.innerHTML = `
-      <div class="app-menu-inner">
-
-        <!-- INICIO -->
-        <button class="menu-group-toggle" data-link="index.html">
-          Inicio
-        </button>
-
-        <!-- FORO (DESPLEGABLE) -->
-        <div class="menu-group">
-          <button class="menu-group-toggle">
-            Foro
-          </button>
-          <div class="menu-group-content">
-            <a href="foro.html">Temas del foro</a>
-          </div>
-        </div>
-
-        <!-- BLOQUES POR ROL -->
-        ${role === "therapist" ? therapistBlock() : ""}
-        ${role === "patient" ? patientBlock() : ""}
-
-        <!-- SALIR -->
-        <button class="menu-group-toggle" data-link="login.html">
-          Salir
-        </button>
-
-      </div>
-    `;
-
-    /* navegación directa */
-    menu.querySelectorAll("[data-link]").forEach(btn => {
-      btn.addEventListener("click", () => {
-        window.location.href = btn.dataset.link;
-      });
-    });
-
-    /* desplegables */
-    menu.querySelectorAll(".menu-group > .menu-group-toggle").forEach(btn => {
-      btn.addEventListener("click", () => {
-        const group = btn.parentElement;
-
-        menu.querySelectorAll(".menu-group.open").forEach(g => {
-          if (g !== group) g.classList.remove("open");
-        });
-
-        group.classList.toggle("open");
-      });
-    });
-  });
+.app-menu {
+  background: linear-gradient(135deg, #4e7f73, #6b5a7a);
 }
 
-function therapistBlock() {
-  return `
-    <div class="menu-group">
-      <button class="menu-group-toggle">
-        Espacio terapeuta
-      </button>
-      <div class="menu-group-content">
-        <a href="diario-terapeuta.html">Diarios pacientes</a>
-        <a href="entries-by-exercise.html">Respuestas por ejercicio</a>
-        <a href="entries-by-patient.html">Respuestas por paciente</a>
-        <a href="entries-by-exercise.html#pdf">Exportar informes</a>
-        <a href="exercises-admin.html">Gestionar ejercicios</a>
-        <a href="agenda-terapeuta.html">Agenda profesional</a>
-      </div>
-    </div>
-  `;
+.app-menu-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 12px 24px;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
 }
 
-function patientBlock() {
-  return `
-    <div class="menu-group">
-      <button class="menu-group-toggle">
-        Mi espacio
-      </button>
-      <div class="menu-group-content">
-        <a href="diario.html">Mi diario</a>
-        <a href="exercises-list.html">Ejercicios</a>
-        <a href="mis-entradas.html">Mis respuestas</a>
-        <a href="agenda-paciente.html">Agenda</a>
-      </div>
-    </div>
-  `;
+/* botones principales */
+.menu-group-toggle {
+  background: rgba(255,255,255,0.18);
+  border: none;
+  border-radius: 999px;
+  padding: 10px 18px;
+  color: #fff;
+  cursor: pointer;
+  font-size: 0.95rem;
+}
+
+/* grupos desplegables */
+.menu-group {
+  position: relative;
+}
+
+/* desplegable */
+.menu-group-content {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 12px 14px;
+  min-width: 220px;
+
+  box-shadow: 0 12px 30px rgba(0,0,0,0.18);
+  display: none;
+  z-index: 50;
+}
+
+.menu-group.open .menu-group-content {
+  display: block;
+}
+
+/* enlaces */
+.menu-group-content a {
+  display: block;
+  color: #355f53;
+  text-decoration: none;
+  padding: 6px 4px;
+  font-size: 0.95rem;
+}
+
+.menu-group-content a:hover {
+  opacity: 0.8;
+}
+
+/* =====================================================
+   MÓVIL
+===================================================== */
+
+@media (max-width: 768px) {
+  .app-menu-inner {
+    justify-content: flex-start;
+  }
+
+  .menu-group-content {
+    position: static;
+    transform: none;
+    box-shadow: none;
+    background: transparent;
+    padding: 8px 0 0;
+  }
+
+  .menu-group-content a {
+    color: #fff;
+  }
 }
