@@ -334,3 +334,65 @@ textarea {
   font-size: 0.8rem;
   padding: 6px 14px;
 }
+/* =====================================================
+   AUTH / WELCOME — ACCESO PRIVADO
+===================================================== */
+
+.auth-layout {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding-top: 48px;
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 420px;
+  background: #ffffff;
+  border-radius: 24px;
+  padding: 32px 28px;
+  box-shadow: 0 12px 40px rgba(0,0,0,.12);
+}
+
+.auth-card h1 {
+  font-size: 2rem;
+  margin-bottom: 8px;
+  text-align: center;
+}
+
+.auth-intro {
+  text-align: center;
+  font-size: 0.95rem;
+  color: #5f6f6a;
+  margin-bottom: 24px;
+}
+
+/* labels más discretos */
+.auth-card label {
+  font-size: 0.85rem;
+  margin-bottom: 4px;
+  display: block;
+}
+
+/* inputs más firmes */
+.auth-card input {
+  margin-bottom: 16px;
+}
+
+/* CTA claro */
+.auth-card button {
+  width: 100%;
+  margin-top: 8px;
+  font-size: 1rem;
+}
+
+/* móvil: respirar */
+@media (max-width: 480px) {
+  .auth-layout {
+    padding-top: 24px;
+  }
+
+  .auth-card {
+    padding: 28px 22px;
+  }
+}
