@@ -2,44 +2,52 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Mi diario</title>
-  <link rel="stylesheet" href="/app/assets/css/app.css">
+  <title>Mi diario terapéutico</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- CSS global -->
+  <link rel="stylesheet" href="assets/css/app.css">
 </head>
+
 <body class="app-body">
 
+<!-- MENÚ -->
 <header class="app-menu"></header>
 
+<!-- CONTENIDO -->
 <main class="app-container">
-  <h1 class="page-title">
+
+  <h1>Mi diario terapéutico</h1>
+
+  <div class="card">
+    <div id="entries"></div>
+  </div>
+
+</main>
 
 <script type="module">
   import { requireAuth } from "./assets/js/auth.js";
   import { loadMenu } from "./assets/js/menu.js";
-
-  await requireAuth();
-  await loadMenu();
-</script>
-
-<div class="app-container">
-  <div class="card">
-    <h1>Mi diario terapéutico</h1>
-    <div id="entries"></div>
-  </div>
-</div>
-
-<script type="module">
-  import { requireAuth } from "./assets/js/auth.js";
   import { auth, db } from "./assets/js/firebase.js";
   import {
-    collection, query, where, orderBy, getDocs
+    collection,
+    query,
+    where,
+    orderBy,
+    getDocs
   } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-  requireAuth();
+  // 🔐 Auth + menú (patrón único)
+  await requireAuth();
+  await loadMenu();
 
+  /* =========================
+     CARGAR ENTRADAS DE DIARIO
+  ========================= */
   const q = query(
     collection(db, "entries"),
     where("uid", "==", auth.currentUser.uid),
-    where("tipo", "==", "diario"),
+    where("type", "==", "diario"),
     orderBy("createdAt", "desc")
   );
 
@@ -49,14 +57,23 @@
   if (snap.empty) {
     container.innerHTML = "<p>No hay entradas todavía.</p>";
   } else {
-    snap.forEach(doc => {
-      const d = doc.data();
-      container.innerHTML += `
-        <div class="entry">
-          <small>${d.createdAt?.toDate().toLocaleString()}</small>
-          <p>${d.texto}</p>
-        </div>
+    snap.forEach(docSnap => {
+      const d = docSnap.data();
+
+      const entry = document.createElement("div");
+      entry.className = "card";
+      entry.style.marginBottom = "16px";
+
+      entry.innerHTML = `
+        <small style="opacity:0.7">
+          ${d.createdAt?.toDate
+            ? d.createdAt.toDate().toLocaleString()
+            : ""}
+        </small>
+        <p style="margin-top:8px">${d.texto || ""}</p>
       `;
+
+      container.appendChild(entry);
     });
   }
 </script>
