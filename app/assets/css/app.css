@@ -327,3 +327,18 @@ textarea {
 .app-menu-inner > .menu-group > .menu-group-toggle:hover {
   background: rgba(255,255,255,0.28);
 }
+/* ======================
+   FORO — ROBUSTEZ TEXTO
+====================== */
+.forum-topic,
+.forum-post,
+.forum-topic p,
+.forum-post p {
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+.forum-sidebar {
+  max-height: calc(100vh - 120px);
+  overflow-y: auto;
+}
