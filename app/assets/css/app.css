@@ -117,289 +117,8 @@ textarea {
 }
 
 /* =====================================================
-   MENÚ SUPERIOR (NORMALIZADO)
+   MENÚ SUPERIOR — ÚNICO SISTEMA
 ===================================================== */
-.app-menu {
-  background: linear-gradient(135deg, #4e7f73, #6b5a7a);
-}
-
-.menu-bar {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 16px 24px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.menu-left,
-.menu-right {
-  display: flex;
-  gap: 12px;
-}
-
-.menu-group-toggle,
-.menu-bar a {
-  background: rgba(255,255,255,.18);
-  border: none;
-  border-radius: 999px;
-  padding: 8px 16px;
-  color: #fff;
-  font-size: 0.9rem;
-  cursor: pointer;
-  text-decoration: none;
-}
-
-.menu-group {
-  position: relative;
-}
-
-.menu-group-content {
-  display: none;
-  position: absolute;
-  top: 110%;
-  left: 0;
-  background: #fff;
-  border-radius: 14px;
-  padding: 12px;
-  box-shadow: 0 10px 24px rgba(0,0,0,.15);
-  min-width: 220px;
-  z-index: 20;
-}
-
-.menu-group.open .menu-group-content {
-  display: block;
-}
-
-.menu-group-content a {
-  display: block;
-  color: #355f53;
-  padding: 6px 0;
-  text-decoration: none;
-}
-
-/* =====================================================
-   FORO — LAYOUT CORRECTO
-===================================================== */
-.forum-layout {
-  display: grid;
-  grid-template-columns: 1fr 320px;
-  gap: 32px;
-}
-
-.forum-main {
-  min-width: 0;
-}
-
-/* Tema seleccionado */
-#forum-placeholder {
-  font-style: italic;
-  opacity: 0.7;
-}
-
-/* POSTS VAN JUSTO DEBAJO */
-#forum-posts {
-  margin-top: 0;
-}
-
-/* Cada mensaje */
-.forum-post {
-  margin-bottom: 16px;
-}
-
-.forum-post-meta {
-  font-size: 0.8rem;
-  opacity: 0.7;
-  margin-bottom: 6px;
-}
-
-/* Sidebar */
-.forum-sidebar {
-  position: sticky;
-  top: 32px;
-}
-
-/* Temas */
-.forum-topic {
-  cursor: pointer;
-}
-
-.forum-topic h3 {
-  margin: 0 0 4px;
-  font-size: 1rem;
-}
-
-.forum-topic-actions {
-  display: flex;
-  gap: 8px;
-  margin-top: 8px;
-}
-
-/* =====================================================
-   MÓVIL
-===================================================== */
-@media (max-width: 900px) {
-
-  .forum-layout {
-    grid-template-columns: 1fr;
-  }
-
-  .forum-sidebar {
-    position: static;
-    order: -1;
-  }
-
-  .menu-bar {
-    flex-direction: column;
-    gap: 12px;
-  }
-
-  .menu-group-content {
-    position: static;
-    box-shadow: none;
-    background: transparent;
-  }
-
-  .menu-group-content a {
-    color: #fff;
-  }
-}
-/* =====================================================
-   AJUSTE VISUAL FINAL — MENÚ + FORO
-===================================================== */
-
-/* ---------- MENÚ: proporción correcta ---------- */
-.menu-group-toggle,
-.menu-bar a {
-  padding: 6px 14px;
-  font-size: 0.85rem;
-  line-height: 1.2;
-}
-
-.menu-group-toggle {
-  font-weight: 500;
-}
-
-/* desplegable más ligero */
-.menu-group-content {
-  padding: 10px 12px;
-}
-
-.menu-group-content a {
-  font-size: 0.85rem;
-  padding: 6px 4px;
-}
-
-/* ---------- FORO: jerarquía clara ---------- */
-
-/* bloque del tema seleccionado */
-#forum-placeholder {
-  background: #f0f4f2;
-  border-left: 4px solid #355f53;
-  font-style: normal;
-  opacity: 1;
-}
-
-/* posts inmediatamente después */
-#forum-posts {
-  margin-top: 12px;
-}
-
-/* cada mensaje más compacto */
-.forum-post {
-  padding: 18px;
-}
-
-.forum-post-meta {
-  font-size: 0.75rem;
-  margin-bottom: 4px;
-}
-
-/* formulario pegado a los mensajes */
-#new-post-form {
-  margin-top: 12px;
-}
-
-/* ---------- Sidebar temas ---------- */
-.forum-topic {
-  transition: background 0.2s ease;
-}
-
-.forum-topic:hover {
-  background: #f6f8f7;
-}
-
-/* botones de acciones más discretos */
-.forum-topic-actions button {
-  font-size: 0.8rem;
-  padding: 6px 14px;
-}
-/* =====================================================
-   AUTH / WELCOME — ACCESO PRIVADO
-===================================================== */
-
-.auth-layout {
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
-  padding-top: 48px;
-}
-
-.auth-card {
-  width: 100%;
-  max-width: 420px;
-  background: #ffffff;
-  border-radius: 24px;
-  padding: 32px 28px;
-  box-shadow: 0 12px 40px rgba(0,0,0,.12);
-}
-
-.auth-card h1 {
-  font-size: 2rem;
-  margin-bottom: 8px;
-  text-align: center;
-}
-
-.auth-intro {
-  text-align: center;
-  font-size: 0.95rem;
-  color: #5f6f6a;
-  margin-bottom: 24px;
-}
-
-/* labels más discretos */
-.auth-card label {
-  font-size: 0.85rem;
-  margin-bottom: 4px;
-  display: block;
-}
-
-/* inputs más firmes */
-.auth-card input {
-  margin-bottom: 16px;
-}
-
-/* CTA claro */
-.auth-card button {
-  width: 100%;
-  margin-top: 8px;
-  font-size: 1rem;
-}
-
-/* móvil: respirar */
-@media (max-width: 480px) {
-  .auth-layout {
-    padding-top: 24px;
-  }
-
-  .auth-card {
-    padding: 28px 22px;
-  }
-}
-/* =====================================================
-   MENÚ SUPERIOR — HORIZONTAL Y CENTRADO
-===================================================== */
-
 .app-menu {
   background: linear-gradient(135deg, #4e7f73, #6b5a7a);
   padding: 16px 0;
@@ -408,46 +127,44 @@ textarea {
 .app-menu-inner {
   max-width: 1200px;
   margin: 0 auto;
+  padding: 0 24px;
 
   display: flex;
-  justify-content: center;   /* ⬅️ CENTRADO REAL */
+  justify-content: center;
   align-items: center;
   gap: 14px;
-
-  padding: 0 24px;
+  flex-wrap: wrap;
 }
 
 /* botones del menú */
-.app-menu-inner a,
-.app-menu-inner button {
+.app-menu-inner button,
+.app-menu-inner a {
   background: rgba(255,255,255,0.18);
   border: none;
   border-radius: 999px;
   padding: 10px 18px;
 
   color: #fff;
-  text-decoration: none;
   font-size: 0.95rem;
-
+  text-decoration: none;
   cursor: pointer;
   white-space: nowrap;
 }
 
-/* hover */
-.app-menu-inner a:hover,
-.app-menu-inner button:hover {
+.app-menu-inner button:hover,
+.app-menu-inner a:hover {
   background: rgba(255,255,255,0.28);
 }
 
 /* =====================================================
    DESPLEGABLES
 ===================================================== */
-
 .menu-group {
   position: relative;
 }
 
 .menu-group-content {
+  display: none;
   position: absolute;
   top: 120%;
   left: 50%;
@@ -456,10 +173,9 @@ textarea {
   background: #ffffff;
   border-radius: 14px;
   padding: 10px 12px;
-  min-width: 200px;
+  min-width: 220px;
 
   box-shadow: 0 12px 30px rgba(0,0,0,0.15);
-  display: none;
   z-index: 50;
 }
 
@@ -479,8 +195,101 @@ textarea {
 }
 
 /* =====================================================
-   MÓVIL — SE MANTIENE HORIZONTAL (SCROLL SI NO CABE)
+   FORO
 ===================================================== */
+.forum-layout {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 32px;
+}
+
+.forum-main {
+  min-width: 0;
+}
+
+#forum-placeholder {
+  background: #f0f4f2;
+  border-left: 4px solid #355f53;
+}
+
+#forum-posts {
+  margin-top: 12px;
+}
+
+.forum-post {
+  margin-bottom: 16px;
+}
+
+.forum-post-meta {
+  font-size: 0.75rem;
+  opacity: 0.7;
+  margin-bottom: 4px;
+}
+
+.forum-sidebar {
+  position: sticky;
+  top: 32px;
+}
+
+.forum-topic {
+  cursor: pointer;
+}
+
+.forum-topic h3 {
+  margin: 0 0 4px;
+  font-size: 1rem;
+}
+
+.forum-topic-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+/* =====================================================
+   AUTH / WELCOME
+===================================================== */
+.auth-layout {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding-top: 48px;
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 420px;
+  background: #ffffff;
+  border-radius: 24px;
+  padding: 32px 28px;
+  box-shadow: 0 12px 40px rgba(0,0,0,.12);
+}
+
+.auth-card h1 {
+  text-align: center;
+  margin-bottom: 8px;
+}
+
+.auth-intro {
+  text-align: center;
+  font-size: 0.95rem;
+  color: #5f6f6a;
+  margin-bottom: 24px;
+}
+
+/* =====================================================
+   MÓVIL
+===================================================== */
+@media (max-width: 900px) {
+  .forum-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .forum-sidebar {
+    position: static;
+    order: -1;
+  }
+}
 
 @media (max-width: 768px) {
   .app-menu-inner {
