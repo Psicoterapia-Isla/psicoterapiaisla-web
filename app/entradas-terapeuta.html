@@ -4,7 +4,9 @@
   <meta charset="UTF-8">
   <title>Vista terapeuta | Psicoterapia Isla</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="/app/assets/css/app.css">
+
+  <!-- CSS base app -->
+  <link rel="stylesheet" href="assets/css/app.css">
 </head>
 
 <body class="app-body">
@@ -12,42 +14,46 @@
 <header class="app-menu"></header>
 
 <main class="app-container">
-  <h1 class="page-title">
+
+  <!-- TÍTULO -->
+  <h1>Entradas – Vista terapeuta</h1>
+
+  <!-- FILTROS -->
+  <section class="card">
+
+    <div class="filters">
+      <input
+        type="text"
+        id="filter-uid"
+        placeholder="UID del paciente"
+      >
+
+      <select id="filter-type">
+        <option value="">Todos los ejercicios</option>
+        <option value="registro_emocional">Registro emocional</option>
+        <option value="sentirme_a_salvo">Sentirme a salvo</option>
+        <option value="autocompasion">Autocompasión</option>
+        <option value="limites">Límites</option>
+        <option value="recursos_internos">Recursos internos</option>
+      </select>
+
+      <button id="filter-btn" class="btn-primary">
+        Filtrar
+      </button>
+    </div>
+
+  </section>
+
+  <!-- RESULTADOS -->
+  <section id="entries-list"></section>
+
+</main>
 
 <script type="module">
   import { requireAuth } from "./assets/js/auth.js";
   import { loadMenu } from "./assets/js/menu.js";
-
-  await requireAuth();
-  await loadMenu();
-</script>
-
-<main class="app-container">
-  <h1>Entradas – Vista terapeuta</h1>
-
-  <div class="filters">
-    <input type="text" id="filter-uid" placeholder="UID del paciente">
-    <select id="filter-type">
-      <option value="">Todos los ejercicios</option>
-      <option value="registro_emocional">Registro emocional</option>
-      <option value="sentirme_a_salvo">Sentirme a salvo</option>
-      <option value="autocompasion">Autocompasión</option>
-      <option value="limites">Límites</option>
-      <option value="recursos_internos">Recursos internos</option>
-    </select>
-    <button id="filter-btn">Filtrar</button>
-  </div>
-
-  <hr>
-
-  <div id="entries-list"></div>
-</main>
-
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+  import { db } from "./assets/js/firebase.js";
   import {
-    getFirestore,
     collection,
     query,
     where,
@@ -55,35 +61,19 @@
     getDocs
   } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-  const firebaseConfig = {
-    apiKey: "AIzaSyDfxdzl39Ne4XdT9WgSlz3iSliyg-xBR84",
-    authDomain: "psicoterapia-isla-app.firebaseapp.com",
-    projectId: "psicoterapia-isla-app",
-    storageBucket: "psicoterapia-isla-app.firebasestorage.app",
-    messagingSenderId: "824485435208",
-    appId: "1:824485435208:web:79d2a122d975e2b5cf857d",
-    measurementId: "G-9W5Y8BP8DE"
-  };
-
-  const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
-  const db = getFirestore(app);
+  // 🔐 Auth + menú
+  await requireAuth();
+  await loadMenu();
 
   const container = document.getElementById("entries-list");
   const filterUidInput = document.getElementById("filter-uid");
   const filterTypeSelect = document.getElementById("filter-type");
   const filterBtn = document.getElementById("filter-btn");
 
-  onAuthStateChanged(auth, (user) => {
-    if (!user) {
-      window.location.href = "/app/login.html";
-    }
-  });
-
   async function loadEntriesFiltered(uid, type) {
     container.innerHTML = "<p>Cargando…</p>";
 
-    let constraints = [];
+    const constraints = [];
     if (uid) constraints.push(where("uid", "==", uid));
     if (type) constraints.push(where("type", "==", type));
     constraints.push(orderBy("createdAt", "desc"));
@@ -98,19 +88,23 @@
 
     container.innerHTML = "";
 
-    snapshot.forEach(doc => {
-      const data = doc.data();
-      const div = document.createElement("div");
-      div.className = "entry-card";
+    snapshot.forEach(docSnap => {
+      const data = docSnap.data();
 
-      div.innerHTML = `
-        <h3>${data.type}</h3>
-        <small>${data.createdAt?.toDate().toLocaleString()}</small>
-        <pre>${JSON.stringify(data.data, null, 2)}</pre>
-        <hr>
+      const card = document.createElement("div");
+      card.className = "card";
+
+      card.innerHTML = `
+        <h2>${data.type}</h2>
+        ${
+          data.createdAt?.toDate
+            ? `<small style="opacity:.7">${data.createdAt.toDate().toLocaleString()}</small>`
+            : ""
+        }
+        <pre>${JSON.stringify(data.data || data.text || {}, null, 2)}</pre>
       `;
 
-      container.appendChild(div);
+      container.appendChild(card);
     });
   }
 
