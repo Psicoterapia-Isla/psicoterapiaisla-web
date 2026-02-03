@@ -264,3 +264,73 @@ textarea {
     color: #fff;
   }
 }
+/* =====================================================
+   AJUSTE VISUAL FINAL — MENÚ + FORO
+===================================================== */
+
+/* ---------- MENÚ: proporción correcta ---------- */
+.menu-group-toggle,
+.menu-bar a {
+  padding: 6px 14px;
+  font-size: 0.85rem;
+  line-height: 1.2;
+}
+
+.menu-group-toggle {
+  font-weight: 500;
+}
+
+/* desplegable más ligero */
+.menu-group-content {
+  padding: 10px 12px;
+}
+
+.menu-group-content a {
+  font-size: 0.85rem;
+  padding: 6px 4px;
+}
+
+/* ---------- FORO: jerarquía clara ---------- */
+
+/* bloque del tema seleccionado */
+#forum-placeholder {
+  background: #f0f4f2;
+  border-left: 4px solid #355f53;
+  font-style: normal;
+  opacity: 1;
+}
+
+/* posts inmediatamente después */
+#forum-posts {
+  margin-top: 12px;
+}
+
+/* cada mensaje más compacto */
+.forum-post {
+  padding: 18px;
+}
+
+.forum-post-meta {
+  font-size: 0.75rem;
+  margin-bottom: 4px;
+}
+
+/* formulario pegado a los mensajes */
+#new-post-form {
+  margin-top: 12px;
+}
+
+/* ---------- Sidebar temas ---------- */
+.forum-topic {
+  transition: background 0.2s ease;
+}
+
+.forum-topic:hover {
+  background: #f6f8f7;
+}
+
+/* botones de acciones más discretos */
+.forum-topic-actions button {
+  font-size: 0.8rem;
+  padding: 6px 14px;
+}
