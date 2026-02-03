@@ -9,27 +9,37 @@
 
 <body class="app-body">
 
-<!-- MENÚ -->
+<!-- ======================
+     MENÚ (NUNCA SE TOCA)
+====================== -->
 <header class="app-menu">
   <div class="app-menu-inner"></div>
 </header>
 
+<!-- ======================
+     CONTENIDO
+====================== -->
 <main class="app-container forum-layout">
 
-  <!-- COLUMNA IZQUIERDA -->
+  <!-- ======================
+       COLUMNA IZQUIERDA
+  ====================== -->
   <section class="forum-main">
 
     <h1>Foro</h1>
 
-    <!-- MENSAJE INICIAL (solo sin tema) -->
+    <!-- MENSAJE INICIAL -->
     <section id="forum-placeholder" class="card">
       Selecciona un tema del foro para ver los mensajes.
     </section>
 
-    <!-- MENSAJES (SE RELLENA DINÁMICAMENTE) -->
-    <section id="forum-posts" class="forum-posts"></section>
+    <!-- CABECERA DEL TEMA (SE INSERTA POR JS) -->
+    <!-- ⚠️ NO BORRAR -->
+    
+    <!-- MENSAJES -->
+    <section id="forum-posts"></section>
 
-    <!-- NUEVO MENSAJE (oculto hasta que haya tema) -->
+    <!-- NUEVO MENSAJE -->
     <form id="new-post-form" class="card" style="display:none;">
       <textarea
         id="post-content"
@@ -44,14 +54,16 @@
 
   </section>
 
-  <!-- COLUMNA DERECHA -->
+  <!-- ======================
+       COLUMNA DERECHA
+  ====================== -->
   <aside class="forum-sidebar">
 
     <section class="card">
       <h2>Temas del foro</h2>
 
-      <!-- LISTADO DE TEMAS -->
-      <ul id="forum-topics"></ul>
+      <!-- LISTADO -->
+      <div id="forum-topics"></div>
 
       <!-- CREAR TEMA -->
       <form id="new-topic-form">
@@ -77,7 +89,9 @@
 
 </main>
 
-<!-- SCRIPTS (ORDEN CORRECTO) -->
+<!-- ======================
+     SCRIPTS (ORDEN CLAVE)
+====================== -->
 <script type="module" src="assets/js/menu.js"></script>
 <script type="module" src="assets/js/forumTopics.js"></script>
 <script type="module" src="assets/js/forumPage.js"></script>
