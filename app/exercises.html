@@ -2,63 +2,84 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <title>Ejercicios disponibles</title>
+  <title>Ejercicios disponibles | Psicoterapia Isla</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- CSS global -->
   <link rel="stylesheet" href="assets/css/app.css" />
 </head>
 
 <body class="app-body">
 
+<!-- MENÚ -->
 <header class="app-menu"></header>
 
+<!-- CONTENIDO -->
 <main class="app-container">
-  <h1 class="page-title">
+
+  <h1>Ejercicios disponibles</h1>
+
+  <section id="exercises-list"></section>
+
+</main>
 
 <script type="module">
   import { requireAuth } from "./assets/js/auth.js";
   import { loadMenu } from "./assets/js/menu.js";
+  import { db } from "./assets/js/firebase.js";
 
+  import {
+    collection,
+    getDocs,
+    query,
+    where,
+    orderBy
+  } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+  // 🔐 Auth + menú (UNA SOLA VEZ)
   await requireAuth();
   await loadMenu();
-</script>
-
-<main class="app-container">
-  <h1>Ejercicios disponibles</h1>
-  <div id="exercises-list"></div>
-</main>
-
-<script type="module">
-  import { db } from "./assets/js/firebase.js";
-  import { collection, getDocs, query, where } 
-    from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
   const list = document.getElementById("exercises-list");
 
+  // 📥 Ejercicios activos
   const q = query(
     collection(db, "exercises"),
-    where("active", "==", true)
+    where("active", "==", true),
+    orderBy("createdAt", "desc")
   );
 
   const snapshot = await getDocs(q);
 
   if (snapshot.empty) {
-    list.innerHTML = "<p>No hay ejercicios disponibles.</p>";
-  }
-
-  snapshot.forEach(doc => {
-    const exercise = doc.data();
-
-    const a = document.createElement("a");
-    a.href = `exercise.html?id=${doc.id}`;
-    a.className = "exercise-card";
-
-    a.innerHTML = `
-      <h3>${exercise.title}</h3>
-      <p>${exercise.description || ""}</p>
+    list.innerHTML = `
+      <div class="card">
+        <p>No hay ejercicios disponibles.</p>
+      </div>
     `;
+  } else {
 
-    list.appendChild(a);
-  });
+    snapshot.forEach(docSnap => {
+      const exercise = docSnap.data();
+
+      const card = document.createElement("article");
+      card.className = "card forum-topic";
+
+      card.innerHTML = `
+        <h2>${exercise.title}</h2>
+        ${exercise.description ? `<p>${exercise.description}</p>` : ""}
+        <button class="btn-primary">
+          Empezar ejercicio
+        </button>
+      `;
+
+      card.querySelector("button").addEventListener("click", () => {
+        window.location.href = `exercise.html?id=${docSnap.id}`;
+      });
+
+      list.appendChild(card);
+    });
+  }
 </script>
 
 </body>
