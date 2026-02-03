@@ -92,7 +92,14 @@
 <!-- ======================
      SCRIPTS (ORDEN CLAVE)
 ====================== -->
-<script type="module" src="assets/js/menu.js"></script>
+<script type="module">
+  import { requireAuth } from "./assets/js/auth.js";
+  import { loadMenu } from "./assets/js/menu.js";
+
+  await requireAuth();
+  await loadMenu();
+</script>
+
 <script type="module" src="assets/js/forumTopics.js"></script>
 <script type="module" src="assets/js/forumPage.js"></script>
 
