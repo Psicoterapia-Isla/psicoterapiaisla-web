@@ -2,20 +2,22 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Diarios pacientes</title>
+  <title>Diarios pacientes | Psicoterapia Isla</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="assets/css/app.css">
 </head>
 
-<body class="app-body app-diarios">
+<body class="app-body">
   <header class="app-menu"></header>
-  
-  <main class="app-container">
-  <h1 class="page-title">Diarios terapéuticos</h1>
 
-  <div class="card">
+  <main class="app-container">
+
+    <h1>Diarios terapéuticos</h1>
+
+    <!-- CONTENIDO -->
     <div id="entries"></div>
-  </div>
-</main>
+
+  </main>
 
 <script type="module">
   import { requireAuth } from "./assets/js/auth.js";
@@ -51,24 +53,27 @@
 
   snap.forEach(doc => {
     const entry = doc.data();
+
     const card = document.createElement("div");
-    card.className = "entry-card";
+    card.className = "card";
 
     if (entry.type) {
-      const title = document.createElement("h3");
+      const title = document.createElement("h2");
       title.textContent = exerciseTitles[entry.type] || entry.type;
       card.appendChild(title);
 
-      const date = document.createElement("small");
-      date.textContent = entry.createdAt?.toDate
-        ? entry.createdAt.toDate().toLocaleString()
-        : "";
-      card.appendChild(date);
+      if (entry.createdAt?.toDate) {
+        const date = document.createElement("small");
+        date.style.opacity = "0.7";
+        date.textContent = entry.createdAt.toDate().toLocaleString();
+        card.appendChild(date);
+      }
 
       const data = entry.data || {};
       Object.entries(data).forEach(([key, value]) => {
-        const fieldTitle = document.createElement("h4");
+        const fieldTitle = document.createElement("h3");
         fieldTitle.textContent = key.replace(/_/g, " ");
+        fieldTitle.style.marginTop = "16px";
 
         const fieldValue = document.createElement("p");
         fieldValue.textContent = value;
@@ -76,6 +81,7 @@
         card.appendChild(fieldTitle);
         card.appendChild(fieldValue);
       });
+
     } else {
       const text = document.createElement("p");
       text.textContent = entry.text || "(sin contenido)";
