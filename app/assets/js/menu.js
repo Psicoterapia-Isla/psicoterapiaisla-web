@@ -1,10 +1,8 @@
-import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { getAuth, onAuthStateChanged, signOut } 
+  from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { db } from "./firebase.js";
-import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
-document.addEventListener("DOMContentLoaded", () => {
-  loadMenu();
-});
+import { doc, getDoc } 
+  from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 export async function loadMenu() {
   const menu = document.querySelector(".app-menu");
@@ -15,8 +13,10 @@ export async function loadMenu() {
   onAuthStateChanged(auth, async (user) => {
     if (!user) return;
 
+    // 🔐 Rol real
     const snap = await getDoc(doc(db, "users", user.uid));
     const role = snap.exists() ? snap.data().role : "patient";
+    const isTherapist = role === "therapist";
 
     menu.innerHTML = `
       <div class="app-menu-inner">
@@ -36,11 +36,45 @@ export async function loadMenu() {
           </div>
         </div>
 
-        <!-- BLOQUE TERAPEUTA -->
-        ${role === "therapist" ? therapistBlock() : ""}
+        <!-- PACIENTE -->
+        ${
+          !isTherapist
+            ? `
+        <div class="menu-group">
+          <button class="menu-group-toggle">
+            Mi espacio
+          </button>
+          <div class="menu-group-content">
+            <a href="espacio.html">Espacio personal</a>
+            <a href="diario.html">Escribir diario</a>
+            <a href="mi-diario.html">Mi diario</a>
+            <a href="exercises-list.html">Ejercicios</a>
+            <a href="agenda-paciente.html">Agenda</a>
+          </div>
+        </div>
+        `
+            : ""
+        }
 
-        <!-- BLOQUE PACIENTE -->
-        ${role === "patient" ? patientBlock() : ""}
+        <!-- TERAPEUTA -->
+        ${
+          isTherapist
+            ? `
+        <div class="menu-group">
+          <button class="menu-group-toggle">
+            Espacio terapeuta
+          </button>
+          <div class="menu-group-content">
+            <a href="agenda-terapeuta.html">Agenda profesional</a>
+            <a href="diario-terapeuta.html">Diarios pacientes</a>
+            <a href="entries-by-exercise.html">Respuestas por ejercicio</a>
+            <a href="entries-by-patient.html">Respuestas por paciente</a>
+            <a href="exercises-admin.html">Gestionar ejercicios</a>
+          </div>
+        </div>
+        `
+            : ""
+        }
 
         <!-- SALIR -->
         <button class="menu-group-toggle" id="logout-btn">
@@ -50,80 +84,33 @@ export async function loadMenu() {
       </div>
     `;
 
-    /* ---------- navegación directa ---------- */
+    /* navegación directa */
     menu.querySelectorAll("[data-link]").forEach(btn => {
       btn.addEventListener("click", () => {
         window.location.href = btn.dataset.link;
       });
     });
 
-    /* ---------- logout ---------- */
-    const logoutBtn = menu.querySelector("#logout-btn");
-    if (logoutBtn) {
-      logoutBtn.addEventListener("click", async () => {
-        await auth.signOut();
+    /* desplegables */
+    menu.querySelectorAll(".menu-group > .menu-group-toggle")
+      .forEach(btn => {
+        btn.addEventListener("click", () => {
+          const group = btn.parentElement;
+
+          menu.querySelectorAll(".menu-group.open")
+            .forEach(g => {
+              if (g !== group) g.classList.remove("open");
+            });
+
+          group.classList.toggle("open");
+        });
+      });
+
+    /* logout */
+    document.getElementById("logout-btn")
+      .addEventListener("click", async () => {
+        await signOut(auth);
         window.location.href = "login.html";
       });
-    }
-
-    /* ---------- desplegables ---------- */
-    menu.querySelectorAll(".menu-group > .menu-group-toggle").forEach(btn => {
-      btn.addEventListener("click", (e) => {
-        e.stopPropagation();
-        const group = btn.parentElement;
-
-        // cerrar otros desplegables
-        menu.querySelectorAll(".menu-group.open").forEach(g => {
-          if (g !== group) g.classList.remove("open");
-        });
-
-        group.classList.toggle("open");
-      });
-    });
-
-    // cerrar al hacer click fuera
-    document.addEventListener("click", () => {
-      menu.querySelectorAll(".menu-group.open").forEach(g => {
-        g.classList.remove("open");
-      });
-    });
   });
-}
-
-/* =========================
-   BLOQUES POR ROL
-========================= */
-
-function therapistBlock() {
-  return `
-    <div class="menu-group">
-      <button class="menu-group-toggle">
-        Espacio terapeuta
-      </button>
-      <div class="menu-group-content">
-        <a href="diario-terapeuta.html">Diarios pacientes</a>
-        <a href="entries-by-exercise.html">Respuestas por ejercicio</a>
-        <a href="entries-by-patient.html">Respuestas por paciente</a>
-        <a href="entries-by-exercise.html#pdf">Exportar informes</a>
-        <a href="exercises-admin.html">Gestionar ejercicios</a>
-        <a href="agenda-terapeuta.html">Agenda profesional</a>
-      </div>
-    </div>
-  `;
-}
-
-function patientBlock() {
-  return `
-    <div class="menu-group">
-      <button class="menu-group-toggle">
-        Mi espacio
-      </button>
-      <div class="menu-group-content">
-        <a href="diario.html">Mi diario</a>
-        <a href="exercises-list.html">Ejercicios</a>
-        <a href="mis-entradas.html">Mis respuestas</a>
-        <a href="agenda-paciente.html">Agenda</a>
-      </div>
-    </div>
-  `;
 }
