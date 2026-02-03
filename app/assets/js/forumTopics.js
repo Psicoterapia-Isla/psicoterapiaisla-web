@@ -33,22 +33,23 @@ if (!topicsContainer) {
 }
 
 /* =========================
-   AUTH + ROL
+   AUTH
 ========================= */
 const auth = getAuth();
 
 onAuthStateChanged(auth, async (user) => {
   if (!user) {
+    // sin login → no crear temas
     if (form) form.style.display = "none";
     return;
   }
 
-  // 🔐 obtener rol REAL desde users
+  // rol REAL desde users
   const userSnap = await getDoc(doc(db, "users", user.uid));
   const role = userSnap.exists() ? userSnap.data().role : "patient";
   const isTherapist = role === "therapist";
 
-  // ⛔ ocultar formulario si NO es terapeuta
+  // solo terapeuta ve el formulario
   if (!isTherapist && form) {
     form.style.display = "none";
   }
@@ -95,8 +96,8 @@ onAuthStateChanged(auth, async (user) => {
         window.location.href = `foro.html?topic=${docSnap.id}`;
       });
 
-      // 🗑️ eliminar tema → SOLO terapeuta creador
-      if (isTherapist && topic.createdBy === user.uid) {
+      // 🗑️ Eliminar tema → SOLO TERAPEUTA
+      if (isTherapist) {
         const deleteBtn = document.createElement("button");
         deleteBtn.className = "btn-danger";
         deleteBtn.textContent = "Eliminar";
@@ -139,20 +140,12 @@ onAuthStateChanged(auth, async (user) => {
       const title = titleInput.value.trim();
       if (!title) return;
 
-      await addDoc(
-        collection(
-          db,
-          FORUMS_COLLECTION,
-          FORUM_ID,
-          TOPICS_COLLECTION
-        ),
-        {
-          title,
-          description: descInput.value.trim(),
-          createdBy: user.uid,
-          createdAt: serverTimestamp()
-        }
-      );
+      await addDoc(topicsRef, {
+        title,
+        description: descInput.value.trim(),
+        createdBy: user.uid,
+        createdAt: serverTimestamp()
+      });
 
       titleInput.value = "";
       descInput.value = "";
