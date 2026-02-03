@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <title>Planificador diario</title>
+  <title>Planificador diario | Psicoterapia Isla</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
   <link rel="stylesheet" href="assets/css/app.css">
@@ -14,20 +14,20 @@
 <header class="app-menu"></header>
 
 <main class="app-container">
-  <h1 class="page-title">
 
-  <!-- CABECERA -->
-  <div class="day-nav">
+  <!-- TÍTULO -->
+  <h1>Planificador diario</h1>
+
+  <!-- NAVEGACIÓN DÍA -->
+  <div class="day-nav card">
     <button id="prev-day">◀️</button>
     <span id="current-day"></span>
     <button id="next-day">▶️</button>
   </div>
 
-  <h1 class="page-title">Planificador diario</h1>
-
   <!-- EMOCIÓN PREDOMINANTE -->
-  <div class="block block-green light">
-    <h2 class="section-title">¿Qué emoción ha predominado hoy?</h2>
+  <section class="card block-green light">
+    <h2>¿Qué emoción ha predominado hoy?</h2>
 
     <div class="emotion-grid">
       <label><input type="radio" name="emocion" value="alegría"> Alegría</label>
@@ -38,15 +38,16 @@
       <label><input type="radio" name="emocion" value="sorpresa"> Sorpresa</label>
       <label><input type="radio" name="emocion" value="tristeza"> Tristeza</label>
     </div>
-  </div>
+  </section>
 
-  <div class="card">
+  <!-- CONTENIDO PRINCIPAL -->
+  <section class="card">
 
     <div class="grid-2">
 
       <!-- PLAN DEL DÍA -->
-      <div class="block">
-        <h2 class="section-title">Plan del día</h2>
+      <section class="block">
+        <h2>Plan del día</h2>
 
         <div class="list">
           <div class="hour-line"><span>06:00</span><textarea data-hour="06:00"></textarea></div>
@@ -68,58 +69,54 @@
           <div class="hour-line"><span>22:00</span><textarea data-hour="22:00"></textarea></div>
           <div class="hour-line"><span>23:00</span><textarea data-hour="23:00"></textarea></div>
         </div>
-      </div>
+      </section>
 
       <!-- RETO DIARIO -->
-      <div class="block">
-        <h2 class="section-title">Reto diario</h2>
+      <section class="block">
+        <h2>Reto diario</h2>
         <textarea id="reto-diario"></textarea>
-      </div>
+      </section>
 
     </div>
 
     <!-- NOTAS -->
-    <div class="block" style="margin-top:2rem;">
-      <h2 class="section-title">Notas</h2>
+    <section class="block" style="margin-top:2rem;">
+      <h2>Notas</h2>
 
       <label>¿Con quién he hablado hoy?</label>
       <textarea id="notas-contactos"></textarea>
 
       <label style="margin-top:1rem;">Tiempo fuera de casa</label>
       <input id="tiempo-fuera" type="text">
-    </div>
+    </section>
 
-    <button id="guardar-agenda">Guardar</button>
+    <!-- GUARDAR -->
+    <button id="guardar-agenda" class="btn-primary">
+      Guardar
+    </button>
 
-  </div>
+  </section>
 
 </main>
 
 <script type="module">
-import { requireAuth } from "./assets/js/auth.js";
-import { loadMenu } from "./assets/js/menu.js";
-import {
-  initAgendaPaciente,
-  loadAgendaPaciente,
-  saveAgendaPaciente
-} from "./assets/js/agenda-paciente.js";
+  import { requireAuth } from "./assets/js/auth.js";
+  import { loadMenu } from "./assets/js/menu.js";
+  import {
+    initAgendaPaciente,
+    loadAgendaPaciente,
+    saveAgendaPaciente
+  } from "./assets/js/agenda-paciente.js";
 
-// 1. Esperar al usuario
-const user = await requireAuth();
+  const user = await requireAuth();
+  await loadMenu();
 
-// 2. Cargar menú
-await loadMenu();
+  initAgendaPaciente(user);
+  await loadAgendaPaciente();
 
-// 3. 🔴 ESTO ES LO QUE FALTABA
-initAgendaPaciente(user);
-
-// 4. Cargar datos del día
-await loadAgendaPaciente();
-
-// 5. Guardar
-document
-  .getElementById("guardar-agenda")
-  .addEventListener("click", saveAgendaPaciente);
+  document
+    .getElementById("guardar-agenda")
+    .addEventListener("click", saveAgendaPaciente);
 </script>
 
 </body>
