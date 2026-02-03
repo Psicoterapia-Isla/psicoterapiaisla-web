@@ -2,11 +2,11 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Diario terapéutico</title>
+  <title>Diario terapéutico | Psicoterapia Isla</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <!-- CSS -->
-  <link rel="stylesheet" href="./assets/css/app.css">
+  <!-- CSS base app -->
+  <link rel="stylesheet" href="assets/css/app.css">
 </head>
 
 <body class="app-body">
@@ -14,69 +14,69 @@
 <header class="app-menu"></header>
 
 <main class="app-container">
-  <h1 class="page-title">
+
+  <!-- TÍTULO -->
+  <h1>Diario terapéutico</h1>
+
+  <!-- CONTENIDO -->
+  <section class="card">
+
+    <p>Puedes escribir libremente. No hay forma correcta de hacerlo.</p>
+
+    <textarea
+      id="diario-texto"
+      placeholder="Escribe aquí..."
+    ></textarea>
+
+    <button id="guardar-diario" class="btn-primary">
+      Guardar
+    </button>
+
+  </section>
+
+</main>
 
 <script type="module">
   import { requireAuth } from "./assets/js/auth.js";
   import { loadMenu } from "./assets/js/menu.js";
+  import { db, auth } from "./assets/js/firebase.js";
+  import {
+    collection,
+    addDoc,
+    serverTimestamp
+  } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
+  // 🔐 Auth + menú
   await requireAuth();
   await loadMenu();
+
+  const button = document.getElementById("guardar-diario");
+  const textarea = document.getElementById("diario-texto");
+
+  button.addEventListener("click", async () => {
+    const texto = textarea.value.trim();
+
+    if (!texto) {
+      alert("El diario está vacío");
+      return;
+    }
+
+    try {
+      await addDoc(collection(db, "entries"), {
+        uid: auth.currentUser.uid,
+        type: "diario",
+        text: texto,
+        createdAt: serverTimestamp()
+      });
+
+      textarea.value = "";
+      alert("Diario guardado");
+    } catch (error) {
+      console.error(error);
+      alert("Error al guardar el diario");
+    }
+  });
 </script>
-
-  <div class="app-container">
-    <div class="card">
-
-      <h1>Diario terapéutico</h1>
-      <p>Puedes escribir libremente. No hay forma correcta de hacerlo.</p>
-
-      <textarea id="diario-texto" placeholder="Escribe aquí..."></textarea>
-      <button id="guardar-diario">Guardar</button>
-
-    </div>
-  </div>
-
-  <script type="module">
-    import { loadMenu } from "./assets/js/menu.js";
-    import { requireAuth } from "./assets/js/auth.js";
-    import { db, auth } from "./assets/js/firebase.js";
-    import {
-      collection,
-      addDoc,
-      serverTimestamp
-    } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
-    // 🔐 Auth + menú
-    await requireAuth();
-    await loadMenu();
-
-    const button = document.getElementById("guardar-diario");
-    const textarea = document.getElementById("diario-texto");
-
-    button.addEventListener("click", async () => {
-      const texto = textarea.value.trim();
-
-      if (!texto) {
-        alert("El diario está vacío");
-        return;
-      }
-
-      try {
-        await addDoc(collection(db, "entries"), {
-          uid: auth.currentUser.uid,
-          type: "diario",
-          texto,
-          createdAt: serverTimestamp()
-        });
-
-        alert("Diario guardado");
-        textarea.value = "";
-      } catch (e) {
-        console.error(e);
-        alert("Error al guardar el diario");
-      }
-    });
-  </script>
 
 </body>
 </html>
