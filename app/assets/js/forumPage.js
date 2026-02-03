@@ -24,165 +24,168 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
 /* =========================
-   DOM
+   DOM (cuando ya existe)
 ========================= */
-const postsContainer = document.getElementById("forum-posts");
-const form = document.getElementById("new-post-form");
-const textarea = document.getElementById("post-content");
-const placeholder = document.getElementById("forum-placeholder");
+document.addEventListener("DOMContentLoaded", () => {
 
-/* =========================
-   PARAMS
-========================= */
-const params = new URLSearchParams(window.location.search);
-const topicId = params.get("topic");
+  const postsContainer = document.getElementById("forum-posts");
+  const form = document.getElementById("new-post-form");
+  const textarea = document.getElementById("post-content");
+  const placeholder = document.getElementById("forum-placeholder");
 
-/* =========================
-   SIN TEMA → SOLO MENSAJE
-========================= */
-if (!topicId) {
-  if (form) form.style.display = "none";
-  if (postsContainer) postsContainer.innerHTML = "";
-  return;
-}
-
-/* =========================
-   CON TEMA → LIMPIAR UI
-========================= */
-if (placeholder) placeholder.remove();
-if (form) form.style.display = "block";
-postsContainer.innerHTML = "";
-
-/* =========================
-   REFERENCIAS
-========================= */
-const topicRef = doc(
-  db,
-  FORUMS_COLLECTION,
-  FORUM_ID,
-  TOPICS_COLLECTION,
-  topicId
-);
-
-const postsRef = collection(
-  db,
-  FORUMS_COLLECTION,
-  FORUM_ID,
-  TOPICS_COLLECTION,
-  topicId,
-  POSTS_COLLECTION
-);
-
-const postsQuery = query(postsRef, orderBy("createdAt", "asc"));
-
-/* =========================
-   AUTH
-========================= */
-const auth = getAuth();
-
-onAuthStateChanged(auth, async (user) => {
-  if (!user) return;
-
-  const userSnap = await getDoc(doc(db, "users", user.uid));
-  const isTherapist =
-    userSnap.exists() && userSnap.data().role === "therapist";
+  if (!postsContainer || !form) return;
 
   /* =========================
-     CARGAR TEMA (ARRIBA)
+     PARAMS
   ========================= */
-  const topicSnap = await getDoc(topicRef);
+  const params = new URLSearchParams(window.location.search);
+  const topicId = params.get("topic");
 
-  if (topicSnap.exists()) {
-    const topic = topicSnap.data();
-
-    const topicHeader = document.createElement("section");
-    topicHeader.className = "card forum-topic-header";
-
-    topicHeader.innerHTML = `
-      <h2>${topic.title}</h2>
-      ${topic.description ? `<p>${topic.description}</p>` : ""}
-    `;
-
-    postsContainer.before(topicHeader);
+  /* =========================
+     SIN TEMA
+  ========================= */
+  if (!topicId) {
+    form.style.display = "none";
+    return;
   }
 
   /* =========================
-     LISTAR MENSAJES (DEBAJO)
+     LIMPIAR UI INICIAL
   ========================= */
-  onSnapshot(postsQuery, (snapshot) => {
-    postsContainer.innerHTML = "";
+  if (placeholder) placeholder.remove();
+  form.style.display = "block";
+  postsContainer.innerHTML = "";
 
-    if (snapshot.empty) {
-      postsContainer.innerHTML = `
-        <div class="card">
-          <p>No hay mensajes todavía en este tema.</p>
-        </div>
-      `;
-      return;
+  /* =========================
+     REFERENCIAS FIRESTORE
+  ========================= */
+  const topicRef = doc(
+    db,
+    FORUMS_COLLECTION,
+    FORUM_ID,
+    TOPICS_COLLECTION,
+    topicId
+  );
+
+  const postsRef = collection(
+    db,
+    FORUMS_COLLECTION,
+    FORUM_ID,
+    TOPICS_COLLECTION,
+    topicId,
+    POSTS_COLLECTION
+  );
+
+  const postsQuery = query(postsRef, orderBy("createdAt", "asc"));
+
+  /* =========================
+     AUTH
+  ========================= */
+  const auth = getAuth();
+
+  onAuthStateChanged(auth, async (user) => {
+    if (!user) return;
+
+    const userSnap = await getDoc(doc(db, "users", user.uid));
+    const isTherapist =
+      userSnap.exists() && userSnap.data().role === "therapist";
+
+    /* =========================
+       CABECERA DEL TEMA (UNA SOLA VEZ)
+    ========================= */
+    const existingHeader = document.querySelector(".forum-topic-header");
+    if (!existingHeader) {
+      const topicSnap = await getDoc(topicRef);
+
+      if (topicSnap.exists()) {
+        const topic = topicSnap.data();
+
+        const header = document.createElement("section");
+        header.className = "card forum-topic-header";
+
+        header.innerHTML = `
+          <h2>${topic.title}</h2>
+          ${topic.description ? `<p>${topic.description}</p>` : ""}
+        `;
+
+        postsContainer.before(header);
+      }
     }
 
-    snapshot.forEach((docSnap) => {
-      const post = docSnap.data();
+    /* =========================
+       LISTAR MENSAJES
+    ========================= */
+    onSnapshot(postsQuery, (snapshot) => {
+      postsContainer.innerHTML = "";
 
-      const el = document.createElement("article");
-      el.className = "forum-post card";
-
-      el.innerHTML = `
-        <div class="forum-post-meta">
-          ${post.authorRole === "therapist" ? "🟢 Terapeuta" : "👤 Usuario"}
-        </div>
-        <p>${post.content}</p>
-        ${
-          isTherapist
-            ? `<button class="btn-danger delete-post">Eliminar</button>`
-            : ""
-        }
-      `;
-
-      if (isTherapist) {
-        el
-          .querySelector(".delete-post")
-          .addEventListener("click", async () => {
-            const ok = confirm("¿Eliminar este mensaje?");
-            if (!ok) return;
-
-            await deleteDoc(
-              doc(
-                db,
-                FORUMS_COLLECTION,
-                FORUM_ID,
-                TOPICS_COLLECTION,
-                topicId,
-                POSTS_COLLECTION,
-                docSnap.id
-              )
-            );
-          });
+      if (snapshot.empty) {
+        postsContainer.innerHTML = `
+          <div class="card">
+            <p>No hay mensajes todavía en este tema.</p>
+          </div>
+        `;
+        return;
       }
 
-      postsContainer.appendChild(el);
+      snapshot.forEach((docSnap) => {
+        const post = docSnap.data();
+
+        const el = document.createElement("article");
+        el.className = "forum-post card";
+
+        el.innerHTML = `
+          <div class="forum-post-meta">
+            ${post.authorRole === "therapist" ? "🟢 Terapeuta" : "👤 Usuario"}
+          </div>
+          <p>${post.content}</p>
+          ${
+            isTherapist
+              ? `<button class="btn-danger delete-post">Eliminar</button>`
+              : ""
+          }
+        `;
+
+        if (isTherapist) {
+          el.querySelector(".delete-post")
+            .addEventListener("click", async () => {
+              const ok = confirm("¿Eliminar este mensaje?");
+              if (!ok) return;
+
+              await deleteDoc(
+                doc(
+                  db,
+                  FORUMS_COLLECTION,
+                  FORUM_ID,
+                  TOPICS_COLLECTION,
+                  topicId,
+                  POSTS_COLLECTION,
+                  docSnap.id
+                )
+              );
+            });
+        }
+
+        postsContainer.appendChild(el);
+      });
+    });
+
+    /* =========================
+       CREAR MENSAJE
+    ========================= */
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const content = textarea.value.trim();
+      if (!content) return;
+
+      await addDoc(postsRef, {
+        content,
+        authorId: user.uid,
+        authorRole: isTherapist ? "therapist" : "patient",
+        createdAt: serverTimestamp()
+      });
+
+      textarea.value = "";
     });
   });
-});
-
-/* =========================
-   CREAR MENSAJE
-========================= */
-form.addEventListener("submit", async (e) => {
-  e.preventDefault();
-
-  const user = auth.currentUser;
-  if (!user) return;
-
-  const content = textarea.value.trim();
-  if (!content) return;
-
-  await addDoc(postsRef, {
-    content,
-    authorId: user.uid,
-    authorRole: "patient",
-    createdAt: serverTimestamp()
-  });
-
-  textarea.value = "";
 });
