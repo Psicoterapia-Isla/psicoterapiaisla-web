@@ -4,6 +4,8 @@ import { db } from "./firebase.js";
 import { doc, getDoc } 
   from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
+let menuRendered = false;
+
 export async function loadMenu() {
   const menu = document.querySelector(".app-menu");
   if (!menu) return;
@@ -11,7 +13,8 @@ export async function loadMenu() {
   const auth = getAuth();
 
   onAuthStateChanged(auth, async (user) => {
-    if (!user) return;
+    if (!user || menuRendered) return;
+    menuRendered = true;
 
     // 🔐 Rol real
     const snap = await getDoc(doc(db, "users", user.uid));
