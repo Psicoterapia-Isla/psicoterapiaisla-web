@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Crear factura | Psicoterapia Isla</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- CSS base -->
+  <link rel="stylesheet" href="assets/css/app.css">
+</head>
+
+<body class="app-body">
+
+<!-- MENÚ -->
+<header class="app-menu"></header>
+
+<main class="app-container">
+
+  <h1 class="page-title">Nueva factura</h1>
+
+  <!-- ======================
+       SELECCIÓN PACIENTE
+  ====================== -->
+  <section class="card">
+    <h2>Paciente</h2>
+
+    <label>
+      Seleccionar paciente
+      <select id="patient-select" required>
+        <option value="">— Selecciona un paciente —</option>
+      </select>
+    </label>
+  </section>
+
+  <!-- ======================
+       DATOS FACTURA
+  ====================== -->
+  <section class="card">
+    <h2>Datos de la factura</h2>
+
+    <label>
+      Fecha de emisión
+      <input type="date" id="invoice-date" required>
+    </label>
+
+    <label>
+      Concepto
+      <input
+        type="text"
+        id="invoice-concept"
+        placeholder="Sesión de psicoterapia"
+        required
+      >
+    </label>
+
+    <label>
+      Base imponible (€)
+      <input
+        type="number"
+        id="invoice-base"
+        step="0.01"
+        min="0"
+        required
+      >
+    </label>
+
+    <label>
+      IVA (%)
+      <input
+        type="number"
+        id="invoice-iva"
+        value="0"
+        step="0.01"
+        min="0"
+      >
+    </label>
+
+    <p style="opacity:.7;margin-top:8px;">
+      * Psicología sanitaria → normalmente IVA 0 %
+    </p>
+  </section>
+
+  <!-- ======================
+       ACCIONES
+  ====================== -->
+  <section class="card">
+    <button id="save-draft" class="btn-primary">
+      Guardar borrador
+    </button>
+  </section>
+
+</main>
+
+<!-- ======================
+     SCRIPT
+====================== -->
+<script type="module">
+  import { requireAuth } from "./assets/js/auth.js";
+  import { loadMenu } from "./assets/js/menu.js";
+  import { db } from "./assets/js/firebase.js";
+
+  import {
+    collection,
+    getDocs,
+    addDoc,
+    doc,
+    getDoc,
+    serverTimestamp
+  } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+  async function init() {
+    const user = await requireAuth();
+    await loadMenu();
+
+    // 🔐 SOLO ADMIN
+    const meSnap = await getDoc(doc(db, "users", user.uid));
+    if (!meSnap.exists() || meSnap.data().role !== "admin") {
+      alert("Acceso solo para administradores");
+      location.href = "index.html";
+      return;
+    }
+
+    await loadPatients();
+    setupForm();
+  }
+
+  /* ======================
+     CARGAR PACIENTES
+  ====================== */
+  async function loadPatients() {
+    const select = document.getElementById("patient-select");
+    const snap = await getDocs(collection(db, "users"));
+
+    snap.forEach(docSnap => {
+      const u = docSnap.data();
+      if (u.role !== "patient") return;
+
+      const name =
+        `${u.nombre || ""} ${u.apellidos || ""}`.trim() ||
+        u.alias ||
+        docSnap.id;
+
+      const option = document.createElement("option");
+      option.value = docSnap.id;
+      option.textContent = name;
+
+      select.appendChild(option);
+    });
+  }
+
+  /* ======================
+     FORMULARIO
+  ====================== */
+  function setupForm() {
+    document
+      .getElementById("save-draft")
+      .addEventListener("click", saveDraft);
+  }
+
+  async function saveDraft() {
+    const patientId = document.getElementById("patient-select").value;
+    const date = document.getElementById("invoice-date").value;
+    const concept = document.getElementById("invoice-concept").value.trim();
+    const base = parseFloat(document.getElementById("invoice-base").value);
+    const iva = parseFloat(document.getElementById("invoice-iva").value || 0);
+
+    if (!patientId || !date || !concept || isNaN(base)) {
+      alert("Completa todos los campos obligatorios");
+      return;
+    }
+
+    const total = base + base * (iva / 100);
+
+    await addDoc(collection(db, "invoices"), {
+      patientId,
+      date,
+      concept,
+      base,
+      iva,
+      total,
+      status: "draft",           // borrador
+      createdAt: serverTimestamp()
+    });
+
+    alert("Factura guardada como borrador");
+    location.href = "patient-invoices.html";
+  }
+
+  init();
+</script>
+
+</body>
+</html>
