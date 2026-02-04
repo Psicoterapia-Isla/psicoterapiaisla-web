@@ -2,135 +2,53 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <title>Pacientes | Psicoterapia Isla</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gestión de pacientes</title>
 
-  <!-- CSS base -->
-  <link rel="stylesheet" href="assets/css/app.css">
+  <!-- estilos base -->
+  <link rel="stylesheet" href="styles/app.css" />
+  <link rel="stylesheet" href="styles/menu.css" />
+  <link rel="stylesheet" href="styles/tables.css" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 </head>
 
-<body class="app-body">
+<body class="app-layout">
 
-  <!-- MENÚ (NO SE TOCA) -->
-  <header class="app-menu"></header>
+  <!-- MENÚ -->
+  <aside class="app-menu"></aside>
 
   <!-- CONTENIDO -->
-  <main class="app-container">
+  <main class="app-content">
 
-    <h1 class="page-title">Pacientes</h1>
-    <p style="opacity:.7;margin-bottom:16px;">
-      Listado de pacientes importados en el sistema
-    </p>
+    <header class="page-header">
+      <h1>Pacientes</h1>
+      <p class="page-subtitle">
+        Listado de pacientes importados en el sistema
+      </p>
+    </header>
 
     <!-- BUSCADOR -->
-    <input
-      type="text"
-      id="search"
-      placeholder="Buscar por nombre, apellido o email"
-      style="margin-bottom:16px;width:100%;padding:8px;"
-    >
+    <section class="filters">
+      <input
+        type="text"
+        id="patient-search"
+        placeholder="Buscar por nombre, apellido, DNI, email o teléfono"
+        autocomplete="off"
+      />
+    </section>
 
     <!-- LISTADO -->
-    <section id="patients-list"></section>
+    <section class="table-wrapper">
+      <div id="patients-list" class="patients-list">
+        <!-- pacientes dinámicos -->
+      </div>
+    </section>
 
   </main>
 
-  <!-- SCRIPTS -->
-  <script type="module">
-    import { requireAuth } from "./assets/js/auth.js";
-    import { loadMenu } from "./assets/js/menu.js";
-    import { db } from "./assets/js/firebase.js";
-
-    import {
-      collection,
-      getDocs,
-      doc,
-      getDoc
-    } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
-    let allPatients = [];
-
-    async function init() {
-      const user = await requireAuth();
-      await loadMenu();
-
-      // 🔐 SOLO ADMIN
-      const meSnap = await getDoc(doc(db, "users", user.uid));
-      if (!meSnap.exists() || meSnap.data().role !== "admin") {
-        alert("Acceso solo para administradores");
-        window.location.href = "index.html";
-        return;
-      }
-
-      await loadPatients();
-      setupSearch();
-    }
-
-    async function loadPatients() {
-      const container = document.getElementById("patients-list");
-      container.innerHTML = "<p>Cargando pacientes…</p>";
-
-      const snap = await getDocs(collection(db, "users"));
-      allPatients = [];
-
-      snap.forEach(docSnap => {
-        const u = docSnap.data();
-        if (u.role === "patient") {
-          allPatients.push({ id: docSnap.id, ...u });
-        }
-      });
-
-      renderPatients(allPatients);
-    }
-
-    function renderPatients(list) {
-      const container = document.getElementById("patients-list");
-      container.innerHTML = "";
-
-      if (list.length === 0) {
-        container.innerHTML = "<p>No hay pacientes.</p>";
-        return;
-      }
-
-      list.forEach(u => {
-        const card = document.createElement("div");
-        card.className = "card";
-
-        card.innerHTML = `
-          <strong>
-            ${u.nombre || ""} ${u.apellidos || ""}
-          </strong>
-          <p style="opacity:.7;margin:4px 0;">
-            ${u.email || "Sin email"}
-          </p>
-          <p style="opacity:.6;">
-            ${u.dni ? "DNI: " + u.dni : ""}
-            ${u.telefono ? " · Tel: " + u.telefono : ""}
-          </p>
-        `;
-
-        container.appendChild(card);
-      });
-    }
-
-    function setupSearch() {
-      const input = document.getElementById("search");
-
-      input.addEventListener("input", () => {
-        const q = input.value.toLowerCase().trim();
-
-        const filtered = allPatients.filter(u =>
-          (u.nombre || "").toLowerCase().includes(q) ||
-          (u.apellidos || "").toLowerCase().includes(q) ||
-          (u.email || "").toLowerCase().includes(q)
-        );
-
-        renderPatients(filtered);
-      });
-    }
-
-    init();
-  </script>
+  <!-- scripts -->
+  <script type="module" src="js/menu.js"></script>
+  <script type="module" src="js/patients-admin.js"></script>
 
 </body>
 </html>
