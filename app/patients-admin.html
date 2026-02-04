@@ -4,17 +4,18 @@
   <meta charset="UTF-8" />
   <title>Gestión de pacientes</title>
 
-  <!-- ESTILOS BASE -->
-  <link rel="stylesheet" href="assets/css/app.css">
-  <link rel="stylesheet" href="assets/css/menu.css">
-  <link rel="stylesheet" href="assets/css/isla-theme.css">
+  <!-- ESTILOS BASE (RUTAS CORRECTAS ABSOLUTAS) -->
+  <link rel="stylesheet" href="/app/assets/css/app.css">
+  <link rel="stylesheet" href="/app/assets/css/isla-theme.css">
+  <!-- ⚠️ SOLO si esta página usa menú -->
+  <link rel="stylesheet" href="/app/assets/css/menu.css">
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 </head>
 
 <body class="app-layout">
 
-  <!-- MENÚ -->
+  <!-- MENÚ (solo si existe menu.js y se usa aquí) -->
   <aside class="app-menu"></aside>
 
   <!-- CONTENIDO -->
@@ -27,25 +28,26 @@
       </p>
     </header>
 
-    <!-- BUSCADOR -->
+    <!-- BUSCADOR (ID CORRECTO) -->
     <section class="filters">
       <input
         type="text"
         id="patient-search"
         placeholder="Buscar por nombre, apellido, DNI, email o teléfono"
+        autocomplete="off"
       />
     </section>
 
-    <!-- LISTADO -->
+    <!-- LISTADO (ID CORRECTO) -->
     <section id="patients-list" class="patients-list">
       Cargando pacientes...
     </section>
 
   </main>
 
-  <!-- SCRIPTS -->
-  <script type="module" src="assets/js/menu.js"></script>
-  <script type="module" src="assets/js/patients-admin.js"></script>
+  <!-- SCRIPTS (AL FINAL Y EN ORDEN) -->
+  <script type="module" src="/app/assets/js/menu.js"></script>
+  <script type="module" src="/app/assets/js/patients-admin.js"></script>
 
 </body>
 </html>
