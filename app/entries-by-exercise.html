@@ -15,7 +15,21 @@
 
   <h1 class="page-title">Respuestas por ejercicio</h1>
 
-  <!-- ✅ CONTENEDOR CORRECTO -->
+  <!-- ======================
+       SELECTOR EJERCICIOS
+  ====================== -->
+  <section class="card">
+    <label>
+      Selecciona un ejercicio
+      <select id="exercise-select">
+        <option value="">— Selecciona —</option>
+      </select>
+    </label>
+  </section>
+
+  <!-- ======================
+       RESPUESTAS
+  ====================== -->
   <section id="entries"></section>
 
 </main>
@@ -37,43 +51,72 @@
     await requireAuth();
     await loadMenu();
 
+    await loadExercises();
+    bindUrlIfPresent();
+  }
+
+  /* =========================
+     CARGAR EJERCICIOS
+  ========================= */
+  async function loadExercises() {
+    const select = document.getElementById("exercise-select");
+    const snap = await getDocs(
+      query(collection(db, "exercises"), where("active", "==", true))
+    );
+
+    snap.forEach(docSnap => {
+      const ex = docSnap.data();
+      const option = document.createElement("option");
+      option.value = docSnap.id;
+      option.textContent = ex.title;
+      select.appendChild(option);
+    });
+
+    select.addEventListener("change", () => {
+      const id = select.value;
+      if (!id) return;
+
+      const url = new URL(window.location);
+      url.searchParams.set("exerciseId", id);
+      window.history.replaceState({}, "", url);
+
+      loadEntriesByExercise(id);
+    });
+  }
+
+  /* =========================
+     LEER exerciseId DE URL
+  ========================= */
+  function bindUrlIfPresent() {
     const params = new URLSearchParams(window.location.search);
-    const uid = params.get("uid");
     const exerciseId = params.get("exerciseId");
+    if (!exerciseId) return;
 
-    // 🔁 SIN CONTEXTO → REDIRIGIR
-    if (!uid && !exerciseId) {
-      window.location.replace("entries-by-patient.html");
-      return;
-    }
+    document.getElementById("exercise-select").value = exerciseId;
+    loadEntriesByExercise(exerciseId);
+  }
 
+  /* =========================
+     CARGAR RESPUESTAS
+  ========================= */
+  async function loadEntriesByExercise(exerciseId) {
     const container = document.getElementById("entries");
+    container.innerHTML = "";
 
-    if (!container) {
-      console.error("Contenedor #entries no encontrado");
-      return;
-    }
-
-    let q;
-
-    if (uid) {
-      q = query(
-        collection(db, "entries"),
-        where("uid", "==", uid),
-        orderBy("createdAt", "desc")
-      );
-    } else {
-      q = query(
-        collection(db, "entries"),
-        where("exerciseId", "==", exerciseId),
-        orderBy("createdAt", "desc")
-      );
-    }
+    const q = query(
+      collection(db, "entries"),
+      where("exerciseId", "==", exerciseId),
+      orderBy("createdAt", "desc")
+    );
 
     const snap = await getDocs(q);
 
     if (snap.empty) {
-      container.innerHTML = "<p>No hay respuestas registradas.</p>";
+      container.innerHTML = `
+        <p style="opacity:.7">
+          No hay respuestas para este ejercicio.
+        </p>
+      `;
       return;
     }
 
@@ -89,6 +132,7 @@
         <small style="opacity:.7">
           ${entry.createdAt?.toDate?.().toLocaleString() || ""}
         </small>
+        <hr>
       `;
 
       for (const key in entry.data) {
