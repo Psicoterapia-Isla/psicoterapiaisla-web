@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <title>Respuestas por ejercicio | Psicoterapia Isla</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
   <link rel="stylesheet" href="assets/css/app.css">
 </head>
 
@@ -15,22 +16,18 @@
 
   <h1 class="page-title">Respuestas por ejercicio</h1>
 
-  <!-- ======================
-       SELECTOR EJERCICIOS
-  ====================== -->
+  <!-- SELECTOR DE EJERCICIOS -->
   <section class="card">
     <label>
       Selecciona un ejercicio
       <select id="exercise-select">
-        <option value="">— Selecciona —</option>
+        <option value="">— Seleccionar —</option>
       </select>
     </label>
   </section>
 
-  <!-- ======================
-       RESPUESTAS
-  ====================== -->
-  <section id="entries"></section>
+  <!-- RESULTADOS -->
+  <div id="entries"></div>
 
 </main>
 
@@ -44,15 +41,18 @@
     query,
     where,
     orderBy,
-    getDocs
+    getDocs,
+    doc,
+    getDoc
   } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
+  /* =========================
+     INIT
+  ========================= */
   async function init() {
     await requireAuth();
     await loadMenu();
-
     await loadExercises();
-    bindUrlIfPresent();
   }
 
   /* =========================
@@ -60,6 +60,7 @@
   ========================= */
   async function loadExercises() {
     const select = document.getElementById("exercise-select");
+
     const snap = await getDocs(
       query(collection(db, "exercises"), where("active", "==", true))
     );
@@ -72,46 +73,46 @@
       select.appendChild(option);
     });
 
-    select.addEventListener("change", () => {
-      const id = select.value;
-      if (!id) return;
+    select.addEventListener("change", async () => {
+      const exerciseId = select.value;
+      if (!exerciseId) return;
 
-      const url = new URL(window.location);
-      url.searchParams.set("exerciseId", id);
-      window.history.replaceState({}, "", url);
+      const exSnap = await getDoc(doc(db, "exercises", exerciseId));
+      if (!exSnap.exists()) return;
 
-      loadEntriesByExercise(id);
+      const ex = exSnap.data();
+      loadEntries(exerciseId, ex.slug, ex.title);
     });
-  }
-
-  /* =========================
-     LEER exerciseId DE URL
-  ========================= */
-  function bindUrlIfPresent() {
-    const params = new URLSearchParams(window.location.search);
-    const exerciseId = params.get("exerciseId");
-    if (!exerciseId) return;
-
-    document.getElementById("exercise-select").value = exerciseId;
-    loadEntriesByExercise(exerciseId);
   }
 
   /* =========================
      CARGAR RESPUESTAS
   ========================= */
-  async function loadEntriesByExercise(exerciseId) {
+  async function loadEntries(exerciseId, slug, title) {
     const container = document.getElementById("entries");
     container.innerHTML = "";
 
-    const q = query(
-      collection(db, "entries"),
-      where("exerciseId", "==", exerciseId),
-      orderBy("createdAt", "desc")
+    const snap = await getDocs(
+      query(collection(db, "entries"), orderBy("createdAt", "desc"))
     );
 
-    const snap = await getDocs(q);
+    const matches = [];
 
-    if (snap.empty) {
+    snap.forEach(docSnap => {
+      const e = docSnap.data();
+
+      if (
+        e.exerciseId === exerciseId ||
+        e.exerciseId === slug ||
+        e.exerciseSlug === slug ||
+        e.exerciseTitle === title ||
+        e.type === title
+      ) {
+        matches.push(e);
+      }
+    });
+
+    if (matches.length === 0) {
       container.innerHTML = `
         <p style="opacity:.7">
           No hay respuestas para este ejercicio.
@@ -120,15 +121,14 @@
       return;
     }
 
-    snap.forEach(docSnap => {
-      const entry = docSnap.data();
+    matches.forEach(entry => {
       if (!entry.data) return;
 
       const card = document.createElement("section");
       card.className = "card";
 
       let html = `
-        <h2>${entry.exerciseTitle || "Ejercicio"}</h2>
+        <h2>${entry.exerciseTitle || title}</h2>
         <small style="opacity:.7">
           ${entry.createdAt?.toDate?.().toLocaleString() || ""}
         </small>
