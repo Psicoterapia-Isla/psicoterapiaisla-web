@@ -1,15 +1,15 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Gestión de pacientes</title>
 
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-  <!-- CSS -->
+  <!-- ESTILOS -->
   <link rel="stylesheet" href="assets/css/app.css">
   <link rel="stylesheet" href="assets/css/menu.css">
   <link rel="stylesheet" href="assets/css/isla-theme.css">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 </head>
 
 <body class="app-layout">
@@ -22,24 +22,28 @@
 
     <header class="page-header">
       <h1>Pacientes</h1>
-      <p>Listado de pacientes del sistema</p>
+      <p class="page-subtitle">
+        Listado de pacientes importados en el sistema
+      </p>
     </header>
 
+    <!-- BUSCADOR -->
     <section class="filters">
       <input
         type="text"
         id="patient-search"
-        placeholder="Buscar por nombre, apellido, DNI o email"
+        placeholder="Buscar por nombre, apellido, DNI, email o teléfono"
       />
     </section>
 
-    <section id="patients-list">
+    <!-- LISTADO -->
+    <section id="patients-list" class="patients-list">
       Cargando pacientes...
     </section>
 
   </main>
 
-  <!-- JS -->
+  <!-- SCRIPTS -->
   <script type="module" src="assets/js/menu.js"></script>
   <script type="module" src="assets/js/patients-admin.js"></script>
 
