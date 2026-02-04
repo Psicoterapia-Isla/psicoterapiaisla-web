@@ -2,88 +2,191 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Mi espacio | Psicoterapia Isla</title>
+  <title>Mi espacio personal | Psicoterapia Isla</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <!-- CSS base -->
   <link rel="stylesheet" href="assets/css/app.css">
 </head>
 
 <body class="app-body">
 
-<!-- ======================
-     MENÚ
-====================== -->
+<!-- MENÚ -->
 <header class="app-menu"></header>
 
-<!-- ======================
-     CONTENIDO
-====================== -->
+<!-- CONTENIDO -->
 <main class="app-container">
 
-  <!-- TÍTULO -->
   <h1 class="page-title">Tu espacio personal</h1>
 
-  <!-- INTRO -->
+  <!-- ======================
+       EJERCICIOS
+  ====================== -->
   <section class="card">
-    <p>
-      Este espacio es privado y seguro.  
-      Aquí puedes acceder a tus ejercicios terapéuticos, tu diario personal
-      y otros recursos compartidos con tu terapeuta.
-    </p>
+    <h2>Ejercicios</h2>
+    <div id="exercises-summary"></div>
   </section>
 
   <!-- ======================
-       ACCESOS PRINCIPALES
+       DIARIO
   ====================== -->
   <section class="card">
-    <h2>¿Qué puedes hacer aquí?</h2>
+    <h2>Últimas entradas del diario</h2>
+    <div id="diary-summary"></div>
+  </section>
 
-    <div style="display:grid;gap:16px;margin-top:16px;">
-
-      <a href="diario.html" class="card" style="text-decoration:none;">
-        <h3>📝 Diario personal</h3>
-        <p>Escribe y revisa tus reflexiones personales.</p>
-      </a>
-
-      <a href="exercises-list.html" class="card" style="text-decoration:none;">
-        <h3>🧩 Ejercicios terapéuticos</h3>
-        <p>Accede a los ejercicios que tienes disponibles.</p>
-      </a>
-
-      <a href="mis-entradas.html" class="card" style="text-decoration:none;">
-        <h3>📂 Mis respuestas</h3>
-        <p>Consulta los ejercicios que ya has completado.</p>
-      </a>
-
-      <a href="agenda-paciente.html" class="card" style="text-decoration:none;">
-        <h3>📅 Agenda</h3>
-        <p>Consulta tu agenda y próximas sesiones.</p>
-      </a>
-
-    </div>
+  <!-- ======================
+       FORO
+  ====================== -->
+  <section class="card">
+    <h2>Foro</h2>
+    <div id="forum-summary"></div>
+    <a href="foro.html" class="btn-primary" style="margin-top:12px;display:inline-block;">
+      Ir al foro
+    </a>
   </section>
 
 </main>
 
-<!-- ======================
-     SCRIPTS
-====================== -->
+<!-- SCRIPT -->
 <script type="module">
   import { requireAuth } from "./assets/js/auth.js";
   import { loadMenu } from "./assets/js/menu.js";
   import { db } from "./assets/js/firebase.js";
-  import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+  import {
+    collection,
+    query,
+    where,
+    orderBy,
+    getDocs,
+    limit
+  } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
   async function init() {
     const user = await requireAuth();
     await loadMenu();
 
-    // Verificar que sea paciente
-    const snap = await getDoc(doc(db, "users", user.uid));
-    if (!snap.exists() || snap.data().role !== "patient") {
-      window.location.href = "index.html";
+    loadExercises(user.uid);
+    loadDiary(user.uid);
+    loadForum();
+  }
+
+  /* ======================
+     EJERCICIOS
+  ====================== */
+  async function loadExercises(uid) {
+    const container = document.getElementById("exercises-summary");
+
+    const exercisesSnap = await getDocs(
+      query(
+        collection(db, "exercises"),
+        where("active", "==", true)
+      )
+    );
+
+    const entriesSnap = await getDocs(
+      query(
+        collection(db, "entries"),
+        where("uid", "==", uid)
+      )
+    );
+
+    const completed = new Set();
+    entriesSnap.forEach(d => {
+      if (d.data().exerciseId) {
+        completed.add(d.data().exerciseId);
+      }
+    });
+
+    if (exercisesSnap.empty) {
+      container.innerHTML = "<p>No hay ejercicios asignados.</p>";
+      return;
     }
+
+    let pending = 0;
+    let done = 0;
+
+    exercisesSnap.forEach(doc => {
+      completed.has(doc.id) ? done++ : pending++;
+    });
+
+    container.innerHTML = `
+      <p><strong>Pendientes:</strong> ${pending}</p>
+      <p><strong>Realizados:</strong> ${done}</p>
+      <a href="exercises-list.html" class="btn-secondary" style="margin-top:8px;display:inline-block;">
+        Ver ejercicios
+      </a>
+    `;
+  }
+
+  /* ======================
+     DIARIO
+  ====================== */
+  async function loadDiary(uid) {
+    const container = document.getElementById("diary-summary");
+
+    const snap = await getDocs(
+      query(
+        collection(db, "entries"),
+        where("uid", "==", uid),
+        where("type", "==", "diario"),
+        orderBy("createdAt", "desc"),
+        limit(3)
+      )
+    );
+
+    if (snap.empty) {
+      container.innerHTML = "<p>No hay entradas todavía.</p>";
+      return;
+    }
+
+    snap.forEach(doc => {
+      const entry = doc.data();
+      const date = entry.createdAt?.toDate
+        ? entry.createdAt.toDate().toLocaleDateString()
+        : "";
+
+      const div = document.createElement("div");
+      div.style.marginBottom = "12px";
+      div.innerHTML = `
+        <small style="opacity:.7">${date}</small>
+        <p>${(entry.text || entry.content || "").slice(0, 120)}…</p>
+      `;
+      container.appendChild(div);
+    });
+
+    container.innerHTML += `
+      <a href="mi-diario.html" class="btn-secondary">
+        Ver mi diario
+      </a>
+    `;
+  }
+
+  /* ======================
+     FORO
+  ====================== */
+  async function loadForum() {
+    const container = document.getElementById("forum-summary");
+
+    const snap = await getDocs(
+      query(
+        collection(db, "forumTopics"),
+        orderBy("createdAt", "desc"),
+        limit(3)
+      )
+    );
+
+    if (snap.empty) {
+      container.innerHTML = "<p>No hay temas aún.</p>";
+      return;
+    }
+
+    snap.forEach(doc => {
+      const t = doc.data();
+      const div = document.createElement("div");
+      div.innerHTML = `<p>• ${t.title}</p>`;
+      container.appendChild(div);
+    });
   }
 
   init();
