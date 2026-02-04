@@ -6,8 +6,8 @@ import { db } from "./firebase.js";
 import {
   collection,
   getDocs,
-  query,
-  where
+  doc,
+  getDoc
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 /* =========================
@@ -27,11 +27,18 @@ onAuthStateChanged(auth, async (user) => {
     return;
   }
 
+  const userSnap = await getDoc(doc(db, "users", user.uid));
+  if (!userSnap.exists() || userSnap.data().role !== "admin") {
+    alert("Acceso restringido a administradores");
+    window.location.href = "index.html";
+    return;
+  }
+
   await loadPatients();
 });
 
 /* =========================
-   CARGA PACIENTES REALES
+   CARGA PACIENTES (patients)
 ========================= */
 let allPatients = [];
 
@@ -39,23 +46,18 @@ async function loadPatients() {
   listContainer.innerHTML = "Cargando pacientes...";
 
   try {
-    const q = query(
-      collection(db, "users"),
-      where("role", "==", "patient")
-    );
+    const snapshot = await getDocs(collection(db, "patients"));
 
-    const snapshot = await getDocs(q);
-
-    allPatients = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
+    allPatients = snapshot.docs.map(d => ({
+      id: d.id,
+      ...d.data()
     }));
 
     renderPatients(allPatients);
 
-  } catch (e) {
-    console.error(e);
-    listContainer.innerHTML = "Error cargando pacientes";
+  } catch (err) {
+    console.error(err);
+    listContainer.innerHTML = "Error al cargar pacientes";
   }
 }
 
@@ -64,7 +66,7 @@ async function loadPatients() {
 ========================= */
 function renderPatients(patients) {
   if (!patients.length) {
-    listContainer.innerHTML = "No hay pacientes";
+    listContainer.innerHTML = "No hay pacientes.";
     return;
   }
 
@@ -83,7 +85,7 @@ function renderPatients(patients) {
    BUSCADOR
 ========================= */
 searchInput.addEventListener("input", () => {
-  const q = searchInput.value.toLowerCase();
+  const q = searchInput.value.toLowerCase().trim();
 
   const filtered = allPatients.filter(p =>
     (p.nombre || "").toLowerCase().includes(q) ||
