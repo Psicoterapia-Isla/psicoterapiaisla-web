@@ -4,23 +4,16 @@
   <meta charset="UTF-8">
   <title>Respuestas por paciente | Psicoterapia Isla</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-  <!-- CSS base -->
   <link rel="stylesheet" href="assets/css/app.css">
 </head>
 
 <body class="app-body">
 
-<!-- MENÚ -->
 <header class="app-menu"></header>
 
-<!-- CONTENIDO -->
 <main class="app-container">
-
   <h1 class="page-title">Respuestas por paciente</h1>
-
   <div id="patients"></div>
-
 </main>
 
 <script type="module">
@@ -41,6 +34,7 @@
      ETIQUETAS CLÍNICAS
   ========================= */
   const FIELD_LABELS = {
+    texto: "Contenido",
     emociones_presentes: "Emociones presentes",
     pensamientos_automaticos: "Pensamientos automáticos",
     sensaciones_corporales: "Sensaciones corporales",
@@ -52,15 +46,16 @@
     return FIELD_LABELS[key] || key.replace(/_/g, " ");
   }
 
+  function isClinicalField(key) {
+    return !["uid", "type", "createdAt", "exerciseTitle"].includes(key);
+  }
+
   async function init() {
     await requireAuth();
     await loadMenu();
 
     const container = document.getElementById("patients");
 
-    /* =========================
-       CARGAR ENTRADAS
-    ========================= */
     const q = query(
       collection(db, "entries"),
       orderBy("createdAt", "desc")
@@ -74,35 +69,31 @@
     }
 
     /* =========================
-       AGRUPAR POR UID
+       AGRUPAR POR PACIENTE
     ========================= */
     const grouped = {};
 
-    snap.forEach(docSnap => {
-      const entry = docSnap.data();
-      if (!entry.uid || !entry.data) return;
-
+    snap.forEach(d => {
+      const entry = d.data();
+      if (!entry.uid) return;
       if (!grouped[entry.uid]) grouped[entry.uid] = [];
       grouped[entry.uid].push(entry);
     });
 
     /* =========================
-       RENDER POR PACIENTE
+       RENDER
     ========================= */
     for (const uid of Object.keys(grouped)) {
 
-      // 🔎 resolver nombre paciente
       let patientName = uid;
-      try {
-        const userSnap = await getDoc(doc(db, "users", uid));
-        if (userSnap.exists()) {
-          const u = userSnap.data();
-          patientName = `${u.nombre || ""} ${u.apellidos || ""}`.trim() || uid;
-        }
-      } catch (_) {}
+      const userSnap = await getDoc(doc(db, "users", uid));
+      if (userSnap.exists()) {
+        const u = userSnap.data();
+        patientName = u.alias || u.nombre || uid;
+      }
 
-      const patientCard = document.createElement("section");
-      patientCard.className = "card";
+      const card = document.createElement("section");
+      card.className = "card";
 
       let html = `<h2>${patientName}</h2>`;
 
@@ -113,24 +104,24 @@
 
         html += `
           <hr>
-          <p><strong>Ejercicio:</strong>
-            ${entry.exerciseTitle || entry.type || "Ejercicio"}
-          </p>
+          <p><strong>Tipo:</strong> ${entry.type}</p>
           <small style="opacity:.7">${fecha}</small>
         `;
 
-        for (const key in entry.data) {
-          html += `
-            <p>
-              <strong>${labelFor(key)}</strong><br>
-              ${entry.data[key]}
-            </p>
-          `;
-        }
+        Object.keys(entry)
+          .filter(isClinicalField)
+          .forEach(key => {
+            html += `
+              <p>
+                <strong>${labelFor(key)}</strong><br>
+                ${entry[key]}
+              </p>
+            `;
+          });
       });
 
-      patientCard.innerHTML = html;
-      container.appendChild(patientCard);
+      card.innerHTML = html;
+      container.appendChild(card);
     }
   }
 
