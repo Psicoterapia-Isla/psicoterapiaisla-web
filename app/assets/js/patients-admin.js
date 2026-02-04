@@ -11,108 +11,106 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 /* =========================
-   ELEMENTOS DOM (DEFENSIVO)
+   DOM READY
 ========================= */
-const searchInput = document.getElementById("patient-search");
-const listContainer = document.getElementById("patients-list");
+document.addEventListener("DOMContentLoaded", () => {
 
-if (!listContainer) {
-  console.error("[patients-admin] Falta #patients-list en el HTML");
-}
+  const searchInput = document.getElementById("patient-search");
+  const listContainer = document.getElementById("patients-list");
 
-/* =========================
-   AUTH
-========================= */
-const auth = getAuth();
-
-onAuthStateChanged(auth, async (user) => {
-  if (!user) {
-    window.location.href = "login.html";
+  if (!searchInput || !listContainer) {
+    console.error("Elementos del DOM no encontrados");
     return;
+  }
+
+  const auth = getAuth();
+  let allPatients = [];
+
+  /* =========================
+     AUTH
+  ========================= */
+  onAuthStateChanged(auth, async (user) => {
+    if (!user) {
+      window.location.href = "login.html";
+      return;
+    }
+
+    const userSnap = await getDoc(doc(db, "users", user.uid));
+
+    if (!userSnap.exists() || userSnap.data().role !== "admin") {
+      alert("Acceso restringido a administradores");
+      window.location.href = "index.html";
+      return;
+    }
+
+    await loadPatients();
+  });
+
+  /* =========================
+     CARGAR PACIENTES
+  ========================= */
+  async function loadPatients() {
+    listContainer.textContent = "Cargando pacientes…";
+
+    try {
+      const snapshot = await getDocs(collection(db, "patients"));
+
+      allPatients = snapshot.docs.map(d => {
+        const data = d.data();
+        return {
+          id: d.id,
+          name: data.name || "",
+          lastName: data.lastName || "",
+          dni: data.dni || "",
+          email: data.email || "",
+          phone: data.phone || ""
+        };
+      });
+
+      renderPatients(allPatients);
+
+    } catch (err) {
+      console.error(err);
+      listContainer.textContent = "Error al cargar pacientes";
+    }
   }
 
   /* =========================
-     COMPROBAR ROL ADMIN
+     RENDER
   ========================= */
-  const userSnap = await getDoc(doc(db, "users", user.uid));
+  function renderPatients(patients) {
+    if (!patients.length) {
+      listContainer.textContent = "No hay pacientes";
+      return;
+    }
 
-  if (!userSnap.exists() || userSnap.data().role !== "admin") {
-    alert("Acceso restringido a administradores");
-    window.location.href = "index.html";
-    return;
-  }
-
-  if (listContainer) {
-    await loadPatients();
-  }
-});
-
-/* =========================
-   CARGA DE PACIENTES
-========================= */
-let allPatients = [];
-
-async function loadPatients() {
-  listContainer.innerHTML = "Cargando pacientes...";
-
-  try {
-    const snapshot = await getDocs(collection(db, "patients"));
-
-    allPatients = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
-
-    renderPatients(allPatients);
-
-  } catch (error) {
-    console.error("Error cargando pacientes:", error);
-    listContainer.innerHTML = "Error al cargar pacientes.";
-  }
-}
-
-/* =========================
-   RENDER
-========================= */
-function renderPatients(patients) {
-  if (!listContainer) return;
-
-  if (!patients.length) {
-    listContainer.innerHTML = "No hay pacientes.";
-    return;
-  }
-
-  listContainer.innerHTML = patients
-    .map(p => `
+    listContainer.innerHTML = patients.map(p => `
       <div class="patient-row">
-        <strong>${p.name || ""} ${p.lastName || ""}</strong><br>
+        <strong>${p.name} ${p.lastName}</strong><br>
         <small>
-          DNI: ${p.dni || "-"} · 
-          Email: ${p.email || "-"} · 
+          DNI: ${p.dni || "-"} ·
+          Email: ${p.email || "-"} ·
           Tel: ${p.phone || "-"}
         </small>
       </div>
-    `)
-    .join("");
-}
+    `).join("");
+  }
 
-/* =========================
-   BUSCADOR (SOLO SI EXISTE)
-========================= */
-if (searchInput) {
+  /* =========================
+     BUSCADOR
+  ========================= */
   searchInput.addEventListener("input", () => {
     const q = searchInput.value.toLowerCase().trim();
 
     const filtered = allPatients.filter(p =>
-      (p.name || "").toLowerCase().includes(q) ||
-      (p.lastName || "").toLowerCase().includes(q) ||
-      (p.email || "").toLowerCase().includes(q) ||
-      (p.dni || "").toLowerCase().includes(q) ||
-      (p.phone || "").toLowerCase().includes(q)
+      p.name.toLowerCase().includes(q) ||
+      p.lastName.toLowerCase().includes(q) ||
+      p.email.toLowerCase().includes(q) ||
+      p.dni.toLowerCase().includes(q) ||
+      p.phone.toLowerCase().includes(q)
     );
 
     renderPatients(filtered);
   });
-} else {
-  console.warn("[patients-admin] Buscador no encontrado (#patient-search)");
-}
+
+});
