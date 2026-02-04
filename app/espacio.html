@@ -4,7 +4,6 @@
   <meta charset="UTF-8">
   <title>Mi espacio | Psicoterapia Isla</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
   <link rel="stylesheet" href="assets/css/app.css">
 </head>
 
@@ -14,34 +13,52 @@
 
 <main class="app-container">
 
-  <!-- SALUDO -->
-  <section id="welcome" class="card"></section>
-
-  <!-- RESUMEN -->
+  <!-- ======================
+       SALUDO
+  ====================== -->
   <section class="card">
-    <h2>Resumen</h2>
-    <div id="summary"></div>
+    <h1 id="welcome"></h1>
+    <p class="muted">
+      Este es tu espacio personal de seguimiento terapéutico.
+    </p>
   </section>
 
-  <!-- DIARIO -->
+  <!-- ======================
+       ÚLTIMAS ENTRADAS
+  ====================== -->
   <section class="card">
-    <h2>Últimas entradas del diario</h2>
-    <div id="last-entries"></div>
-    <a href="mi-diario.html" class="btn-secondary">Ver mi diario</a>
+    <h2>Últimas entradas en tu diario</h2>
+    <div id="last-diary"></div>
+
+    <a href="mi-diario.html" class="btn-secondary" style="margin-top:12px;">
+      Ver todo mi diario
+    </a>
   </section>
 
-  <!-- EJERCICIOS -->
+  <!-- ======================
+       EJERCICIOS
+  ====================== -->
   <section class="card">
     <h2>Ejercicios terapéuticos</h2>
-    <div id="exercises"></div>
-    <a href="exercises-list.html" class="btn-primary">Ver ejercicios</a>
+    <div id="pending-exercises"></div>
+
+    <a href="exercises-list.html" class="btn-primary" style="margin-top:12px;">
+      Ir a ejercicios
+    </a>
   </section>
 
-  <!-- FORO -->
+  <!-- ======================
+       FORO
+  ====================== -->
   <section class="card">
-    <h2>Foro</h2>
-    <div id="forum-suggestions"></div>
-    <a href="foro.html" class="btn-secondary">Ir al foro</a>
+    <h2>Espacio compartido</h2>
+    <p>
+      Puedes participar en el foro y leer experiencias de otras personas.
+    </p>
+
+    <a href="foro.html" class="btn-secondary">
+      Entrar al foro
+    </a>
   </section>
 
 </main>
@@ -66,132 +83,73 @@
     const user = await requireAuth();
     await loadMenu();
 
+    /* ======================
+       DATOS USUARIO
+    ====================== */
     const userSnap = await getDoc(doc(db, "users", user.uid));
-    const userData = userSnap.data();
+    const u = userSnap.exists() ? userSnap.data() : {};
+    const name = u.alias || u.nombre || "Bienvenida";
 
-    renderWelcome(userData);
+    document.getElementById("welcome").textContent =
+      `Hola, ${name}`;
 
-    loadSummary(user.uid);
-    loadLastEntries(user.uid);
-    loadExercises();
-    loadForumSuggestions();
-  }
+    /* ======================
+       ÚLTIMOS DIARIOS
+    ====================== */
+    const diaryBox = document.getElementById("last-diary");
 
-  /* ======================
-     SALUDO
-  ====================== */
-  function renderWelcome(user) {
-    document.getElementById("welcome").innerHTML = `
-      <h1>Hola, ${user.name || "bienvenida"}</h1>
-      <p>Este es tu espacio personal y seguro.</p>
-    `;
-  }
-
-  /* ======================
-     RESUMEN
-  ====================== */
-  async function loadSummary(uid) {
-    const entriesSnap = await getDocs(
-      query(
-        collection(db, "entries"),
-        where("uid", "==", uid)
-      )
+    const diaryQ = query(
+      collection(db, "entries"),
+      where("uid", "==", user.uid),
+      where("type", "==", "diario"),
+      orderBy("createdAt", "desc"),
+      limit(3)
     );
 
-    document.getElementById("summary").innerHTML = `
-      <p><strong>Ejercicios realizados:</strong> ${entriesSnap.size}</p>
-    `;
-  }
+    const diarySnap = await getDocs(diaryQ);
 
-  /* ======================
-     DIARIO
-  ====================== */
-  async function loadLastEntries(uid) {
-    const container = document.getElementById("last-entries");
+    if (diarySnap.empty) {
+      diaryBox.innerHTML = "<p class='muted'>Aún no has escrito en tu diario.</p>";
+    } else {
+      diarySnap.forEach(d => {
+        const e = d.data();
+        const fecha = e.createdAt?.toDate
+          ? e.createdAt.toDate().toLocaleDateString()
+          : "";
 
-    const snap = await getDocs(
-      query(
-        collection(db, "entries"),
-        where("uid", "==", uid),
-        orderBy("createdAt", "desc"),
-        limit(3)
-      )
-    );
-
-    if (snap.empty) {
-      container.innerHTML = "<p>Aún no has escrito en tu diario.</p>";
-      return;
+        const item = document.createElement("p");
+        item.innerHTML = `
+          <strong>${fecha}</strong><br>
+          ${e.texto || e.text || ""}
+        `;
+        diaryBox.appendChild(item);
+      });
     }
 
-    snap.forEach(docSnap => {
-      const e = docSnap.data();
-      const date = e.createdAt?.toDate
-        ? e.createdAt.toDate().toLocaleDateString()
-        : "";
+    /* ======================
+       EJERCICIOS ACTIVOS
+    ====================== */
+    const exercisesBox = document.getElementById("pending-exercises");
 
-      const div = document.createElement("div");
-      div.innerHTML = `
-        <p><strong>${e.exerciseTitle || "Entrada"}</strong></p>
-        <small>${date}</small>
-        <hr>
-      `;
-      container.appendChild(div);
-    });
-  }
-
-  /* ======================
-     EJERCICIOS
-  ====================== */
-  async function loadExercises() {
-    const container = document.getElementById("exercises");
-
-    const snap = await getDocs(
-      query(
-        collection(db, "exercises"),
-        where("active", "==", true),
-        orderBy("createdAt", "desc"),
-        limit(3)
-      )
+    const exQ = query(
+      collection(db, "exercises"),
+      where("active", "==", true),
+      orderBy("createdAt", "desc"),
+      limit(3)
     );
 
-    if (snap.empty) {
-      container.innerHTML = "<p>No hay ejercicios activos ahora mismo.</p>";
-      return;
+    const exSnap = await getDocs(exQ);
+
+    if (exSnap.empty) {
+      exercisesBox.innerHTML = "<p class='muted'>No hay ejercicios activos.</p>";
+    } else {
+      exSnap.forEach(d => {
+        const ex = d.data();
+        const div = document.createElement("p");
+        div.innerHTML = `<strong>${ex.title}</strong>`;
+        exercisesBox.appendChild(div);
+      });
     }
-
-    snap.forEach(docSnap => {
-      const ex = docSnap.data();
-      const div = document.createElement("div");
-      div.innerHTML = `<p>${ex.title}</p>`;
-      container.appendChild(div);
-    });
-  }
-
-  /* ======================
-     FORO
-  ====================== */
-  async function loadForumSuggestions() {
-    const container = document.getElementById("forum-suggestions");
-
-    const snap = await getDocs(
-      query(
-        collection(db, "forumTopics"),
-        orderBy("createdAt", "desc"),
-        limit(3)
-      )
-    );
-
-    if (snap.empty) {
-      container.innerHTML = "<p>No hay temas todavía.</p>";
-      return;
-    }
-
-    snap.forEach(docSnap => {
-      const t = docSnap.data();
-      const div = document.createElement("div");
-      div.innerHTML = `<p>${t.title}</p>`;
-      container.appendChild(div);
-    });
   }
 
   init();
