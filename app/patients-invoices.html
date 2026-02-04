@@ -2,57 +2,44 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <title>Facturación de pacientes</title>
+  <title>Facturación por paciente | Psicoterapia Isla</title>
 
-  <!-- estilos base de la app -->
-  <link rel="stylesheet" href="styles/app.css" />
-  <link rel="stylesheet" href="styles/menu.css" />
-  <link rel="stylesheet" href="styles/tables.css" />
+  <!-- CSS EXISTENTE (RUTAS CORRECTAS) -->
+  <link rel="stylesheet" href="/app/assets/css/app.css">
+  <link rel="stylesheet" href="/app/assets/css/isla-base.css">
+  <link rel="stylesheet" href="/app/assets/css/isla-theme.css">
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 </head>
 
 <body class="app-layout">
 
-  <!-- MENÚ LATERAL -->
+  <!-- MENÚ -->
   <aside class="app-menu"></aside>
 
   <!-- CONTENIDO -->
   <main class="app-content">
 
     <header class="page-header">
-      <h1>Facturación de pacientes</h1>
+      <h1>Facturación por paciente</h1>
       <p class="page-subtitle">
-        Gestión de facturas, pagos y estado económico por paciente
+        Consulta de facturas y estado de pagos
       </p>
     </header>
 
-    <!-- FILTROS -->
+    <!-- BUSCADOR / SELECTOR DE PACIENTE -->
     <section class="filters">
-      <input
-        type="text"
-        id="search-patient"
-        placeholder="Buscar paciente por nombre"
-      />
-
-      <select id="filter-status">
-        <option value="">Estado de pago</option>
-        <option value="pending">Pendiente</option>
-        <option value="paid">Pagado</option>
-        <option value="overdue">Vencido</option>
+      <label for="patient-selector">Seleccionar paciente</label>
+      <select id="patient-selector">
+        <option value="">— Selecciona un paciente —</option>
       </select>
-
-      <button id="new-invoice-btn">
-        + Nueva factura
-      </button>
     </section>
 
-    <!-- TABLA -->
+    <!-- FACTURAS -->
     <section class="table-wrapper">
-      <table class="data-table" id="invoices-table">
+      <table class="data-table">
         <thead>
           <tr>
-            <th>Paciente</th>
             <th>Concepto</th>
             <th>Fecha</th>
             <th>Importe</th>
@@ -60,17 +47,19 @@
             <th>Acciones</th>
           </tr>
         </thead>
-        <tbody>
-          <!-- filas dinámicas -->
+        <tbody id="invoices-table-body">
+          <tr>
+            <td colspan="5">Selecciona un paciente para ver sus facturas</td>
+          </tr>
         </tbody>
       </table>
     </section>
 
   </main>
 
-  <!-- scripts -->
-  <script type="module" src="js/menu.js"></script>
-  <script type="module" src="js/patient-invoices.js"></script>
+  <!-- JS (RUTAS CORRECTAS) -->
+  <script type="module" src="/app/assets/js/menu.js"></script>
+  <script type="module" src="/app/assets/js/patient-invoices.js"></script>
 
 </body>
 </html>
