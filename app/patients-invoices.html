@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Gestión de pacientes | Psicoterapia Isla</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="assets/css/app.css">
+</head>
+
+<body class="app-body">
+
+<header class="app-menu"></header>
+
+<main class="app-container">
+
+  <h1 class="page-title">Gestión de pacientes</h1>
+
+  <!-- LISTADO -->
+  <section class="card">
+    <h2>Pacientes</h2>
+    <div id="patients-list"></div>
+  </section>
+
+  <!-- CREAR PACIENTE -->
+  <section class="card">
+    <h2>Nuevo paciente</h2>
+
+    <form id="new-patient-form">
+      <input required placeholder="Nombre" id="nombre">
+      <input required placeholder="Apellidos" id="apellidos">
+      <input placeholder="DNI" id="dni">
+      <input type="email" placeholder="Email" id="email">
+
+      <button class="btn-primary" type="submit">
+        Crear paciente
+      </button>
+    </form>
+  </section>
+
+</main>
+
+<script type="module" src="assets/js/patientsAdmin.js"></script>
+</body>
+</html>
