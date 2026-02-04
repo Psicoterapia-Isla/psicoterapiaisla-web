@@ -16,7 +16,9 @@ export async function loadMenu() {
     // 🔐 Rol real
     const snap = await getDoc(doc(db, "users", user.uid));
     const role = snap.exists() ? snap.data().role : "patient";
-    const isTherapist = role === "therapist";
+
+    const isAdmin = role === "admin";
+    const isTherapist = role === "therapist" || isAdmin;
 
     menu.innerHTML = `
       <div class="app-menu-inner">
@@ -56,7 +58,7 @@ export async function loadMenu() {
             : ""
         }
 
-        <!-- TERAPEUTA -->
+        <!-- TERAPEUTA / ADMIN -->
         ${
           isTherapist
             ? `
@@ -70,6 +72,11 @@ export async function loadMenu() {
             <a href="entries-by-exercise.html">Respuestas por ejercicio</a>
             <a href="entries-by-patient.html">Respuestas por paciente</a>
             <a href="exercises-admin.html">Gestionar ejercicios</a>
+            ${
+              isAdmin
+                ? `<a href="patients-admin.html">Gestión de pacientes</a>`
+                : ""
+            }
           </div>
         </div>
         `
