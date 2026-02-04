@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Mi diario | Psicoterapia Isla</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <link rel="stylesheet" href="assets/css/app.css">
+</head>
+
+<body class="app-body">
+
+<header class="app-menu"></header>
+
+<main class="app-container">
+
+  <h1 class="page-title">Mi diario personal</h1>
+
+  <p style="opacity:.8;margin-bottom:24px;">
+    Aquí puedes revisar todo lo que has ido escribiendo durante tu proceso.
+  </p>
+
+  <div id="entries"></div>
+
+</main>
+
+<script type="module">
+  import { requireAuth } from "./assets/js/auth.js";
+  import { loadMenu } from "./assets/js/menu.js";
+  import { db } from "./assets/js/firebase.js";
+
+  import {
+    collection,
+    query,
+    where,
+    orderBy,
+    getDocs
+  } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+  async function init() {
+    const user = await requireAuth();
+    await loadMenu();
+
+    const container = document.getElementById("entries");
+
+    const q = query(
+      collection(db, "entries"),
+      where("uid", "==", user.uid),
+      orderBy("createdAt", "desc")
+    );
+
+    const snap = await getDocs(q);
+
+    if (snap.empty) {
+      container.innerHTML = `
+        <div class="card">
+          <p>Aún no has escrito ninguna entrada en tu diario.</p>
+        </div>
+      `;
+      return;
+    }
+
+    snap.forEach(docSnap => {
+      const entry = docSnap.data();
+
+      const date = entry.createdAt?.toDate
+        ? entry.createdAt.toDate().toLocaleDateString()
+        : "";
+
+      const card = document.createElement("section");
+      card.className = "card";
+
+      let html = `
+        <h2>${entry.exerciseTitle || "Entrada de diario"}</h2>
+        <small style="opacity:.7">${date}</small>
+        <div style="margin-top:16px;">
+      `;
+
+      if (entry.data) {
+        for (const key in entry.data) {
+          html += `
+            <p style="margin-bottom:12px;">
+              <strong>${key.replace(/_/g, " ")}</strong><br>
+              ${entry.data[key]}
+            </p>
+          `;
+        }
+      }
+
+      html += `</div>`;
+
+      card.innerHTML = html;
+      container.appendChild(card);
+    });
+  }
+
+  init();
+</script>
+
+</body>
+</html>
