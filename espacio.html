@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Mi espacio | Psicoterapia Isla</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- CSS base -->
+  <link rel="stylesheet" href="assets/css/app.css">
+</head>
+
+<body class="app-body">
+
+<!-- ======================
+     MENÚ
+====================== -->
+<header class="app-menu"></header>
+
+<!-- ======================
+     CONTENIDO
+====================== -->
+<main class="app-container">
+
+  <!-- TÍTULO -->
+  <h1 class="page-title">Tu espacio personal</h1>
+
+  <!-- INTRO -->
+  <section class="card">
+    <p>
+      Este espacio es privado y seguro.  
+      Aquí puedes acceder a tus ejercicios terapéuticos, tu diario personal
+      y otros recursos compartidos con tu terapeuta.
+    </p>
+  </section>
+
+  <!-- ======================
+       ACCESOS PRINCIPALES
+  ====================== -->
+  <section class="card">
+    <h2>¿Qué puedes hacer aquí?</h2>
+
+    <div style="display:grid;gap:16px;margin-top:16px;">
+
+      <a href="diario.html" class="card" style="text-decoration:none;">
+        <h3>📝 Diario personal</h3>
+        <p>Escribe y revisa tus reflexiones personales.</p>
+      </a>
+
+      <a href="exercises-list.html" class="card" style="text-decoration:none;">
+        <h3>🧩 Ejercicios terapéuticos</h3>
+        <p>Accede a los ejercicios que tienes disponibles.</p>
+      </a>
+
+      <a href="mis-entradas.html" class="card" style="text-decoration:none;">
+        <h3>📂 Mis respuestas</h3>
+        <p>Consulta los ejercicios que ya has completado.</p>
+      </a>
+
+      <a href="agenda-paciente.html" class="card" style="text-decoration:none;">
+        <h3>📅 Agenda</h3>
+        <p>Consulta tu agenda y próximas sesiones.</p>
+      </a>
+
+    </div>
+  </section>
+
+</main>
+
+<!-- ======================
+     SCRIPTS
+====================== -->
+<script type="module">
+  import { requireAuth } from "./assets/js/auth.js";
+  import { loadMenu } from "./assets/js/menu.js";
+  import { db } from "./assets/js/firebase.js";
+  import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+  async function init() {
+    const user = await requireAuth();
+    await loadMenu();
+
+    // Verificar que sea paciente
+    const snap = await getDoc(doc(db, "users", user.uid));
+    if (!snap.exists() || snap.data().role !== "patient") {
+      window.location.href = "index.html";
+    }
+  }
+
+  init();
+</script>
+
+</body>
+</html>
