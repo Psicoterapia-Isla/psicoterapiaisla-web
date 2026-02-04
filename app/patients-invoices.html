@@ -2,9 +2,9 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <title>Gestión de pacientes</title>
+  <title>Facturación por paciente | Psicoterapia Isla</title>
 
-  <!-- ESTILOS (RUTAS CORRECTAS) -->
+  <!-- CSS EXISTENTE (RUTAS CORRECTAS) -->
   <link rel="stylesheet" href="/app/assets/css/app.css">
   <link rel="stylesheet" href="/app/assets/css/isla-base.css">
   <link rel="stylesheet" href="/app/assets/css/isla-theme.css">
@@ -21,50 +21,45 @@
   <main class="app-content">
 
     <header class="page-header">
-      <h1>Pacientes</h1>
+      <h1>Facturación por paciente</h1>
       <p class="page-subtitle">
-        Listado de pacientes importados en el sistema
+        Consulta de facturas y estado de pagos
       </p>
     </header>
 
-    <!-- BUSCADOR -->
+    <!-- BUSCADOR / SELECTOR DE PACIENTE -->
     <section class="filters">
-      <input
-        type="text"
-        id="search-patient"
-        placeholder="Buscar por nombre, apellidos, DNI, email o teléfono"
-      />
+      <label for="patient-selector">Seleccionar paciente</label>
+      <select id="patient-selector">
+        <option value="">— Selecciona un paciente —</option>
+      </select>
     </section>
 
-    <!-- TABLA -->
+    <!-- FACTURAS -->
     <section class="table-wrapper">
       <table class="data-table">
         <thead>
           <tr>
-            <th>Nombre</th>
-            <th>Apellidos</th>
-            <th>DNI</th>
-            <th>Email</th>
-            <th>Teléfono</th>
+            <th>Concepto</th>
+            <th>Fecha</th>
+            <th>Importe</th>
+            <th>Estado</th>
             <th>Acciones</th>
           </tr>
         </thead>
-        <tbody id="patients-tbody">
-          <!-- filas dinámicas -->
+        <tbody id="invoices-table-body">
+          <tr>
+            <td colspan="5">Selecciona un paciente para ver sus facturas</td>
+          </tr>
         </tbody>
       </table>
     </section>
 
-    <!-- ESTADO -->
-    <p id="patients-status" class="table-status">
-      Cargando pacientes...
-    </p>
-
   </main>
 
-  <!-- SCRIPTS (RUTAS CORRECTAS) -->
+  <!-- JS (RUTAS CORRECTAS) -->
   <script type="module" src="/app/assets/js/menu.js"></script>
-  <script type="module" src="/app/assets/js/patients-admin.js"></script>
+  <script type="module" src="/app/assets/js/patient-invoices.js"></script>
 
 </body>
 </html>
