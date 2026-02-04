@@ -4,10 +4,9 @@
   <meta charset="UTF-8" />
   <title>Gestión de pacientes</title>
 
-  <!-- ESTILOS BASE (RUTAS CORRECTAS ABSOLUTAS) -->
+  <!-- ESTILOS -->
   <link rel="stylesheet" href="/app/assets/css/app.css">
   <link rel="stylesheet" href="/app/assets/css/isla-theme.css">
-  <!-- ⚠️ SOLO si esta página usa menú -->
   <link rel="stylesheet" href="/app/assets/css/menu.css">
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -15,7 +14,7 @@
 
 <body class="app-layout">
 
-  <!-- MENÚ (solo si existe menu.js y se usa aquí) -->
+  <!-- MENÚ -->
   <aside class="app-menu"></aside>
 
   <!-- CONTENIDO -->
@@ -28,7 +27,7 @@
       </p>
     </header>
 
-    <!-- BUSCADOR (ID CORRECTO) -->
+    <!-- BUSCADOR -->
     <section class="filters">
       <input
         type="text"
@@ -38,14 +37,14 @@
       />
     </section>
 
-    <!-- LISTADO (ID CORRECTO) -->
+    <!-- LISTADO -->
     <section id="patients-list" class="patients-list">
-      Cargando pacientes...
+      Cargando pacientes…
     </section>
 
   </main>
 
-  <!-- SCRIPTS (AL FINAL Y EN ORDEN) -->
+  <!-- SCRIPTS -->
   <script type="module" src="/app/assets/js/menu.js"></script>
   <script type="module" src="/app/assets/js/patients-admin.js"></script>
 
