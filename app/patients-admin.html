@@ -4,10 +4,10 @@
   <meta charset="UTF-8" />
   <title>Gestión de pacientes</title>
 
-  <!-- ESTILOS (RUTAS CORRECTAS) -->
-  <link rel="stylesheet" href="/app/assets/css/app.css">
-  <link rel="stylesheet" href="/app/assets/css/isla-base.css">
-  <link rel="stylesheet" href="/app/assets/css/isla-theme.css">
+  <!-- ESTILOS BASE -->
+  <link rel="stylesheet" href="assets/css/app.css">
+  <link rel="stylesheet" href="assets/css/menu.css">
+  <link rel="stylesheet" href="assets/css/isla-theme.css">
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 </head>
@@ -31,40 +31,21 @@
     <section class="filters">
       <input
         type="text"
-        id="search-patient"
-        placeholder="Buscar por nombre, apellidos, DNI, email o teléfono"
+        id="patient-search"
+        placeholder="Buscar por nombre, apellido, DNI, email o teléfono"
       />
     </section>
 
-    <!-- TABLA -->
-    <section class="table-wrapper">
-      <table class="data-table">
-        <thead>
-          <tr>
-            <th>Nombre</th>
-            <th>Apellidos</th>
-            <th>DNI</th>
-            <th>Email</th>
-            <th>Teléfono</th>
-            <th>Acciones</th>
-          </tr>
-        </thead>
-        <tbody id="patients-tbody">
-          <!-- filas dinámicas -->
-        </tbody>
-      </table>
-    </section>
-
-    <!-- ESTADO -->
-    <p id="patients-status" class="table-status">
+    <!-- LISTADO -->
+    <section id="patients-list" class="patients-list">
       Cargando pacientes...
-    </p>
+    </section>
 
   </main>
 
-  <!-- SCRIPTS (RUTAS CORRECTAS) -->
-  <script type="module" src="/app/assets/js/menu.js"></script>
-  <script type="module" src="/app/assets/js/patients-admin.js"></script>
+  <!-- SCRIPTS -->
+  <script type="module" src="assets/js/menu.js"></script>
+  <script type="module" src="assets/js/patients-admin.js"></script>
 
 </body>
 </html>
