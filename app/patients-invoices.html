@@ -1,150 +1,76 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <title>Facturación de pacientes | Psicoterapia Isla</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <title>Facturación de pacientes</title>
 
-  <!-- CSS base existente -->
-  <link rel="stylesheet" href="assets/css/app.css">
+  <!-- estilos base de la app -->
+  <link rel="stylesheet" href="styles/app.css" />
+  <link rel="stylesheet" href="styles/menu.css" />
+  <link rel="stylesheet" href="styles/tables.css" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 </head>
 
-<body class="app-body">
+<body class="app-layout">
 
-<!-- MENÚ (ESTABLE, NO SE TOCA) -->
-<header class="app-menu"></header>
+  <!-- MENÚ LATERAL -->
+  <aside class="app-menu"></aside>
 
-<main class="app-container">
+  <!-- CONTENIDO -->
+  <main class="app-content">
 
-  <h1 class="page-title">Facturación de pacientes</h1>
+    <header class="page-header">
+      <h1>Facturación de pacientes</h1>
+      <p class="page-subtitle">
+        Gestión de facturas, pagos y estado económico por paciente
+      </p>
+    </header>
 
-  <!-- ======================
-       SELECTOR PACIENTE
-  ====================== -->
-  <section class="card">
-    <label>
-      Selecciona un paciente
-      <select id="patient-select">
-        <option value="">— Seleccionar —</option>
+    <!-- FILTROS -->
+    <section class="filters">
+      <input
+        type="text"
+        id="search-patient"
+        placeholder="Buscar paciente por nombre"
+      />
+
+      <select id="filter-status">
+        <option value="">Estado de pago</option>
+        <option value="pending">Pendiente</option>
+        <option value="paid">Pagado</option>
+        <option value="overdue">Vencido</option>
       </select>
-    </label>
-  </section>
 
-  <!-- ======================
-       FACTURAS
-  ====================== -->
-  <section class="card">
-    <h2>Facturas</h2>
-    <div id="invoices-list">
-      <p style="opacity:.6">Selecciona un paciente para ver sus facturas.</p>
-    </div>
-  </section>
+      <button id="new-invoice-btn">
+        + Nueva factura
+      </button>
+    </section>
 
-</main>
+    <!-- TABLA -->
+    <section class="table-wrapper">
+      <table class="data-table" id="invoices-table">
+        <thead>
+          <tr>
+            <th>Paciente</th>
+            <th>Concepto</th>
+            <th>Fecha</th>
+            <th>Importe</th>
+            <th>Estado</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- filas dinámicas -->
+        </tbody>
+      </table>
+    </section>
 
-<!-- ======================
-     SCRIPT
-====================== -->
-<script type="module">
-  import { requireAuth } from "./assets/js/auth.js";
-  import { loadMenu } from "./assets/js/menu.js";
-  import { db } from "./assets/js/firebase.js";
+  </main>
 
-  import {
-    collection,
-    query,
-    where,
-    getDocs
-  } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
-  async function init() {
-    const user = await requireAuth();
-    await loadMenu();
-
-    // 🔐 SOLO ADMIN
-    const meSnap = await getDocs(
-      query(collection(db, "users"), where("__name__", "==", user.uid))
-    );
-
-    let isAdmin = false;
-    meSnap.forEach(d => {
-      if (d.data().role === "admin") isAdmin = true;
-    });
-
-    if (!isAdmin) {
-      alert("Acceso solo para administradores");
-      location.href = "index.html";
-      return;
-    }
-
-    loadPatients();
-  }
-
-  /* ======================
-     CARGAR PACIENTES
-  ====================== */
-  async function loadPatients() {
-    const select = document.getElementById("patient-select");
-
-    const snap = await getDocs(collection(db, "patients"));
-
-    if (snap.empty) {
-      select.innerHTML += `<option disabled>No hay pacientes</option>`;
-      return;
-    }
-
-    snap.forEach(docSnap => {
-      const p = docSnap.data();
-      const opt = document.createElement("option");
-      opt.value = docSnap.id;
-      opt.textContent = `${p.nombre || ""} ${p.apellidos || ""}`.trim();
-      select.appendChild(opt);
-    });
-
-    select.addEventListener("change", () => {
-      if (select.value) loadInvoices(select.value);
-    });
-  }
-
-  /* ======================
-     CARGAR FACTURAS
-  ====================== */
-  async function loadInvoices(patientId) {
-    const container = document.getElementById("invoices-list");
-    container.innerHTML = "<p>Cargando facturas…</p>";
-
-    const q = query(
-      collection(db, "invoices"),
-      where("patientId", "==", patientId)
-    );
-
-    const snap = await getDocs(q);
-
-    if (snap.empty) {
-      container.innerHTML = "<p>No hay facturas para este paciente.</p>";
-      return;
-    }
-
-    container.innerHTML = "";
-
-    snap.forEach(docSnap => {
-      const inv = docSnap.data();
-
-      const card = document.createElement("div");
-      card.className = "card";
-
-      card.innerHTML = `
-        <strong>Factura ${inv.invoiceNumber || "(borrador)"}</strong>
-        <p>Estado: <strong>${inv.status}</strong></p>
-        <p>Total: ${inv.totalAmount} €</p>
-      `;
-
-      container.appendChild(card);
-    });
-  }
-
-  init();
-</script>
+  <!-- scripts -->
+  <script type="module" src="js/menu.js"></script>
+  <script type="module" src="js/patient-invoices.js"></script>
 
 </body>
 </html>
