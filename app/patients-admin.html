@@ -4,8 +4,6 @@
   <meta charset="UTF-8">
   <title>Gestión de pacientes | Psicoterapia Isla</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-  <!-- CSS base -->
   <link rel="stylesheet" href="assets/css/app.css">
 </head>
 
@@ -18,53 +16,15 @@
   <h1 class="page-title">Gestión de pacientes</h1>
 
   <!-- ======================
-       CREAR PACIENTE
+       LISTADO
   ====================== -->
   <section class="card">
-    <h2>Nuevo paciente</h2>
-
-    <form id="patient-form">
-
-      <label>
-        Nombre completo
-        <input
-          type="text"
-          id="name"
-          placeholder="Nombre y apellidos"
-          required
-        >
-      </label>
-
-      <label>
-        Email
-        <input
-          type="email"
-          id="email"
-          placeholder="email del paciente"
-          required
-        >
-      </label>
-
-      <button type="submit" class="btn-primary">
-        Crear paciente
-      </button>
-
-    </form>
-  </section>
-
-  <!-- ======================
-       LISTADO PACIENTES
-  ====================== -->
-  <section style="margin-top:32px;">
-    <h2>Pacientes</h2>
+    <h2>Pacientes registrados</h2>
     <div id="patients-list"></div>
   </section>
 
 </main>
 
-<!-- ======================
-     SCRIPT
-====================== -->
 <script type="module">
   import { requireAuth } from "./assets/js/auth.js";
   import { loadMenu } from "./assets/js/menu.js";
@@ -72,123 +32,78 @@
 
   import {
     collection,
-    addDoc,
     getDocs,
-    query,
-    where,
-    serverTimestamp,
-    deleteDoc,
-    doc
+    doc,
+    getDoc,
+    updateDoc
   } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-  /* ======================
-     INIT
-  ====================== */
   async function init() {
     const user = await requireAuth();
     await loadMenu();
 
-    // solo terapeuta
-    const usersSnap = await getDocs(
-      query(
-        collection(db, "users"),
-        where("__name__", "==", user.uid)
-      )
-    );
-
-    const me = usersSnap.docs[0]?.data();
-    if (!me || me.role !== "therapist") {
+    // Verificar terapeuta
+    const me = await getDoc(doc(db, "users", user.uid));
+    if (!me.exists() || me.data().role !== "therapist") {
       alert("Acceso solo para terapeutas");
-      window.location.href = "index.html";
+      location.href = "index.html";
       return;
     }
 
-    setupForm(user);
-    loadPatients(user.uid);
+    loadPatients();
   }
 
-  /* ======================
-     FORMULARIO
-  ====================== */
-  function setupForm(user) {
-    const form = document.getElementById("patient-form");
-
-    form.addEventListener("submit", async (e) => {
-      e.preventDefault();
-
-      const name = document.getElementById("name").value.trim();
-      const email = document.getElementById("email").value.trim();
-
-      if (!name || !email) {
-        alert("Nombre y email obligatorios");
-        return;
-      }
-
-      await addDoc(collection(db, "patients"), {
-        name,
-        email,
-        therapistId: user.uid,
-        active: true,
-        createdAt: serverTimestamp()
-      });
-
-      form.reset();
-      loadPatients(user.uid);
-    });
-  }
-
-  /* ======================
-     LISTADO
-  ====================== */
-  async function loadPatients(therapistId) {
+  async function loadPatients() {
     const container = document.getElementById("patients-list");
     container.innerHTML = "";
 
-    const snap = await getDocs(
-      query(
-        collection(db, "patients"),
-        where("therapistId", "==", therapistId)
-      )
-    );
+    const snap = await getDocs(collection(db, "users"));
 
     if (snap.empty) {
-      container.innerHTML = "<p>No hay pacientes creados.</p>";
+      container.innerHTML = "<p>No hay usuarios.</p>";
       return;
     }
 
     snap.forEach(docSnap => {
-      const p = docSnap.data();
+      const u = docSnap.data();
+      if (u.role !== "patient") return;
 
       const card = document.createElement("div");
       card.className = "card";
 
       card.innerHTML = `
-        <h3>${p.name}</h3>
-        <p>${p.email}</p>
-        <p style="opacity:.7">
-          Estado: ${p.active ? "Activo" : "Inactivo"}
+        <label>
+          Nombre
+          <input type="text" value="${u.nombre || ""}" data-field="nombre">
+        </label>
+
+        <label>
+          Apellidos
+          <input type="text" value="${u.apellidos || ""}" data-field="apellidos">
+        </label>
+
+        <label>
+          Alias (nombre visible en la app)
+          <input type="text" value="${u.alias || ""}" data-field="alias">
+        </label>
+
+        <p style="opacity:.7;margin-top:8px;">
+          ${u.email || "email no registrado"}
         </p>
 
-        <div style="display:flex;gap:8px;flex-wrap:wrap;">
-          <button class="btn-secondary" data-view>
-            Ver respuestas
-          </button>
-
-          <button class="btn-secondary" data-delete>
-            Eliminar
-          </button>
-        </div>
+        <button class="btn-primary" style="margin-top:12px;">
+          Guardar cambios
+        </button>
       `;
 
-      card.querySelector("[data-view]").addEventListener("click", () => {
-        window.location.href =
-          `entries-by-patient.html?patientId=${docSnap.id}`;
-      });
+      card.querySelector("button").addEventListener("click", async () => {
+        const inputs = card.querySelectorAll("input");
+        const update = {};
 
-      card.querySelector("[data-delete]").addEventListener("click", async () => {
-        if (!confirm("¿Eliminar paciente?")) return;
-        await deleteDoc(doc(db, "patients", docSnap.id));
-        loadPatients(therapistId);
+        inputs.forEach(i => update[i.dataset.field] = i.value.trim());
+
+        await updateDoc(doc(db, "users", docSnap.id), update);
+        alert("Paciente actualizado");
       });
 
       container.appendChild(card);
