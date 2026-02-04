@@ -2,9 +2,8 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Respuestas por paciente | Psicoterapia Isla</title>
+  <title>Respuestas por ejercicio | Psicoterapia Isla</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
   <link rel="stylesheet" href="assets/css/app.css">
 </head>
 
@@ -14,11 +13,9 @@
 
 <main class="app-container">
 
-  <h1 class="page-title">Respuestas del paciente</h1>
+  <h1 class="page-title">Respuestas por ejercicio</h1>
 
-  <section id="patient-info" class="card"></section>
-
-  <section id="entries"></section>
+  <div id="entries"></div>
 
 </main>
 
@@ -28,8 +25,6 @@
   import { db } from "./assets/js/firebase.js";
 
   import {
-    doc,
-    getDoc,
     collection,
     query,
     where,
@@ -37,93 +32,66 @@
     getDocs
   } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
+  /* =========================
+     INIT
+  ========================= */
   async function init() {
     await requireAuth();
     await loadMenu();
 
     const params = new URLSearchParams(window.location.search);
-    const patientId = params.get("patientId");
+    const uid = params.get("uid");
+    const exerciseId = params.get("exerciseId");
 
-    if (!patientId) {
-      alert("Paciente no especificado");
-      window.location.href = "patients-admin.html";
+    // ⛔ SIN CONTEXTO → REDIRIGIR
+    if (!uid && !exerciseId) {
+      window.location.replace("entries-by-patient.html");
       return;
     }
 
-    const patientRef = doc(db, "patients", patientId);
-    const patientSnap = await getDoc(patientRef);
-
-    if (!patientSnap.exists()) {
-      alert("Paciente no encontrado");
-      return;
-    }
-
-    const patient = patientSnap.data();
-
-    renderPatientInfo(patient);
-
-    loadEntries(patientId);
-  }
-
-  /* ======================
-     INFO PACIENTE
-  ====================== */
-  function renderPatientInfo(patient) {
-    const box = document.getElementById("patient-info");
-
-    box.innerHTML = `
-      <h2>${patient.name}</h2>
-      <p>${patient.email}</p>
-      <p style="opacity:.7">
-        Estado: ${patient.active ? "Activo" : "Inactivo"}
-      </p>
-    `;
-  }
-
-  /* ======================
-     ENTRADAS
-  ====================== */
-  async function loadEntries(patientId) {
     const container = document.getElementById("entries");
-    container.innerHTML = "";
 
-    const q = query(
-      collection(db, "entries"),
-      where("patientId", "==", patientId),
-      orderBy("createdAt", "desc")
-    );
+    let q;
+
+    if (uid) {
+      q = query(
+        collection(db, "entries"),
+        where("uid", "==", uid),
+        orderBy("createdAt", "desc")
+      );
+    } else {
+      q = query(
+        collection(db, "entries"),
+        where("exerciseId", "==", exerciseId),
+        orderBy("createdAt", "desc")
+      );
+    }
 
     const snap = await getDocs(q);
 
     if (snap.empty) {
-      container.innerHTML = `
-        <div class="card">
-          <p>No hay respuestas registradas para este paciente.</p>
-        </div>
-      `;
+      container.innerHTML = "<p>No hay respuestas registradas.</p>";
       return;
     }
 
     snap.forEach(docSnap => {
       const entry = docSnap.data();
+      if (!entry.data) return;
 
       const card = document.createElement("section");
       card.className = "card";
 
-      const date = entry.createdAt?.toDate
-        ? entry.createdAt.toDate().toLocaleString()
-        : "";
-
       let html = `
-        <h3>${entry.exerciseTitle || "Ejercicio"}</h3>
-        <small style="opacity:.7">${date}</small>
-        <hr>
+        <h2>${entry.exerciseTitle || entry.type || "Ejercicio"}</h2>
+        <small style="opacity:.7">
+          ${entry.createdAt?.toDate ? entry.createdAt.toDate().toLocaleString() : ""}
+        </small>
       `;
 
       for (const key in entry.data) {
         html += `
           <p>
-            <strong>${formatLabel(key)}</strong><br>
+            <strong>${key.replace(/_/g, " ")}</strong><br>
             ${entry.data[key]}
           </p>
         `;
@@ -132,12 +100,6 @@
       card.innerHTML = html;
       container.appendChild(card);
     });
-  }
-
-  function formatLabel(key) {
-    return key
-      .replace(/_/g, " ")
-      .replace(/\b\w/g, l => l.toUpperCase());
   }
 
   init();
