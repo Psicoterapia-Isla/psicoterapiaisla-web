@@ -2,14 +2,14 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <title>Pacientes | Psicoterapia Isla</title>
+  <title>Gestión de pacientes</title>
 
-  <!-- CSS QUE EXISTE DE VERDAD -->
-  <link rel="stylesheet" href="assets/css/app.css">
-  <link rel="stylesheet" href="assets/css/isla-base.css">
-  <link rel="stylesheet" href="assets/css/isla-theme.css">
+  <!-- ESTILOS (RUTAS CORRECTAS) -->
+  <link rel="stylesheet" href="/app/assets/css/app.css">
+  <link rel="stylesheet" href="/app/assets/css/isla-base.css">
+  <link rel="stylesheet" href="/app/assets/css/isla-theme.css">
 
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 </head>
 
 <body class="app-layout">
@@ -27,16 +27,16 @@
       </p>
     </header>
 
-    <!-- BUSCADOR (ID OBLIGATORIO) -->
+    <!-- BUSCADOR -->
     <section class="filters">
       <input
         type="text"
         id="search-patient"
-        placeholder="Buscar por nombre, apellido, DNI, email o teléfono"
+        placeholder="Buscar por nombre, apellidos, DNI, email o teléfono"
       />
     </section>
 
-    <!-- TABLA (ID OBLIGATORIO) -->
+    <!-- TABLA -->
     <section class="table-wrapper">
       <table class="data-table">
         <thead>
@@ -49,19 +49,22 @@
             <th>Acciones</th>
           </tr>
         </thead>
-        <tbody id="patients-table-body">
-          <tr>
-            <td colspan="6">Cargando pacientes…</td>
-          </tr>
+        <tbody id="patients-tbody">
+          <!-- filas dinámicas -->
         </tbody>
       </table>
     </section>
 
+    <!-- ESTADO -->
+    <p id="patients-status" class="table-status">
+      Cargando pacientes...
+    </p>
+
   </main>
 
-  <!-- JS (RUTAS REALES) -->
-  <script type="module" src="assets/js/menu.js"></script>
-  <script type="module" src="assets/js/patients-admin.js"></script>
+  <!-- SCRIPTS (RUTAS CORRECTAS) -->
+  <script type="module" src="/app/assets/js/menu.js"></script>
+  <script type="module" src="/app/assets/js/patients-admin.js"></script>
 
 </body>
 </html>
