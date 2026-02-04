@@ -1,52 +1,124 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8" />
-  <title>Gestión de pacientes</title>
+import { getAuth, onAuthStateChanged } 
+  from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-  <!-- ESTILOS -->
-  <link rel="stylesheet" href="/app/assets/css/app.css">
-  <link rel="stylesheet" href="/app/assets/css/isla-theme.css">
-  <link rel="stylesheet" href="/app/assets/css/menu.css">
+import { db } from "./firebase.js";
 
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-</head>
+import {
+  collection,
+  getDocs,
+  doc,
+  getDoc,
+  setDoc
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-<body class="app-layout">
+/* =========================
+   DOM
+========================= */
+const searchInput = document.getElementById("patient-search");
+const listContainer = document.getElementById("patients-list");
 
-  <!-- MENÚ -->
-  <aside class="app-menu"></aside>
+/* =========================
+   AUTH
+========================= */
+const auth = getAuth();
 
-  <!-- CONTENIDO -->
-  <main class="app-content">
+onAuthStateChanged(auth, async (user) => {
+  if (!user) {
+    window.location.href = "login.html";
+    return;
+  }
 
-    <header class="page-header">
-      <h1>Pacientes</h1>
-      <p class="page-subtitle">
-        Listado de pacientes importados en el sistema
-      </p>
-    </header>
+  const userSnap = await getDoc(doc(db, "users", user.uid));
+  if (!userSnap.exists() || userSnap.data().role !== "admin") {
+    alert("Acceso solo para administradores");
+    window.location.href = "index.html";
+    return;
+  }
 
-    <!-- BUSCADOR -->
-    <section class="filters">
-      <input
-        type="text"
-        id="patient-search"
-        placeholder="Buscar por nombre, apellido, DNI, email o teléfono"
-        autocomplete="off"
-      />
-    </section>
+  await syncPatientsFromUsers();
+  await loadPatients();
+});
 
-    <!-- LISTADO -->
-    <section id="patients-list" class="patients-list">
-      Cargando pacientes…
-    </section>
+/* =========================
+   SINCRONIZAR USERS → PATIENTS
+========================= */
+async function syncPatientsFromUsers() {
+  const usersSnap = await getDocs(collection(db, "users"));
 
-  </main>
+  for (const u of usersSnap.docs) {
+    const data = u.data();
 
-  <!-- SCRIPTS -->
-  <script type="module" src="/app/assets/js/menu.js"></script>
-  <script type="module" src="/app/assets/js/patients-admin.js"></script>
+    if (data.role !== "patient") continue;
 
-</body>
-</html>
+    const patientRef = doc(db, "patients", u.id);
+    const patientSnap = await getDoc(patientRef);
+
+    if (!patientSnap.exists()) {
+      await setDoc(patientRef, {
+        nombre: data.nombre || "",
+        apellidos: data.apellidos || "",
+        email: data.email || "",
+        phone: data.phone || "",
+        dni: data.dni || "",
+        source: "auto-from-users",
+        createdAt: new Date()
+      });
+    }
+  }
+}
+
+/* =========================
+   CARGAR PACIENTES
+========================= */
+let allPatients = [];
+
+async function loadPatients() {
+  listContainer.innerHTML = "Cargando pacientes...";
+
+  const snapshot = await getDocs(collection(db, "patients"));
+
+  allPatients = snapshot.docs.map(doc => ({
+    id: doc.id,
+    ...doc.data()
+  }));
+
+  renderPatients(allPatients);
+}
+
+/* =========================
+   RENDER
+========================= */
+function renderPatients(patients) {
+  if (!patients.length) {
+    listContainer.innerHTML = "No hay pacientes.";
+    return;
+  }
+
+  listContainer.innerHTML = patients.map(p => `
+    <div class="patient-row">
+      <strong>${p.nombre || ""} ${p.apellidos || ""}</strong><br>
+      <small>
+        DNI: ${p.dni || "-"} · 
+        Email: ${p.email || "-"} · 
+        Tel: ${p.phone || "-"}
+      </small>
+    </div>
+  `).join("");
+}
+
+/* =========================
+   BUSCADOR
+========================= */
+searchInput.addEventListener("input", () => {
+  const q = searchInput.value.toLowerCase().trim();
+
+  const filtered = allPatients.filter(p =>
+    (p.nombre || "").toLowerCase().includes(q) ||
+    (p.apellidos || "").toLowerCase().includes(q) ||
+    (p.email || "").toLowerCase().includes(q) ||
+    (p.dni || "").toLowerCase().includes(q) ||
+    (p.phone || "").toLowerCase().includes(q)
+  );
+
+  renderPatients(filtered);
+});
