@@ -2,94 +2,146 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Respuestas de ejercicios | Psicoterapia Isla</title>
+  <title>Respuestas por paciente | Psicoterapia Isla</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <!-- CSS base -->
   <link rel="stylesheet" href="assets/css/app.css">
 </head>
 
 <body class="app-body">
 
-  <!-- MENÚ (se rellena por JS) -->
-  <header class="app-menu"></header>
+<header class="app-menu"></header>
 
-  <!-- CONTENIDO -->
-  <main class="app-container">
+<main class="app-container">
 
-    <h1 class="page-title">Respuestas de ejercicios</h1>
+  <h1 class="page-title">Respuestas del paciente</h1>
 
-    <div id="entries"></div>
+  <section id="patient-info" class="card"></section>
 
-  </main>
+  <section id="entries"></section>
 
-  <!-- SCRIPT -->
-  <script type="module">
-    import { requireAuth } from "./assets/js/auth.js";
-    import { loadMenu } from "./assets/js/menu.js";
-    import { db } from "./assets/js/firebase.js";
+</main>
 
-    import {
-      collection,
-      query,
-      orderBy,
-      getDocs
-    } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+<script type="module">
+  import { requireAuth } from "./assets/js/auth.js";
+  import { loadMenu } from "./assets/js/menu.js";
+  import { db } from "./assets/js/firebase.js";
 
-    async function init() {
-      // 🔐 Auth + menú
-      await requireAuth();
-      await loadMenu();
+  import {
+    doc,
+    getDoc,
+    collection,
+    query,
+    where,
+    orderBy,
+    getDocs
+  } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-      const container = document.getElementById("entries");
+  async function init() {
+    await requireAuth();
+    await loadMenu();
 
-      // 🔎 Cargar respuestas
-      const q = query(
-        collection(db, "entries"),
-        orderBy("createdAt", "desc")
-      );
+    const params = new URLSearchParams(window.location.search);
+    const patientId = params.get("patientId");
 
-      const snap = await getDocs(q);
-
-      if (snap.empty) {
-        container.innerHTML = "<p>No hay respuestas todavía.</p>";
-        return;
-      }
-
-      snap.forEach(docSnap => {
-        const entry = docSnap.data();
-        if (!entry.data) return;
-
-        const card = document.createElement("div");
-        card.className = "card";
-
-        let html = `
-          <h2>${entry.exerciseTitle || entry.type || "Ejercicio"}</h2>
-          <small style="opacity:.7">
-            ${
-              entry.createdAt?.toDate
-                ? entry.createdAt.toDate().toLocaleString()
-                : ""
-            }
-          </small>
-        `;
-
-        for (const key in entry.data) {
-          html += `
-            <p>
-              <strong>${key.replace(/_/g, " ")}</strong><br>
-              ${entry.data[key]}
-            </p>
-          `;
-        }
-
-        card.innerHTML = html;
-        container.appendChild(card);
-      });
+    if (!patientId) {
+      alert("Paciente no especificado");
+      window.location.href = "patients-admin.html";
+      return;
     }
 
-    init();
-  </script>
+    const patientRef = doc(db, "patients", patientId);
+    const patientSnap = await getDoc(patientRef);
+
+    if (!patientSnap.exists()) {
+      alert("Paciente no encontrado");
+      return;
+    }
+
+    const patient = patientSnap.data();
+
+    renderPatientInfo(patient);
+
+    loadEntries(patientId);
+  }
+
+  /* ======================
+     INFO PACIENTE
+  ====================== */
+  function renderPatientInfo(patient) {
+    const box = document.getElementById("patient-info");
+
+    box.innerHTML = `
+      <h2>${patient.name}</h2>
+      <p>${patient.email}</p>
+      <p style="opacity:.7">
+        Estado: ${patient.active ? "Activo" : "Inactivo"}
+      </p>
+    `;
+  }
+
+  /* ======================
+     ENTRADAS
+  ====================== */
+  async function loadEntries(patientId) {
+    const container = document.getElementById("entries");
+    container.innerHTML = "";
+
+    const q = query(
+      collection(db, "entries"),
+      where("patientId", "==", patientId),
+      orderBy("createdAt", "desc")
+    );
+
+    const snap = await getDocs(q);
+
+    if (snap.empty) {
+      container.innerHTML = `
+        <div class="card">
+          <p>No hay respuestas registradas para este paciente.</p>
+        </div>
+      `;
+      return;
+    }
+
+    snap.forEach(docSnap => {
+      const entry = docSnap.data();
+
+      const card = document.createElement("section");
+      card.className = "card";
+
+      const date = entry.createdAt?.toDate
+        ? entry.createdAt.toDate().toLocaleString()
+        : "";
+
+      let html = `
+        <h3>${entry.exerciseTitle || "Ejercicio"}</h3>
+        <small style="opacity:.7">${date}</small>
+        <hr>
+      `;
+
+      for (const key in entry.data) {
+        html += `
+          <p>
+            <strong>${formatLabel(key)}</strong><br>
+            ${entry.data[key]}
+          </p>
+        `;
+      }
+
+      card.innerHTML = html;
+      container.appendChild(card);
+    });
+  }
+
+  function formatLabel(key) {
+    return key
+      .replace(/_/g, " ")
+      .replace(/\b\w/g, l => l.toUpperCase());
+  }
+
+  init();
+</script>
 
 </body>
 </html>
