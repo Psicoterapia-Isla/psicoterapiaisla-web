@@ -7,12 +7,11 @@ import {
   collection,
   getDocs,
   doc,
-  getDoc,
-  setDoc
+  getDoc
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 /* =========================
-   DOM
+   ELEMENTOS DOM
 ========================= */
 const searchInput = document.getElementById("patient-search");
 const listContainer = document.getElementById("patients-list");
@@ -29,78 +28,73 @@ onAuthStateChanged(auth, async (user) => {
   }
 
   const userSnap = await getDoc(doc(db, "users", user.uid));
+
   if (!userSnap.exists() || userSnap.data().role !== "admin") {
-    alert("Acceso solo para administradores");
+    alert("Acceso restringido a administradores");
     window.location.href = "index.html";
     return;
   }
 
-  await syncPatientsFromUsers();
-  await loadPatients();
+  await loadAllPeople();
 });
 
 /* =========================
-   SINCRONIZAR USERS → PATIENTS
+   CARGA GLOBAL
 ========================= */
-async function syncPatientsFromUsers() {
-  const usersSnap = await getDocs(collection(db, "users"));
+let allPeople = [];
 
-  for (const u of usersSnap.docs) {
-    const data = u.data();
+async function loadAllPeople() {
+  listContainer.innerHTML = "Cargando datos...";
 
-    if (data.role !== "patient") continue;
+  try {
+    const patientsSnap = await getDocs(collection(db, "patients"));
+    const usersSnap = await getDocs(collection(db, "users"));
 
-    const patientRef = doc(db, "patients", u.id);
-    const patientSnap = await getDoc(patientRef);
+    const patients = patientsSnap.docs.map(d => ({
+      id: d.id,
+      source: "patients",
+      ...d.data()
+    }));
 
-    if (!patientSnap.exists()) {
-      await setDoc(patientRef, {
-        nombre: data.nombre || "",
-        apellidos: data.apellidos || "",
-        email: data.email || "",
-        phone: data.phone || "",
-        dni: data.dni || "",
-        source: "auto-from-users",
-        createdAt: new Date()
-      });
-    }
+    const users = usersSnap.docs
+      .filter(d => d.data().role === "patient")
+      .map(d => ({
+        id: d.id,
+        source: "users",
+        nombre: d.data().name || "",
+        apellidos: d.data().lastName || "",
+        email: d.data().email || "",
+        dni: d.data().dni || "",
+        telefono: d.data().phone || ""
+      }));
+
+    allPeople = [...patients, ...users];
+
+    render(allPeople);
+
+  } catch (e) {
+    console.error(e);
+    listContainer.innerHTML = "Error cargando datos.";
   }
-}
-
-/* =========================
-   CARGAR PACIENTES
-========================= */
-let allPatients = [];
-
-async function loadPatients() {
-  listContainer.innerHTML = "Cargando pacientes...";
-
-  const snapshot = await getDocs(collection(db, "patients"));
-
-  allPatients = snapshot.docs.map(doc => ({
-    id: doc.id,
-    ...doc.data()
-  }));
-
-  renderPatients(allPatients);
 }
 
 /* =========================
    RENDER
 ========================= */
-function renderPatients(patients) {
-  if (!patients.length) {
-    listContainer.innerHTML = "No hay pacientes.";
+function render(list) {
+  if (!list.length) {
+    listContainer.innerHTML = "No hay registros.";
     return;
   }
 
-  listContainer.innerHTML = patients.map(p => `
+  listContainer.innerHTML = list.map(p => `
     <div class="patient-row">
       <strong>${p.nombre || ""} ${p.apellidos || ""}</strong><br>
       <small>
         DNI: ${p.dni || "-"} · 
         Email: ${p.email || "-"} · 
-        Tel: ${p.phone || "-"}
+        Tel: ${p.telefono || "-"} · 
+        Origen: ${p.source}
       </small>
     </div>
   `).join("");
@@ -112,13 +106,11 @@ function renderPatients(patients) {
 searchInput.addEventListener("input", () => {
   const q = searchInput.value.toLowerCase().trim();
 
-  const filtered = allPatients.filter(p =>
-    (p.nombre || "").toLowerCase().includes(q) ||
-    (p.apellidos || "").toLowerCase().includes(q) ||
-    (p.email || "").toLowerCase().includes(q) ||
-    (p.dni || "").toLowerCase().includes(q) ||
-    (p.phone || "").toLowerCase().includes(q)
+  const filtered = allPeople.filter(p =>
+    Object.values(p).some(v =>
+      String(v).toLowerCase().includes(q)
+    )
   );
 
-  renderPatients(filtered);
+  render(filtered);
 });
