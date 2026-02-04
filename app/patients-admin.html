@@ -15,9 +15,6 @@
 
   <h1 class="page-title">Gestión de pacientes</h1>
 
-  <!-- ======================
-       LISTADO
-  ====================== -->
   <section class="card">
     <h2>Pacientes registrados</h2>
     <div id="patients-list"></div>
@@ -42,10 +39,14 @@
     const user = await requireAuth();
     await loadMenu();
 
-    // Verificar terapeuta
-    const me = await getDoc(doc(db, "users", user.uid));
-    if (!me.exists() || me.data().role !== "therapist") {
-      alert("Acceso solo para terapeutas");
+    // 🔐 verificar admin
+    const meSnap = await getDoc(doc(db, "users", user.uid));
+    if (
+      !meSnap.exists() ||
+      meSnap.data().role !== "therapist" ||
+      meSnap.data().isAdmin !== true
+    ) {
+      alert("Acceso solo para administradores");
       location.href = "index.html";
       return;
     }
@@ -66,12 +67,15 @@
 
     snap.forEach(docSnap => {
       const u = docSnap.data();
+
       if (u.role !== "patient") return;
 
       const card = document.createElement("div");
       card.className = "card";
 
       card.innerHTML = `
+        <strong>${u.nombre || "Paciente sin nombre"} ${u.apellidos || ""}</strong>
+
         <label>
           Nombre
           <input type="text" value="${u.nombre || ""}" data-field="nombre">
@@ -83,11 +87,11 @@
         </label>
 
         <label>
-          Alias (nombre visible en la app)
+          Alias (visible en la app)
           <input type="text" value="${u.alias || ""}" data-field="alias">
         </label>
 
-        <p style="opacity:.7;margin-top:8px;">
+        <p style="opacity:.6;margin-top:6px;">
           ${u.email || "email no registrado"}
         </p>
 
@@ -100,7 +104,9 @@
         const inputs = card.querySelectorAll("input");
         const update = {};
 
-        inputs.forEach(i => update[i.dataset.field] = i.value.trim());
+        inputs.forEach(i => {
+          update[i.dataset.field] = i.value.trim();
+        });
 
         await updateDoc(doc(db, "users", docSnap.id), update);
         alert("Paciente actualizado");
