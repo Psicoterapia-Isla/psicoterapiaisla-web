@@ -11,10 +11,14 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 /* =========================
-   ELEMENTOS DOM
+   ELEMENTOS DOM (DEFENSIVO)
 ========================= */
 const searchInput = document.getElementById("patient-search");
 const listContainer = document.getElementById("patients-list");
+
+if (!listContainer) {
+  console.error("[patients-admin] Falta #patients-list en el HTML");
+}
 
 /* =========================
    AUTH
@@ -38,10 +42,9 @@ onAuthStateChanged(auth, async (user) => {
     return;
   }
 
-  /* =========================
-     CARGAR PACIENTES
-  ========================= */
-  await loadPatients();
+  if (listContainer) {
+    await loadPatients();
+  }
 });
 
 /* =========================
@@ -72,6 +75,8 @@ async function loadPatients() {
    RENDER
 ========================= */
 function renderPatients(patients) {
+  if (!listContainer) return;
+
   if (!patients.length) {
     listContainer.innerHTML = "No hay pacientes.";
     return;
@@ -92,18 +97,22 @@ function renderPatients(patients) {
 }
 
 /* =========================
-   BUSCADOR
+   BUSCADOR (SOLO SI EXISTE)
 ========================= */
-searchInput.addEventListener("input", () => {
-  const q = searchInput.value.toLowerCase().trim();
+if (searchInput) {
+  searchInput.addEventListener("input", () => {
+    const q = searchInput.value.toLowerCase().trim();
 
-  const filtered = allPatients.filter(p =>
-    (p.name || "").toLowerCase().includes(q) ||
-    (p.lastName || "").toLowerCase().includes(q) ||
-    (p.email || "").toLowerCase().includes(q) ||
-    (p.dni || "").toLowerCase().includes(q) ||
-    (p.phone || "").toLowerCase().includes(q)
-  );
+    const filtered = allPatients.filter(p =>
+      (p.name || "").toLowerCase().includes(q) ||
+      (p.lastName || "").toLowerCase().includes(q) ||
+      (p.email || "").toLowerCase().includes(q) ||
+      (p.dni || "").toLowerCase().includes(q) ||
+      (p.phone || "").toLowerCase().includes(q)
+    );
 
-  renderPatients(filtered);
-});
+    renderPatients(filtered);
+  });
+} else {
+  console.warn("[patients-admin] Buscador no encontrado (#patient-search)");
+}
