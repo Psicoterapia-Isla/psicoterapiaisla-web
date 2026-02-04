@@ -1,128 +1,136 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <title>Gestión de pacientes | Psicoterapia Isla</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <title>Pacientes | Psicoterapia Isla</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- CSS base -->
   <link rel="stylesheet" href="assets/css/app.css">
 </head>
 
 <body class="app-body">
 
-<header class="app-menu"></header>
+  <!-- MENÚ (NO SE TOCA) -->
+  <header class="app-menu"></header>
 
-<main class="app-container">
+  <!-- CONTENIDO -->
+  <main class="app-container">
 
-  <h1 class="page-title">Gestión de pacientes</h1>
+    <h1 class="page-title">Pacientes</h1>
+    <p style="opacity:.7;margin-bottom:16px;">
+      Listado de pacientes importados en el sistema
+    </p>
 
-  <section class="card">
-    <h2>Pacientes registrados</h2>
-    <div id="patients-list">
-      <p>Cargando pacientes…</p>
-    </div>
-  </section>
+    <!-- BUSCADOR -->
+    <input
+      type="text"
+      id="search"
+      placeholder="Buscar por nombre, apellido o email"
+      style="margin-bottom:16px;width:100%;padding:8px;"
+    >
 
-</main>
+    <!-- LISTADO -->
+    <section id="patients-list"></section>
 
-<script type="module">
-  import { requireAuth } from "./assets/js/auth.js";
-  import { loadMenu } from "./assets/js/menu.js";
-  import { db } from "./assets/js/firebase.js";
+  </main>
 
-  import {
-    collection,
-    getDocs,
-    doc,
-    getDoc,
-    updateDoc
-  } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+  <!-- SCRIPTS -->
+  <script type="module">
+    import { requireAuth } from "./assets/js/auth.js";
+    import { loadMenu } from "./assets/js/menu.js";
+    import { db } from "./assets/js/firebase.js";
 
-  async function init() {
-    const user = await requireAuth();
-    await loadMenu();
+    import {
+      collection,
+      getDocs,
+      doc,
+      getDoc
+    } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-    // 🔐 SOLO ADMIN
-    const meSnap = await getDoc(doc(db, "users", user.uid));
-    if (!meSnap.exists() || meSnap.data().role !== "admin") {
-      alert("Acceso solo para administradores");
-      location.href = "index.html";
-      return;
+    let allPatients = [];
+
+    async function init() {
+      const user = await requireAuth();
+      await loadMenu();
+
+      // 🔐 SOLO ADMIN
+      const meSnap = await getDoc(doc(db, "users", user.uid));
+      if (!meSnap.exists() || meSnap.data().role !== "admin") {
+        alert("Acceso solo para administradores");
+        window.location.href = "index.html";
+        return;
+      }
+
+      await loadPatients();
+      setupSearch();
     }
 
-    loadPatients();
-  }
+    async function loadPatients() {
+      const container = document.getElementById("patients-list");
+      container.innerHTML = "<p>Cargando pacientes…</p>";
 
-  async function loadPatients() {
-    const container = document.getElementById("patients-list");
-    container.innerHTML = "<p>Cargando pacientes…</p>";
+      const snap = await getDocs(collection(db, "users"));
+      allPatients = [];
 
-    const snap = await getDocs(collection(db, "users"));
-
-    let found = false;
-    container.innerHTML = "";
-
-    snap.forEach(docSnap => {
-      const u = docSnap.data();
-
-      // 👉 SOLO PACIENTES
-      if (u.role !== "patient") return;
-
-      found = true;
-
-      const card = document.createElement("div");
-      card.className = "card";
-
-      card.innerHTML = `
-        <strong>
-          ${u.alias || u.nombre || "Paciente sin nombre"} ${u.apellidos || ""}
-        </strong>
-
-        <label>
-          Nombre
-          <input type="text" value="${u.nombre || ""}" data-field="nombre">
-        </label>
-
-        <label>
-          Apellidos
-          <input type="text" value="${u.apellidos || ""}" data-field="apellidos">
-        </label>
-
-        <label>
-          Alias (visible en la app)
-          <input type="text" value="${u.alias || ""}" data-field="alias">
-        </label>
-
-        <p style="opacity:.6;margin-top:6px;">
-          ${u.email || "email no registrado"}
-        </p>
-
-        <button class="btn-primary" style="margin-top:12px;">
-          Guardar cambios
-        </button>
-      `;
-
-      card.querySelector("button").addEventListener("click", async () => {
-        const inputs = card.querySelectorAll("input");
-        const update = {};
-
-        inputs.forEach(i => {
-          update[i.dataset.field] = i.value.trim();
-        });
-
-        await updateDoc(doc(db, "users", docSnap.id), update);
-        alert("Paciente actualizado");
+      snap.forEach(docSnap => {
+        const u = docSnap.data();
+        if (u.role === "patient") {
+          allPatients.push({ id: docSnap.id, ...u });
+        }
       });
 
-      container.appendChild(card);
-    });
-
-    if (!found) {
-      container.innerHTML = "<p>No hay pacientes registrados.</p>";
+      renderPatients(allPatients);
     }
-  }
 
-  init();
-</script>
+    function renderPatients(list) {
+      const container = document.getElementById("patients-list");
+      container.innerHTML = "";
+
+      if (list.length === 0) {
+        container.innerHTML = "<p>No hay pacientes.</p>";
+        return;
+      }
+
+      list.forEach(u => {
+        const card = document.createElement("div");
+        card.className = "card";
+
+        card.innerHTML = `
+          <strong>
+            ${u.nombre || ""} ${u.apellidos || ""}
+          </strong>
+          <p style="opacity:.7;margin:4px 0;">
+            ${u.email || "Sin email"}
+          </p>
+          <p style="opacity:.6;">
+            ${u.dni ? "DNI: " + u.dni : ""}
+            ${u.telefono ? " · Tel: " + u.telefono : ""}
+          </p>
+        `;
+
+        container.appendChild(card);
+      });
+    }
+
+    function setupSearch() {
+      const input = document.getElementById("search");
+
+      input.addEventListener("input", () => {
+        const q = input.value.toLowerCase().trim();
+
+        const filtered = allPatients.filter(u =>
+          (u.nombre || "").toLowerCase().includes(q) ||
+          (u.apellidos || "").toLowerCase().includes(q) ||
+          (u.email || "").toLowerCase().includes(q)
+        );
+
+        renderPatients(filtered);
+      });
+    }
+
+    init();
+  </script>
 
 </body>
 </html>
