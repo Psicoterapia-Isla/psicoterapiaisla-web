@@ -2,12 +2,12 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <title>Gestión de pacientes</title>
+  <title>Pacientes | Psicoterapia Isla</title>
 
-  <!-- estilos (SALIMOS DE /app) -->
-  <link rel="stylesheet" href="../styles/app.css" />
-  <link rel="stylesheet" href="../styles/menu.css" />
-  <link rel="stylesheet" href="../styles/tables.css" />
+  <!-- CSS CORRECTOS -->
+  <link rel="stylesheet" href="assets/css/app.css" />
+  <link rel="stylesheet" href="assets/css/menu.css" />
+  <link rel="stylesheet" href="assets/css/tables.css" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 </head>
@@ -31,24 +31,37 @@
     <section class="filters">
       <input
         type="text"
-        id="patient-search"
+        id="search-patient"
         placeholder="Buscar por nombre, apellido, DNI, email o teléfono"
-        autocomplete="off"
       />
     </section>
 
     <!-- LISTADO -->
     <section class="table-wrapper">
-      <div id="patients-list">
-        <!-- pacientes renderizados por JS -->
-      </div>
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Nombre</th>
+            <th>Apellidos</th>
+            <th>DNI</th>
+            <th>Email</th>
+            <th>Teléfono</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody id="patients-table-body">
+          <tr>
+            <td colspan="6">Cargando pacientes…</td>
+          </tr>
+        </tbody>
+      </table>
     </section>
 
   </main>
 
-  <!-- scripts (SALIMOS DE /app) -->
-  <script type="module" src="../js/menu.js"></script>
-  <script type="module" src="../js/patients-admin.js"></script>
+  <!-- JS CORRECTOS -->
+  <script type="module" src="assets/js/menu.js"></script>
+  <script type="module" src="assets/js/patients-admin.js"></script>
 
 </body>
 </html>
