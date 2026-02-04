@@ -7,94 +7,118 @@ import {
   collection,
   getDocs,
   doc,
-  getDoc
+  getDoc,
+  setDoc
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-document.addEventListener("DOMContentLoaded", () => {
+/* =========================
+   DOM
+========================= */
+const searchInput = document.getElementById("patient-search");
+const listContainer = document.getElementById("patients-list");
 
-  const searchInput = document.getElementById("patient-search");
-  const listContainer = document.getElementById("patients-list");
+/* =========================
+   AUTH
+========================= */
+const auth = getAuth();
 
-  if (!searchInput || !listContainer) {
-    console.error("DOM incompleto");
+onAuthStateChanged(auth, async (user) => {
+  if (!user) {
+    window.location.href = "login.html";
     return;
   }
 
-  const auth = getAuth();
-  let allPatients = [];
+  const userSnap = await getDoc(doc(db, "users", user.uid));
+  if (!userSnap.exists() || userSnap.data().role !== "admin") {
+    alert("Acceso solo para administradores");
+    window.location.href = "index.html";
+    return;
+  }
 
-  onAuthStateChanged(auth, async (user) => {
-    if (!user) {
-      window.location.href = "login.html";
-      return;
-    }
+  await syncPatientsFromUsers();
+  await loadPatients();
+});
 
-    const userSnap = await getDoc(doc(db, "users", user.uid));
-    if (!userSnap.exists() || userSnap.data().role !== "admin") {
-      alert("Acceso restringido");
-      window.location.href = "index.html";
-      return;
-    }
+/* =========================
+   SINCRONIZAR USERS → PATIENTS
+========================= */
+async function syncPatientsFromUsers() {
+  const usersSnap = await getDocs(collection(db, "users"));
 
-    await loadPatients();
-  });
+  for (const u of usersSnap.docs) {
+    const data = u.data();
 
-  async function loadPatients() {
-    listContainer.textContent = "Cargando pacientes…";
+    if (data.role !== "patient") continue;
 
-    try {
-      const snapshot = await getDocs(collection(db, "patients"));
+    const patientRef = doc(db, "patients", u.id);
+    const patientSnap = await getDoc(patientRef);
 
-      allPatients = snapshot.docs.map(d => {
-        const data = d.data();
-        return {
-          id: d.id,
-          nombre: data.nombre || "",
-          apellidos: data.apellidos || "",
-          dni: data.dni || "",
-          email: data.email || "",
-          telefono: data.telefono || ""
-        };
+    if (!patientSnap.exists()) {
+      await setDoc(patientRef, {
+        nombre: data.nombre || "",
+        apellidos: data.apellidos || "",
+        email: data.email || "",
+        phone: data.phone || "",
+        dni: data.dni || "",
+        source: "auto-from-users",
+        createdAt: new Date()
       });
-
-      renderPatients(allPatients);
-
-    } catch (err) {
-      console.error(err);
-      listContainer.textContent = "Error al cargar pacientes";
     }
   }
+}
 
-  function renderPatients(patients) {
-    if (!patients.length) {
-      listContainer.textContent = "No hay pacientes";
-      return;
-    }
+/* =========================
+   CARGAR PACIENTES
+========================= */
+let allPatients = [];
 
-    listContainer.innerHTML = patients.map(p => `
-      <div class="patient-row">
-        <strong>${p.nombre} ${p.apellidos}</strong><br>
-        <small>
-          DNI: ${p.dni || "-"} · 
-          Email: ${p.email || "-"} · 
-          Tel: ${p.telefono || "-"}
-        </small>
-      </div>
-    `).join("");
+async function loadPatients() {
+  listContainer.innerHTML = "Cargando pacientes...";
+
+  const snapshot = await getDocs(collection(db, "patients"));
+
+  allPatients = snapshot.docs.map(doc => ({
+    id: doc.id,
+    ...doc.data()
+  }));
+
+  renderPatients(allPatients);
+}
+
+/* =========================
+   RENDER
+========================= */
+function renderPatients(patients) {
+  if (!patients.length) {
+    listContainer.innerHTML = "No hay pacientes.";
+    return;
   }
 
-  searchInput.addEventListener("input", () => {
-    const q = searchInput.value.toLowerCase().trim();
+  listContainer.innerHTML = patients.map(p => `
+    <div class="patient-row">
+      <strong>${p.nombre || ""} ${p.apellidos || ""}</strong><br>
+      <small>
+        DNI: ${p.dni || "-"} · 
+        Email: ${p.email || "-"} · 
+        Tel: ${p.phone || "-"}
+      </small>
+    </div>
+  `).join("");
+}
 
-    const filtered = allPatients.filter(p =>
-      p.nombre.toLowerCase().includes(q) ||
-      p.apellidos.toLowerCase().includes(q) ||
-      p.email.toLowerCase().includes(q) ||
-      p.dni.toLowerCase().includes(q) ||
-      p.telefono.toLowerCase().includes(q)
-    );
+/* =========================
+   BUSCADOR
+========================= */
+searchInput.addEventListener("input", () => {
+  const q = searchInput.value.toLowerCase().trim();
 
-    renderPatients(filtered);
-  });
+  const filtered = allPatients.filter(p =>
+    (p.nombre || "").toLowerCase().includes(q) ||
+    (p.apellidos || "").toLowerCase().includes(q) ||
+    (p.email || "").toLowerCase().includes(q) ||
+    (p.dni || "").toLowerCase().includes(q) ||
+    (p.phone || "").toLowerCase().includes(q)
+  );
 
+  renderPatients(filtered);
 });
