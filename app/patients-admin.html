@@ -17,7 +17,9 @@
 
   <section class="card">
     <h2>Pacientes registrados</h2>
-    <div id="patients-list"></div>
+    <div id="patients-list">
+      <p>Cargando pacientes…</p>
+    </div>
   </section>
 
 </main>
@@ -52,14 +54,12 @@
 
   async function loadPatients() {
     const container = document.getElementById("patients-list");
-    container.innerHTML = "";
+    container.innerHTML = "<p>Cargando pacientes…</p>";
 
     const snap = await getDocs(collection(db, "users"));
 
-    if (snap.empty) {
-      container.innerHTML = "<p>No hay usuarios.</p>";
-      return;
-    }
+    let found = false;
+    container.innerHTML = "";
 
     snap.forEach(docSnap => {
       const u = docSnap.data();
@@ -67,12 +67,14 @@
       // 👉 SOLO PACIENTES
       if (u.role !== "patient") return;
 
+      found = true;
+
       const card = document.createElement("div");
       card.className = "card";
 
       card.innerHTML = `
         <strong>
-          ${u.nombre || "Paciente sin nombre"} ${u.apellidos || ""}
+          ${u.alias || u.nombre || "Paciente sin nombre"} ${u.apellidos || ""}
         </strong>
 
         <label>
@@ -113,6 +115,10 @@
 
       container.appendChild(card);
     });
+
+    if (!found) {
+      container.innerHTML = "<p>No hay pacientes registrados.</p>";
+    }
   }
 
   init();
