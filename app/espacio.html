@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Mi espacio personal | Psicoterapia Isla</title>
+  <title>Mi espacio | Psicoterapia Isla</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <link rel="stylesheet" href="assets/css/app.css">
@@ -10,80 +10,87 @@
 
 <body class="app-body">
 
-<!-- MENÚ -->
 <header class="app-menu"></header>
 
-<!-- CONTENIDO -->
 <main class="app-container">
 
-  <h1 class="page-title">Tu espacio personal</h1>
+  <!-- SALUDO -->
+  <section id="welcome" class="card"></section>
 
-  <!-- ======================
-       EJERCICIOS
-  ====================== -->
+  <!-- RESUMEN -->
   <section class="card">
-    <h2>Ejercicios</h2>
-    <div id="exercises-summary"></div>
+    <h2>Resumen</h2>
+    <div id="summary"></div>
   </section>
 
-  <!-- ======================
-       DIARIO
-  ====================== -->
+  <!-- DIARIO -->
   <section class="card">
     <h2>Últimas entradas del diario</h2>
-    <div id="diary-summary"></div>
+    <div id="last-entries"></div>
+    <a href="mi-diario.html" class="btn-secondary">Ver mi diario</a>
   </section>
 
-  <!-- ======================
-       FORO
-  ====================== -->
+  <!-- EJERCICIOS -->
+  <section class="card">
+    <h2>Ejercicios terapéuticos</h2>
+    <div id="exercises"></div>
+    <a href="exercises-list.html" class="btn-primary">Ver ejercicios</a>
+  </section>
+
+  <!-- FORO -->
   <section class="card">
     <h2>Foro</h2>
-    <div id="forum-summary"></div>
-    <a href="foro.html" class="btn-primary" style="margin-top:12px;display:inline-block;">
-      Ir al foro
-    </a>
+    <div id="forum-suggestions"></div>
+    <a href="foro.html" class="btn-secondary">Ir al foro</a>
   </section>
 
 </main>
 
-<!-- SCRIPT -->
 <script type="module">
   import { requireAuth } from "./assets/js/auth.js";
   import { loadMenu } from "./assets/js/menu.js";
   import { db } from "./assets/js/firebase.js";
 
   import {
+    doc,
+    getDoc,
     collection,
     query,
     where,
     orderBy,
-    getDocs,
-    limit
+    limit,
+    getDocs
   } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
   async function init() {
     const user = await requireAuth();
     await loadMenu();
 
-    loadExercises(user.uid);
-    loadDiary(user.uid);
-    loadForum();
+    const userSnap = await getDoc(doc(db, "users", user.uid));
+    const userData = userSnap.data();
+
+    renderWelcome(userData);
+
+    loadSummary(user.uid);
+    loadLastEntries(user.uid);
+    loadExercises();
+    loadForumSuggestions();
   }
 
   /* ======================
-     EJERCICIOS
+     SALUDO
   ====================== */
-  async function loadExercises(uid) {
-    const container = document.getElementById("exercises-summary");
+  function renderWelcome(user) {
+    document.getElementById("welcome").innerHTML = `
+      <h1>Hola, ${user.name || "bienvenida"}</h1>
+      <p>Este es tu espacio personal y seguro.</p>
+    `;
+  }
 
-    const exercisesSnap = await getDocs(
-      query(
-        collection(db, "exercises"),
-        where("active", "==", true)
-      )
-    );
-
+  /* ======================
+     RESUMEN
+  ====================== */
+  async function loadSummary(uid) {
     const entriesSnap = await getDocs(
       query(
         collection(db, "entries"),
@@ -91,82 +98,80 @@
       )
     );
 
-    const completed = new Set();
-    entriesSnap.forEach(d => {
-      if (d.data().exerciseId) {
-        completed.add(d.data().exerciseId);
-      }
-    });
-
-    if (exercisesSnap.empty) {
-      container.innerHTML = "<p>No hay ejercicios asignados.</p>";
-      return;
-    }
-
-    let pending = 0;
-    let done = 0;
-
-    exercisesSnap.forEach(doc => {
-      completed.has(doc.id) ? done++ : pending++;
-    });
-
-    container.innerHTML = `
-      <p><strong>Pendientes:</strong> ${pending}</p>
-      <p><strong>Realizados:</strong> ${done}</p>
-      <a href="exercises-list.html" class="btn-secondary" style="margin-top:8px;display:inline-block;">
-        Ver ejercicios
-      </a>
+    document.getElementById("summary").innerHTML = `
+      <p><strong>Ejercicios realizados:</strong> ${entriesSnap.size}</p>
     `;
   }
 
   /* ======================
      DIARIO
   ====================== */
-  async function loadDiary(uid) {
-    const container = document.getElementById("diary-summary");
+  async function loadLastEntries(uid) {
+    const container = document.getElementById("last-entries");
 
     const snap = await getDocs(
       query(
         collection(db, "entries"),
         where("uid", "==", uid),
-        where("type", "==", "diario"),
         orderBy("createdAt", "desc"),
         limit(3)
       )
     );
 
     if (snap.empty) {
-      container.innerHTML = "<p>No hay entradas todavía.</p>";
+      container.innerHTML = "<p>Aún no has escrito en tu diario.</p>";
       return;
     }
 
-    snap.forEach(doc => {
-      const entry = doc.data();
-      const date = entry.createdAt?.toDate
-        ? entry.createdAt.toDate().toLocaleDateString()
+    snap.forEach(docSnap => {
+      const e = docSnap.data();
+      const date = e.createdAt?.toDate
+        ? e.createdAt.toDate().toLocaleDateString()
         : "";
 
       const div = document.createElement("div");
-      div.style.marginBottom = "12px";
       div.innerHTML = `
-        <small style="opacity:.7">${date}</small>
-        <p>${(entry.text || entry.content || "").slice(0, 120)}…</p>
+        <p><strong>${e.exerciseTitle || "Entrada"}</strong></p>
+        <small>${date}</small>
+        <hr>
       `;
       container.appendChild(div);
     });
+  }
 
-    container.innerHTML += `
-      <a href="mi-diario.html" class="btn-secondary">
-        Ver mi diario
-      </a>
-    `;
+  /* ======================
+     EJERCICIOS
+  ====================== */
+  async function loadExercises() {
+    const container = document.getElementById("exercises");
+
+    const snap = await getDocs(
+      query(
+        collection(db, "exercises"),
+        where("active", "==", true),
+        orderBy("createdAt", "desc"),
+        limit(3)
+      )
+    );
+
+    if (snap.empty) {
+      container.innerHTML = "<p>No hay ejercicios activos ahora mismo.</p>";
+      return;
+    }
+
+    snap.forEach(docSnap => {
+      const ex = docSnap.data();
+      const div = document.createElement("div");
+      div.innerHTML = `<p>${ex.title}</p>`;
+      container.appendChild(div);
+    });
   }
 
   /* ======================
      FORO
   ====================== */
-  async function loadForum() {
-    const container = document.getElementById("forum-summary");
+  async function loadForumSuggestions() {
+    const container = document.getElementById("forum-suggestions");
 
     const snap = await getDocs(
       query(
@@ -177,14 +182,14 @@
     );
 
     if (snap.empty) {
-      container.innerHTML = "<p>No hay temas aún.</p>";
+      container.innerHTML = "<p>No hay temas todavía.</p>";
       return;
     }
 
-    snap.forEach(doc => {
-      const t = doc.data();
+    snap.forEach(docSnap => {
+      const t = docSnap.data();
       const div = document.createElement("div");
-      div.innerHTML = `<p>• ${t.title}</p>`;
+      div.innerHTML = `<p>${t.title}</p>`;
       container.appendChild(div);
     });
   }
