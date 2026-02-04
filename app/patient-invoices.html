@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Facturación por paciente | Psicoterapia Isla</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- CSS base -->
+  <link rel="stylesheet" href="assets/css/app.css">
+</head>
+
+<body class="app-body">
+
+<!-- MENÚ -->
+<header class="app-menu"></header>
+
+<main class="app-container">
+
+  <h1 class="page-title">Facturación por paciente</h1>
+
+  <!-- ======================
+       FILTRO PACIENTE
+  ====================== -->
+  <section class="card">
+    <label>
+      Seleccionar paciente
+      <select id="patient-select">
+        <option value="">— Selecciona un paciente —</option>
+      </select>
+    </label>
+  </section>
+
+  <!-- ======================
+       LISTADO FACTURAS
+  ====================== -->
+  <section class="card">
+    <h2>Facturas</h2>
+    <div id="invoice-list"></div>
+  </section>
+
+</main>
+
+<!-- ======================
+     SCRIPT
+====================== -->
+<script type="module">
+  import { requireAuth } from "./assets/js/auth.js";
+  import { loadMenu } from "./assets/js/menu.js";
+  import { db } from "./assets/js/firebase.js";
+
+  import {
+    collection,
+    query,
+    where,
+    orderBy,
+    getDocs,
+    doc,
+    getDoc
+  } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+  let currentPatientId = null;
+
+  async function init() {
+    const user = await requireAuth();
+    await loadMenu();
+
+    // 🔐 SOLO ADMIN
+    const meSnap = await getDoc(doc(db, "users", user.uid));
+    if (!meSnap.exists() || meSnap.data().role !== "admin") {
+      alert("Acceso solo para administradores");
+      location.href = "index.html";
+      return;
+    }
+
+    await loadPatients();
+    setupPatientChange();
+  }
+
+  /* ======================
+     CARGAR PACIENTES
+  ====================== */
+  async function loadPatients() {
+    const select = document.getElementById("patient-select");
+    const snap = await getDocs(collection(db, "users"));
+
+    snap.forEach(docSnap => {
+      const u = docSnap.data();
+      if (u.role !== "patient") return;
+
+      const name =
+        `${u.nombre || ""} ${u.apellidos || ""}`.trim() ||
+        u.alias ||
+        docSnap.id;
+
+      const option = document.createElement("option");
+      option.value = docSnap.id;
+      option.textContent = name;
+
+      select.appendChild(option);
+    });
+  }
+
+  function setupPatientChange() {
+    document
+      .getElementById("patient-select")
+      .addEventListener("change", e => {
+        currentPatientId = e.target.value;
+        loadInvoices();
+      });
+  }
+
+  /* ======================
+     CARGAR FACTURAS
+  ====================== */
+  async function loadInvoices() {
+    const container = document.getElementById("invoice-list");
+    container.innerHTML = "";
+
+    if (!currentPatientId) {
+      container.innerHTML = "<p>Selecciona un paciente.</p>";
+      return;
+    }
+
+    const q = query(
+      collection(db, "invoices"),
+      where("patientId", "==", currentPatientId),
+      orderBy("createdAt", "desc")
+    );
+
+    const snap = await getDocs(q);
+
+    if (snap.empty) {
+      container.innerHTML = "<p>No hay facturas para este paciente.</p>";
+      return;
+    }
+
+    snap.forEach(docSnap => {
+      const inv = docSnap.data();
+
+      const card = document.createElement("div");
+      card.className = "card";
+
+      card.innerHTML = `
+        <p><strong>Concepto:</strong> ${inv.concept}</p>
+        <p><strong>Fecha:</strong> ${inv.date}</p>
+        <p><strong>Total:</strong> ${inv.total.toFixed(2)} €</p>
+        <p><strong>Estado:</strong> ${estadoHumano(inv.status)}</p>
+
+        <button class="btn-secondary" style="margin-top:8px;">
+          Ver factura
+        </button>
+      `;
+
+      card.querySelector("button").addEventListener("click", () => {
+        window.location.href =
+          `invoice-view.html?id=${docSnap.id}`;
+      });
+
+      container.appendChild(card);
+    });
+  }
+
+  function estadoHumano(status) {
+    switch (status) {
+      case "draft": return "Borrador";
+      case "issued": return "Emitida";
+      case "paid": return "Pagada";
+      case "cancelled": return "Anulada";
+      default: return status;
+    }
+  }
+
+  init();
+</script>
+
+</body>
+</html>
