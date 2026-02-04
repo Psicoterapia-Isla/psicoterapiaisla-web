@@ -39,13 +39,9 @@
     const user = await requireAuth();
     await loadMenu();
 
-    // 🔐 verificar admin
+    // 🔐 SOLO ADMIN
     const meSnap = await getDoc(doc(db, "users", user.uid));
-    if (
-      !meSnap.exists() ||
-      meSnap.data().role !== "therapist" ||
-      meSnap.data().isAdmin !== true
-    ) {
+    if (!meSnap.exists() || meSnap.data().role !== "admin") {
       alert("Acceso solo para administradores");
       location.href = "index.html";
       return;
@@ -68,13 +64,16 @@
     snap.forEach(docSnap => {
       const u = docSnap.data();
 
+      // 👉 SOLO PACIENTES
       if (u.role !== "patient") return;
 
       const card = document.createElement("div");
       card.className = "card";
 
       card.innerHTML = `
-        <strong>${u.nombre || "Paciente sin nombre"} ${u.apellidos || ""}</strong>
+        <strong>
+          ${u.nombre || "Paciente sin nombre"} ${u.apellidos || ""}
+        </strong>
 
         <label>
           Nombre
