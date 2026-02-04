@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Factura | Psicoterapia Isla</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="assets/css/app.css">
+</head>
+
+<body class="app-body">
+
+<header class="app-menu"></header>
+
+<main class="app-container">
+
+  <h1 class="page-title">Factura</h1>
+
+  <section id="invoice-card" class="card"></section>
+
+</main>
+
+<script type="module">
+  import { requireAuth } from "./assets/js/auth.js";
+  import { loadMenu } from "./assets/js/menu.js";
+  import { db } from "./assets/js/firebase.js";
+
+  import {
+    doc,
+    getDoc,
+    updateDoc,
+    serverTimestamp
+  } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+  /* ======================
+     INIT
+  ====================== */
+  async function init() {
+    const user = await requireAuth();
+    await loadMenu();
+
+    // 🔐 SOLO ADMIN
+    const me = await getDoc(doc(db, "users", user.uid));
+    if (!me.exists() || me.data().role !== "admin") {
+      alert("Acceso solo para administradores");
+      location.href = "index.html";
+      return;
+    }
+
+    const params = new URLSearchParams(window.location.search);
+    const invoiceId = params.get("id");
+
+    if (!invoiceId) {
+      alert("Factura no encontrada");
+      location.href = "patient-invoices.html";
+      return;
+    }
+
+    loadInvoice(invoiceId);
+  }
+
+  /* ======================
+     CARGAR FACTURA
+  ====================== */
+  async function loadInvoice(id) {
+    const ref = doc(db, "invoices", id);
+    const snap = await getDoc(ref);
+
+    if (!snap.exists()) {
+      alert("Factura no encontrada");
+      return;
+    }
+
+    const inv = snap.data();
+    const container = document.getElementById("invoice-card");
+
+    container.innerHTML = `
+      <p><strong>Nº Factura:</strong> ${inv.number || "—"}</p>
+      <p><strong>Paciente:</strong> ${inv.patientName}</p>
+      <p><strong>Fecha:</strong> ${inv.date}</p>
+      <p><strong>Concepto:</strong> ${inv.concept}</p>
+
+      <hr>
+
+      <p><strong>Base:</strong> ${inv.base.toFixed(2)} €</p>
+      <p><strong>IVA:</strong> ${inv.iva}%</p>
+      <p><strong>Total:</strong> ${inv.total.toFixed(2)} €</p>
+
+      <p><strong>Estado:</strong> ${estadoHumano(inv.status)}</p>
+
+      ${
+        inv.status === "draft"
+          ? `<button id="emit-btn" class="btn-primary">
+               Emitir factura
+             </button>`
+          : `<p style="opacity:.7">
+               Factura emitida y bloqueada
+             </p>`
+      }
+    `;
+
+    if (inv.status === "draft") {
+      document
+        .getElementById("emit-btn")
+        .addEventListener("click", () => emitInvoice(id, inv));
+    }
+  }
+
+  /* ======================
+     EMITIR FACTURA
+  ====================== */
+  async function emitInvoice(id, inv) {
+    if (!confirm("¿Emitir factura? Esta acción no se puede deshacer.")) {
+      return;
+    }
+
+    const payload = {
+      number: inv.number,
+      date: inv.date,
+      patientId: inv.patientId,
+      patientName: inv.patientName,
+      base: inv.base,
+      iva: inv.iva,
+      total: inv.total
+    };
+
+    const hash = await sha256(JSON.stringify(payload));
+
+    await updateDoc(doc(db, "invoices", id), {
+      status: "issued",
+      hash,
+      issuedAt: serverTimestamp()
+    });
+
+    alert("Factura emitida correctamente");
+    loadInvoice(id);
+  }
+
+  /* ======================
+     UTILIDADES
+  ====================== */
+  function estadoHumano(status) {
+    switch (status) {
+      case "draft": return "Borrador";
+      case "issued": return "Emitida";
+      case "paid": return "Pagada";
+      case "cancelled": return "Anulada";
+      default: return status;
+    }
+  }
+
+  async function sha256(text) {
+    const data = new TextEncoder().encode(text);
+    const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+    return Array.from(new Uint8Array(hashBuffer))
+      .map(b => b.toString(16).padStart(2, "0"))
+      .join("");
+  }
+
+  init();
+</script>
+
+</body>
+</html>
