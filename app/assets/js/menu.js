@@ -75,11 +75,17 @@ export async function loadMenu() {
             <a href="entries-by-exercise.html">Respuestas por ejercicio</a>
             <a href="entries-by-patient.html">Respuestas por paciente</a>
             <a href="exercises-admin.html">Gestionar ejercicios</a>
+
             ${
               isAdmin
-                ? `<a href="patients-admin.html">Gestión de pacientes</a>`
+                ? `
+                <hr>
+                <a href="patients-admin.html">Gestión de pacientes</a>
+                <a href="patient-invoices.html">Facturación pacientes</a>
+                `
                 : ""
             }
+
           </div>
         </div>
         `
