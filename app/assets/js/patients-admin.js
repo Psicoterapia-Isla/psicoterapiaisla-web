@@ -45,7 +45,7 @@ onAuthStateChanged(auth, async (user) => {
 });
 
 /* =========================
-   CARGA DE PACIENTES (NORMALIZED)
+   CARGA DE PACIENTES
 ========================= */
 async function loadPatients() {
   listContainer.innerHTML = "Cargando pacientes...";
@@ -55,9 +55,9 @@ async function loadPatients() {
       collection(db, "patients_normalized")
     );
 
-    allPatients = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
+    allPatients = snapshot.docs.map(d => ({
+      id: d.id,
+      ...d.data()
     }));
 
     renderPatients(allPatients);
@@ -77,15 +77,24 @@ function renderPatients(patients) {
     return;
   }
 
-  listContainer.innerHTML = patients.map(p => `
-    <div class="patient-row">
-      <strong>${p.nombre || ""} ${p.apellidos || ""}</strong><br>
-      <small>
-        DNI: ${p.dni || "-"} · 
-        Email: ${p.email || "-"}
-      </small>
-    </div>
-  `).join("");
+  listContainer.innerHTML = patients.map(p => {
+    const hasUser = !!p.linkedUserUid;
+
+    return `
+      <div class="patient-row ${hasUser ? "linked" : "historical"}">
+        <div class="patient-header">
+          <strong>${p.nombre || ""} ${p.apellidos || ""}</strong>
+          <span class="badge ${hasUser ? "badge-linked" : "badge-historical"}">
+            ${hasUser ? "Con cuenta" : "Histórico"}
+          </span>
+        </div>
+        <small>
+          DNI: ${p.dni || "-"} · 
+          Email: ${p.email || "-"}
+        </small>
+      </div>
+    `;
+  }).join("");
 }
 
 /* =========================
