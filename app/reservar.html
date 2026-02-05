@@ -1,42 +1,93 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <title>Reservar cita</title>
+  <meta charset="UTF-8" />
+  <title>Reservar cita | Psicoterapia Isla</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- CSS GLOBAL -->
+  <link rel="stylesheet" href="assets/css/app.css">
 </head>
-<body>
 
-<h1>Reservar cita</h1>
+<body class="app-body">
 
-<form id="reservationForm">
-  <label>
-    ID Paciente:
-    <input type="text" id="patientId" required>
-  </label>
-  <br><br>
+<!-- ======================
+     MENÚ (NUNCA SE TOCA)
+====================== -->
+<header class="app-menu"></header>
 
-  <label>
-    ID Terapeuta:
-    <input type="text" id="therapistId" required>
-  </label>
-  <br><br>
+<!-- ======================
+     CONTENIDO
+====================== -->
+<main class="app-container">
 
-  <label>
-    Inicio:
-    <input type="datetime-local" id="start" required>
-  </label>
-  <br><br>
+  <section class="card">
 
-  <label>
-    Fin:
-    <input type="datetime-local" id="end" required>
-  </label>
-  <br><br>
+    <h1>Reservar cita</h1>
 
-  <button type="submit">Reservar</button>
-</form>
+    <form id="reservationForm">
 
-<script type="module" src="./assets/js/reservar.js"></script>
+      <label>
+        ID Paciente
+        <input
+          type="text"
+          id="patientId"
+          required
+        />
+      </label>
+
+      <label>
+        ID Terapeuta
+        <input
+          type="text"
+          id="therapistId"
+          required
+        />
+      </label>
+
+      <label>
+        Inicio
+        <input
+          type="datetime-local"
+          id="start"
+          required
+        />
+      </label>
+
+      <label>
+        Fin
+        <input
+          type="datetime-local"
+          id="end"
+          required
+        />
+      </label>
+
+      <button type="submit" class="btn-primary">
+        Reservar cita
+      </button>
+
+    </form>
+
+  </section>
+
+</main>
+
+<!-- ======================
+     AUTH + MENÚ
+====================== -->
+<script type="module">
+  import { requireAuth } from "./assets/js/auth.js";
+  import { loadMenu } from "./assets/js/menu.js";
+
+  await requireAuth();
+  await loadMenu();
+</script>
+
+<!-- ======================
+     LÓGICA RESERVA
+====================== -->
+<script type="module" src="assets/js/reservar.js"></script>
 
 </body>
 </html>
