@@ -61,8 +61,8 @@ async function loadPatients() {
 
     renderPatients(allPatients);
 
-  } catch (err) {
-    console.error(err);
+  } catch (error) {
+    console.error(error);
     listContainer.innerHTML = "Error cargando pacientes";
   }
 }
@@ -77,18 +77,22 @@ function renderPatients(patients) {
   }
 
   listContainer.innerHTML = patients.map(p => {
+    const nombre = p.nombre || "Sin nombre";
+    const apellidos = p.apellidos || "";
+    const dni = p.dni || "-";
+    const email = p.email || "-";
     const hasUser = !!p.linkedUserUid;
 
     return `
       <div class="patient-row ${hasUser ? "linked" : "historical"}">
         <div class="patient-header">
-          <strong>${p.nombre || ""} ${p.apellidos || ""}</strong>
+          <strong>${nombre} ${apellidos}</strong>
           <span class="badge ${hasUser ? "badge-linked" : "badge-historical"}">
             ${hasUser ? "Con cuenta" : "Histórico"}
           </span>
         </div>
         <small>
-          DNI: ${p.dni || "-"} · Email: ${p.email || "-"}
+          DNI: ${dni} · Email: ${email}
         </small>
       </div>
     `;
@@ -101,12 +105,14 @@ function renderPatients(patients) {
 searchInput.addEventListener("input", () => {
   const q = searchInput.value.toLowerCase().trim();
 
-  const filtered = allPatients.filter(p =>
-    (p.nombre || "").toLowerCase().includes(q) ||
-    (p.apellidos || "").toLowerCase().includes(q) ||
-    (p.email || "").toLowerCase().includes(q) ||
-    (p.dni || "").toLowerCase().includes(q)
-  );
+  const filtered = allPatients.filter(p => {
+    return (
+      (p.nombre || "").toLowerCase().includes(q) ||
+      (p.apellidos || "").toLowerCase().includes(q) ||
+      (p.email || "").toLowerCase().includes(q) ||
+      (p.dni || "").toLowerCase().includes(q)
+    );
+  });
 
   renderPatients(filtered);
 });
