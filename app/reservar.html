@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Reservar cita</title>
+</head>
+<body>
+
+<h1>Reservar cita</h1>
+
+<form id="reservationForm">
+  <label>
+    ID Paciente:
+    <input type="text" id="patientId" required>
+  </label>
+  <br><br>
+
+  <label>
+    ID Terapeuta:
+    <input type="text" id="therapistId" required>
+  </label>
+  <br><br>
+
+  <label>
+    Inicio:
+    <input type="datetime-local" id="start" required>
+  </label>
+  <br><br>
+
+  <label>
+    Fin:
+    <input type="datetime-local" id="end" required>
+  </label>
+  <br><br>
+
+  <button type="submit">Reservar</button>
+</form>
+
+<script type="module" src="./assets/js/reservar.js"></script>
+
+</body>
+</html>
