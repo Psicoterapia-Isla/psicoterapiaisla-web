@@ -27,40 +27,24 @@
 
     <form id="reservationForm">
 
+      <!-- TERAPEUTA -->
       <label>
-        ID Paciente
-        <input
-          type="text"
-          id="patientId"
-          required
-        />
+        Terapeuta
+        <select id="therapistId" required>
+          <option value="">Selecciona terapeuta</option>
+        </select>
       </label>
 
-      <label>
-        ID Terapeuta
-        <input
-          type="text"
-          id="therapistId"
-          required
-        />
-      </label>
-
+      <!-- INICIO -->
       <label>
         Inicio
-        <input
-          type="datetime-local"
-          id="start"
-          required
-        />
+        <input type="datetime-local" id="start" required />
       </label>
 
+      <!-- FIN -->
       <label>
         Fin
-        <input
-          type="datetime-local"
-          id="end"
-          required
-        />
+        <input type="datetime-local" id="end" required />
       </label>
 
       <button type="submit" class="btn-primary">
