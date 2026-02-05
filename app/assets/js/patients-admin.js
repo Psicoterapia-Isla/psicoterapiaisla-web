@@ -17,7 +17,6 @@ const searchInput = document.getElementById("patient-search");
 const listContainer = document.getElementById("patients-list");
 
 if (!searchInput || !listContainer) {
-  console.error("DOM no encontrado");
   throw new Error("DOM no cargado");
 }
 
@@ -51,25 +50,23 @@ async function loadPatients() {
   listContainer.innerHTML = "Cargando pacientes...";
 
   try {
-    const snapshot = await getDocs(
-      collection(db, "patients_normalized")
-    );
+    const snapshot = await getDocs(collection(db, "patients"));
 
-    allPatients = snapshot.docs.map(d => ({
-      id: d.id,
-      ...d.data()
+    allPatients = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
     }));
 
     renderPatients(allPatients);
 
-  } catch (err) {
-    console.error(err);
+  } catch (error) {
+    console.error(error);
     listContainer.innerHTML = "Error cargando pacientes";
   }
 }
 
 /* =========================
-   RENDER (ROBUSTO)
+   RENDER
 ========================= */
 function renderPatients(patients) {
   if (!patients.length) {
@@ -78,39 +75,18 @@ function renderPatients(patients) {
   }
 
   listContainer.innerHTML = patients.map(p => {
-    const nombre =
-      p.nombre ||
-      p.first_name ||
-      p.name ||
-      "";
-
-    const apellidos =
-      p.apellidos ||
-      p.last_name ||
-      p.surname ||
-      "";
-
-    const email =
-      p.email ||
-      "-";
-
-    const dni =
-      p.dni ||
-      p.document_number ||
-      "-";
-
     const hasUser = !!p.linkedUserUid;
 
     return `
       <div class="patient-row ${hasUser ? "linked" : "historical"}">
         <div class="patient-header">
-          <strong>${nombre} ${apellidos}</strong>
+          <strong>${p.nombre} ${p.apellidos}</strong>
           <span class="badge ${hasUser ? "badge-linked" : "badge-historical"}">
             ${hasUser ? "Con cuenta" : "Histórico"}
           </span>
         </div>
         <small>
-          DNI: ${dni} · Email: ${email}
+          DNI: ${p.dni || "-"} · Email: ${p.email || "-"}
         </small>
       </div>
     `;
@@ -118,28 +94,17 @@ function renderPatients(patients) {
 }
 
 /* =========================
-   BUSCADOR (ROBUSTO)
+   BUSCADOR
 ========================= */
 searchInput.addEventListener("input", () => {
   const q = searchInput.value.toLowerCase().trim();
 
-  const filtered = allPatients.filter(p => {
-    const nombre =
-      p.nombre || p.first_name || p.name || "";
-
-    const apellidos =
-      p.apellidos || p.last_name || p.surname || "";
-
-    const email = p.email || "";
-    const dni = p.dni || p.document_number || "";
-
-    return (
-      nombre.toLowerCase().includes(q) ||
-      apellidos.toLowerCase().includes(q) ||
-      email.toLowerCase().includes(q) ||
-      dni.toLowerCase().includes(q)
-    );
-  });
+  const filtered = allPatients.filter(p =>
+    (p.nombre || "").toLowerCase().includes(q) ||
+    (p.apellidos || "").toLowerCase().includes(q) ||
+    (p.email || "").toLowerCase().includes(q) ||
+    (p.dni || "").toLowerCase().includes(q)
+  );
 
   renderPatients(filtered);
 });
