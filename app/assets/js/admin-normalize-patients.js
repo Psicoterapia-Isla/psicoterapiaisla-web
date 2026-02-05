@@ -7,59 +7,27 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 (async () => {
-  console.log("🧼 Normalizando pacientes históricos");
+  console.log("🔄 Normalizando patients → patients_normalized");
 
   const snapshot = await getDocs(collection(db, "patients"));
-
   let count = 0;
 
-  for (const d of snapshot.docs) {
-    const data = d.data();
+  for (const snap of snapshot.docs) {
+    const data = snap.data();
 
     const normalized = {
-      nombre:
-        data.nombre ??
-        data.first_name ??
-        data.name ??
-        "",
-
-      apellidos:
-        data.apellidos ??
-        data.last_name ??
-        data.surname ??
-        "",
-
-      email:
-        data.email ??
-        data.email_address ??
-        "",
-
-      telefono:
-        data.telefono ??
-        data.phone ??
-        data.phone_number ??
-        "",
-
-      dni:
-        data.dni ??
-        data.document_number ??
-        "",
-
-      linkedUserUid:
-        data.linkedUserUid ??
-        data.user_id ??
-        null,
-
+      nombre: data.first_name || data.name || "",
+      apellidos: data.last_name || data.surname || "",
+      email: data.email || "",
+      telefono: data.phone || "",
+      dni: data.document_number || data.dni || "",
+      linkedUserUid: data.user_uid || null,
       source: "import",
-
-      createdAt:
-        data.createdAt ??
-        data.created_at ??
-        null
+      createdAt: data.createdAt || null
     };
 
     await setDoc(
-      doc(db, "patients_normalized", d.id),
+      doc(db, "patients_normalized", snap.id),
       normalized,
       { merge: true }
     );
