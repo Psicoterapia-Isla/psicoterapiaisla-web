@@ -25,29 +25,56 @@
 
     <h1>Reservar cita</h1>
 
-    <form id="reservationForm">
+    <!-- ======================
+         SELECCIÓN TERAPEUTA
+    ====================== -->
+    <label>
+      Terapeuta
+      <select id="therapistId" required>
+        <option value="">Selecciona terapeuta</option>
+      </select>
+    </label>
 
-      <!-- TERAPEUTA -->
-      <label>
-        Terapeuta
-        <select id="therapistId" required>
-          <option value="">Selecciona terapeuta</option>
-        </select>
-      </label>
+    <!-- ======================
+         NAVEGACIÓN SEMANAL
+    ====================== -->
+    <div class="week-navigation">
+      <button id="prevWeek" class="btn-secondary">← Semana anterior</button>
+      <div id="currentWeekLabel" class="week-label"></div>
+      <button id="nextWeek" class="btn-secondary">Semana siguiente →</button>
+    </div>
 
-      <!-- HORARIO DISPONIBLE -->
-      <label>
-        Horario disponible
-        <select id="slotSelect" required>
-          <option value="">Selecciona horario</option>
-        </select>
-      </label>
+    <!-- ======================
+         CALENDARIO SEMANAL
+    ====================== -->
+    <div id="weeklyCalendar" class="weekly-calendar">
 
-      <button type="submit" class="btn-primary">
-        Reservar cita
-      </button>
+      <!-- DÍAS -->
+      <div class="calendar-header">
+        <div class="time-column"></div>
+        <div>Lunes</div>
+        <div>Martes</div>
+        <div>Miércoles</div>
+        <div>Jueves</div>
+        <div>Viernes</div>
+      </div>
 
-    </form>
+      <!-- HORAS (JS INYECTA FILAS) -->
+      <div id="calendarBody" class="calendar-body">
+        <!--
+          JS genera filas:
+          09:00 | [slot] [slot] [slot] [slot] [slot]
+        -->
+      </div>
+
+    </div>
+
+    <!-- ======================
+         INFO / FEEDBACK
+    ====================== -->
+    <div id="calendarMessage" class="calendar-message">
+      Selecciona un terapeuta para ver disponibilidad.
+    </div>
 
   </section>
 
