@@ -86,7 +86,7 @@ export async function loadMenu() {
 
             <!-- AGENDA -->
             <a href="agenda-terapeuta.html">Agenda profesional</a>
-            <a href="availability.html">Definir disponibilidad</a>
+            <a href="disponibilidad.html">Definir disponibilidad</a>
 
             <hr>
 
