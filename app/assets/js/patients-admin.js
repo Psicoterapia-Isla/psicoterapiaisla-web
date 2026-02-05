@@ -50,17 +50,19 @@ async function loadPatients() {
   listContainer.innerHTML = "Cargando pacientes...";
 
   try {
-    const snapshot = await getDocs(collection(db, "patients"));
+    const snapshot = await getDocs(
+      collection(db, "patients_normalized")
+    );
 
-    allPatients = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
+    allPatients = snapshot.docs.map(d => ({
+      id: d.id,
+      ...d.data()
     }));
 
     renderPatients(allPatients);
 
-  } catch (error) {
-    console.error(error);
+  } catch (err) {
+    console.error(err);
     listContainer.innerHTML = "Error cargando pacientes";
   }
 }
@@ -80,7 +82,7 @@ function renderPatients(patients) {
     return `
       <div class="patient-row ${hasUser ? "linked" : "historical"}">
         <div class="patient-header">
-          <strong>${p.nombre} ${p.apellidos}</strong>
+          <strong>${p.nombre || ""} ${p.apellidos || ""}</strong>
           <span class="badge ${hasUser ? "badge-linked" : "badge-historical"}">
             ${hasUser ? "Con cuenta" : "Histórico"}
           </span>
