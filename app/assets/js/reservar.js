@@ -1,30 +1,56 @@
 // app/assets/js/reservar.js
 
+import { auth } from "./firebase.js";
+import { db } from "./firebase.js";
 import { createAppointment } from "./appointments.js";
-import { Timestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
+import {
+  collection,
+  getDocs
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+// ======================
+// CARGAR TERAPEUTAS
+// ======================
+const therapistSelect = document.getElementById("therapistId");
+
+const therapistsSnap = await getDocs(collection(db, "therapists"));
+
+therapistsSnap.forEach(doc => {
+  const therapist = doc.data();
+
+  const option = document.createElement("option");
+  option.value = doc.id;
+  option.textContent = therapist.name || doc.id;
+
+  therapistSelect.appendChild(option);
+});
+
+// ======================
+// RESERVAR CITA
+// ======================
 const form = document.getElementById("reservationForm");
 
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
 
-  // 1️⃣ Leer valores del formulario
-  const patientId = document.getElementById("patientId").value.trim();
-  const therapistId = document.getElementById("therapistId").value.trim();
-  const startInput = document.getElementById("start").value;
-  const endInput = document.getElementById("end").value;
-
-  if (!patientId || !therapistId || !startInput || !endInput) {
-    alert("Faltan datos");
+  const user = auth.currentUser;
+  if (!user) {
+    alert("No autenticado");
     return;
   }
 
-  // 2️⃣ Convertir fechas HTML → Firestore Timestamp
-  const start = Timestamp.fromDate(new Date(startInput));
-  const end = Timestamp.fromDate(new Date(endInput));
+  const patientId = user.uid;
+  const therapistId = therapistSelect.value;
+  const start = new Date(document.getElementById("start").value);
+  const end = new Date(document.getElementById("end").value);
+
+  if (end <= start) {
+    alert("La hora de fin debe ser posterior al inicio");
+    return;
+  }
 
   try {
-    // 3️⃣ Crear cita REAL en Firestore
     await createAppointment({
       patientId,
       therapistId,
@@ -35,8 +61,8 @@ form.addEventListener("submit", async (e) => {
     alert("Cita reservada correctamente");
     form.reset();
 
-  } catch (error) {
-    console.error("Error al reservar cita:", error);
+  } catch (err) {
+    console.error(err);
     alert("Error al reservar la cita");
   }
 });
