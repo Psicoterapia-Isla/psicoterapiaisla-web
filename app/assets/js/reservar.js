@@ -1,16 +1,24 @@
+// app/assets/js/reservar.js
+
 import { createAppointment } from "./appointments.js";
+import { Timestamp } from
+  "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-document
-  .getElementById("reservationForm")
-  .addEventListener("submit", async (e) => {
-    e.preventDefault();
+document.getElementById("reservarBtn").addEventListener("click", async () => {
+  const patientId = document.getElementById("patientId").value;
+  const therapistId = document.getElementById("therapistId").value;
+  const startValue = document.getElementById("start").value;
+  const endValue = document.getElementById("end").value;
 
-    const patientId = document.getElementById("patientId").value;
-    const therapistId = document.getElementById("therapistId").value;
+  if (!patientId || !therapistId || !startValue || !endValue) {
+    alert("Faltan datos");
+    return;
+  }
 
-    const start = new Date(document.getElementById("start").value);
-    const end = new Date(document.getElementById("end").value);
+  const start = Timestamp.fromDate(new Date(startValue));
+  const end = Timestamp.fromDate(new Date(endValue));
 
+  try {
     await createAppointment({
       patientId,
       therapistId,
@@ -18,5 +26,9 @@ document
       end
     });
 
-    alert("Cita reservada");
-  });
+    alert("Cita reservada correctamente");
+  } catch (e) {
+    console.error(e);
+    alert("Error al reservar");
+  }
+});
