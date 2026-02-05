@@ -342,3 +342,33 @@ textarea {
   max-height: calc(100vh - 120px);
   overflow-y: auto;
 }
+/* =========================
+   PACIENTES – ADMIN
+========================= */
+
+.patient-row {
+  padding: 10px;
+  border-bottom: 1px solid #eee;
+}
+
+.patient-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.badge {
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+.badge-historical {
+  background: #e0e0e0;
+  color: #444;
+}
+
+.badge-linked {
+  background: #c8f7dc;
+  color: #1e7f4f;
+}
