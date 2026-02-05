@@ -3,67 +3,38 @@ import {
   collection,
   getDocs,
   doc,
-  getDoc,
-  updateDoc
+  setDoc
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 (async () => {
-  console.log("🧠 Enriqueciendo patients_normalized desde users (todos válidos)");
+  console.log("🔁 Normalizando patients → patients_normalized");
 
-  const snapshot = await getDocs(collection(db, "patients_normalized"));
+  const snapshot = await getDocs(collection(db, "patients"));
+  let count = 0;
 
-  let updated = 0;
-  let processed = 0;
+  for (const d of snapshot.docs) {
+    const data = d.data();
 
-  for (const snap of snapshot.docs) {
-    const patient = snap.data();
-    const updates = {};
+    const normalized = {
+      nombre: data.first_name || data.name || "",
+      apellidos: data.last_name || data.surname || "",
+      email: data.email || "",
+      telefono: data.phone || data.telefono || "",
+      dni: data.document_number || data.dni || "",
+      linkedUserUid: data.user_uid || data.linkedUserUid || null,
+      source: "import",
+      createdAt: data.createdAt || null
+    };
 
-    let user = null;
+    await setDoc(
+      doc(db, "patients_normalized", d.id),
+      normalized,
+      { merge: true }
+    );
 
-    // 🔹 Intentar obtener user si hay linkedUserUid
-    if (patient.linkedUserUid) {
-      const userSnap = await getDoc(
-        doc(db, "users", patient.linkedUserUid)
-      );
-      if (userSnap.exists()) {
-        user = userSnap.data();
-      }
-    }
-
-    // 🔹 Enriquecimiento SOLO si el campo está vacío
-    if ((!patient.email || patient.email === "") && user?.email) {
-      updates.email = user.email;
-    }
-
-    if ((!patient.nombre || patient.nombre === "") && user?.displayName) {
-      updates.nombre = user.displayName;
-    }
-
-    // 🔹 Cálculo de completitud (con o sin user)
-    const fields = [
-      updates.nombre ?? patient.nombre,
-      updates.email ?? patient.email,
-      patient.telefono,
-      patient.dni
-    ];
-
-    const filled = fields.filter(v => v && v !== "").length;
-    updates.completenessScore = Math.round((filled / 4) * 100);
-
-    // 🔹 Guardar SIEMPRE (aunque solo cambie completenessScore)
-    await updateDoc(snap.ref, updates);
-    updated++;
-    processed++;
+    count++;
   }
 
-  console.log("✅ Enriquecimiento terminado");
-  console.log("🟢 Procesados:", processed);
-  console.log("🟢 Actualizados:", updated);
-
-  alert(
-    `Enriquecimiento completado\n` +
-    `Procesados: ${processed}\n` +
-    `Actualizados: ${updated}`
-  );
+  console.log(`✅ Normalización completa: ${count} pacientes`);
+  alert(`Normalización completa: ${count} pacientes`);
 })();
