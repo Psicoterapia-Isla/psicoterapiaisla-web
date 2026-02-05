@@ -7,17 +7,14 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
 /**
- * Login explícito (pantalla login.html)
+ * LOGIN (login.html)
  */
 export async function login(email, password) {
   return await signInWithEmailAndPassword(auth, email, password);
 }
 
 /**
- * Protege páginas privadas
- * - NO toca Firestore
- * - SOLO comprueba auth
- * - No genera 403
+ * PROTEGE PÁGINAS PRIVADAS
  */
 export function requireAuth() {
   return new Promise((resolve) => {
@@ -27,12 +24,11 @@ export function requireAuth() {
         return;
       }
 
-      // ✅ DEBUG ÚTIL (puedes quitarlo luego)
+      // DEBUG ÚTIL
       console.log("✅ Usuario autenticado");
       console.log("UID:", user.uid);
       console.log("Email:", user.email);
 
-      // 🔒 Disponible globalmente si hace falta
       window.__USER__ = user;
 
       resolve(user);
