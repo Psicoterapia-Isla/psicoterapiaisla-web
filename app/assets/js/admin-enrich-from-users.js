@@ -8,41 +8,39 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 (async () => {
-  console.log("🧠 Enriqueciendo patients_normalized desde users");
+  console.log("🧠 Enriqueciendo patients_normalized desde users (todos válidos)");
 
   const snapshot = await getDocs(collection(db, "patients_normalized"));
 
   let updated = 0;
-  let skipped = 0;
+  let processed = 0;
 
   for (const snap of snapshot.docs) {
     const patient = snap.data();
-
-    if (!patient.linkedUserUid) {
-      skipped++;
-      continue;
-    }
-
-    const userSnap = await getDoc(
-      doc(db, "users", patient.linkedUserUid)
-    );
-
-    if (!userSnap.exists()) {
-      skipped++;
-      continue;
-    }
-
-    const user = userSnap.data();
     const updates = {};
 
-    if ((!patient.email || patient.email === "") && user.email) {
+    let user = null;
+
+    // 🔹 Intentar obtener user si hay linkedUserUid
+    if (patient.linkedUserUid) {
+      const userSnap = await getDoc(
+        doc(db, "users", patient.linkedUserUid)
+      );
+      if (userSnap.exists()) {
+        user = userSnap.data();
+      }
+    }
+
+    // 🔹 Enriquecimiento SOLO si el campo está vacío
+    if ((!patient.email || patient.email === "") && user?.email) {
       updates.email = user.email;
     }
 
-    if ((!patient.nombre || patient.nombre === "") && user.displayName) {
+    if ((!patient.nombre || patient.nombre === "") && user?.displayName) {
       updates.nombre = user.displayName;
     }
 
+    // 🔹 Cálculo de completitud (con o sin user)
     const fields = [
       updates.nombre ?? patient.nombre,
       updates.email ?? patient.email,
@@ -53,17 +51,19 @@ import {
     const filled = fields.filter(v => v && v !== "").length;
     updates.completenessScore = Math.round((filled / 4) * 100);
 
-    if (Object.keys(updates).length > 0) {
-      await updateDoc(snap.ref, updates);
-      updated++;
-    } else {
-      skipped++;
-    }
+    // 🔹 Guardar SIEMPRE (aunque solo cambie completenessScore)
+    await updateDoc(snap.ref, updates);
+    updated++;
+    processed++;
   }
 
   console.log("✅ Enriquecimiento terminado");
+  console.log("🟢 Procesados:", processed);
   console.log("🟢 Actualizados:", updated);
-  console.log("⚪ Saltados:", skipped);
 
-  alert(`Enriquecimiento desde users completado\nActualizados: ${updated}`);
+  alert(
+    `Enriquecimiento completado\n` +
+    `Procesados: ${processed}\n` +
+    `Actualizados: ${updated}`
+  );
 })();
