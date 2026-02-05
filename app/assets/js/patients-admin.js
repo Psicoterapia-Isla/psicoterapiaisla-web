@@ -44,18 +44,10 @@ document.addEventListener("DOMContentLoaded", () => {
               renderPatients(allPatients);
             }
 
-            function renderPatients(patients) {
-              if (!patients.length) {
-                listContainer.innerHTML = "No hay pacientes";
-                return;
-              }
-
-              listContainer.innerHTML = patients.map(p => `
-                <div class="patient-row">
-                  <strong>${p.nombre || ""} ${p.apellidos || ""}</strong><br>
-                  <small>DNI: ${p.dni || "-"} · Email: ${p.email || "-"}</small>
-                </div>
-              `).join("");
+            function renderPatients(patients) {          
+              listContainer.innerHTML = patients
+                .map(p => `<pre>$(JSON.stringify(p, null, 2)}</pre>`)
+                .join("");
             }
 
             searchInput.addEventListener("input", () => {
