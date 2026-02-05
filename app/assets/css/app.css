@@ -407,3 +407,48 @@ textarea {
 .availability-slot:hover {
   opacity: 0.85;
 }
+/* =========================
+   DISPONIBILIDAD – GRID
+========================= */
+
+.availability-scroll {
+  overflow-x: auto;
+  width: 100%;
+}
+
+.availability-grid {
+  display: grid;
+  grid-template-columns: 80px repeat(7, 1fr);
+  gap: 6px;
+  min-width: 720px; /* 🔴 fuerza ancho mínimo */
+}
+
+.slot {
+  height: 36px;
+  border-radius: 6px;
+  cursor: pointer;
+  background: #e57373; /* rojo = no disponible */
+}
+
+.slot.available {
+  background: #4caf50; /* verde = disponible */
+}
+
+/* =========================
+   MÓVIL
+========================= */
+@media (max-width: 768px) {
+
+  .card {
+    padding: 16px;
+  }
+
+  .availability-grid {
+    min-width: 900px; /* permite scroll */
+  }
+
+  .slot {
+    height: 44px;     /* táctil */
+    font-size: 12px;
+  }
+}
