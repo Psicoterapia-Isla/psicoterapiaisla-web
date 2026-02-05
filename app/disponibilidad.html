@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Disponibilidad | Psicoterapia Isla</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="assets/css/app.css">
+</head>
+
+<body class="app-body">
+
+<header class="app-menu"></header>
+
+<main class="app-container">
+
+  <section class="card">
+    <h1>Mi disponibilidad</h1>
+
+    <form id="availabilityForm">
+
+      <label>
+        Inicio
+        <input type="datetime-local" id="start" required />
+      </label>
+
+      <label>
+        Fin
+        <input type="datetime-local" id="end" required />
+      </label>
+
+      <button type="submit" class="btn-primary">
+        Añadir disponibilidad
+      </button>
+
+    </form>
+
+  </section>
+
+</main>
+
+<script type="module">
+  import { requireAuth } from "./assets/js/auth.js";
+  import { loadMenu } from "./assets/js/menu.js";
+
+  await requireAuth();
+  await loadMenu();
+</script>
+
+<script type="module" src="assets/js/availability.js"></script>
+
+</body>
+</html>
