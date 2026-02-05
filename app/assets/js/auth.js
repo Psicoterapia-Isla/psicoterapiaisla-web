@@ -6,10 +6,6 @@ import {
   onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-export async function login(email, password) {
-  return await signInWithEmailAndPassword(auth, email, password);
-}
-
 export function requireAuth() {
   return new Promise((resolve) => {
     onAuthStateChanged(auth, (user) => {
@@ -17,6 +13,15 @@ export function requireAuth() {
         window.location.href = "/app/login.html";
         return;
       }
+
+      // 🔴 DEBUG TEMPORAL (IMPORTANTE)
+      console.log("✅ Usuario autenticado");
+      console.log("👉 UID:", user.uid);
+      console.log("👉 Email:", user.email);
+
+      // Opcional pero útil
+      window.__USER__ = user;
+
       resolve(user);
     });
   });
