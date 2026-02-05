@@ -9,69 +9,40 @@ import {
   getDocs,
   query,
   where,
-  deleteDoc,
-  doc
+  Timestamp
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-// ======================
-// ELEMENTOS DOM
-// ======================
+/* =========================
+   ELEMENTOS
+========================= */
 const therapistSelect = document.getElementById("therapistId");
-const slotSelect = document.getElementById("slotSelect");
+const startInput = document.getElementById("start");
+const endInput = document.getElementById("end");
 const form = document.getElementById("reservationForm");
 
-// ======================
-// CARGAR TERAPEUTAS
-// ======================
-const therapistsSnap = await getDocs(collection(db, "therapists"));
+/* =========================
+   CARGAR TERAPEUTAS
+========================= */
+async function loadTherapists() {
+  therapistSelect.innerHTML =
+    `<option value="">Selecciona terapeuta</option>`;
 
-therapistsSnap.forEach(d => {
-  const therapist = d.data();
+  const snap = await getDocs(collection(db, "therapists"));
 
-  const option = document.createElement("option");
-  option.value = d.id;
-  option.textContent = therapist.name || d.id;
-
-  therapistSelect.appendChild(option);
-});
-
-// ======================
-// CARGAR DISPONIBILIDAD
-// ======================
-therapistSelect.addEventListener("change", async () => {
-  slotSelect.innerHTML = "<option value=''>Selecciona horario</option>";
-
-  if (!therapistSelect.value) return;
-
-  const q = query(
-    collection(db, "availability"),
-    where("therapistId", "==", therapistSelect.value)
-  );
-
-  const snap = await getDocs(q);
-
-  snap.forEach(d => {
-    const slot = d.data();
+  snap.forEach(doc => {
+    const data = doc.data();
 
     const option = document.createElement("option");
-    option.value = d.id;
+    option.value = doc.id;
+    option.textContent = data.name || "Terapeuta";
 
-    const start = new Date(slot.start.seconds * 1000);
-    const end = new Date(slot.end.seconds * 1000);
-
-    option.textContent =
-      start.toLocaleString() + " – " + end.toLocaleString();
-
-    option.dataset.start = start.toISOString();
-    option.dataset.end = end.toISOString();
-
-    slotSelect.appendChild(option);
+    therapistSelect.appendChild(option);
   });
-});
+}
 
-// ======================
-// RESERVAR CITA (REAL)
-// ======================
+/* =========================
+   RESERVAR CITA
+========================= */
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
 
@@ -81,37 +52,38 @@ form.addEventListener("submit", async (e) => {
     return;
   }
 
-  if (!slotSelect.value) {
-    alert("Selecciona un horario disponible");
+  const therapistId = therapistSelect.value;
+  if (!therapistId) {
+    alert("Selecciona terapeuta");
     return;
   }
 
-  const patientId = user.uid;
-  const therapistId = therapistSelect.value;
-  const slotId = slotSelect.value;
+  const start = new Date(startInput.value);
+  const end = new Date(endInput.value);
 
-  const selected = slotSelect.selectedOptions[0];
-  const start = new Date(selected.dataset.start);
-  const end = new Date(selected.dataset.end);
+  if (end <= start) {
+    alert("La hora de fin debe ser posterior al inicio");
+    return;
+  }
 
   try {
-    // 1️⃣ Crear cita
     await createAppointment({
-      patientId,
+      patientId: user.uid,
       therapistId,
-      start,
-      end
+      start: Timestamp.fromDate(start),
+      end: Timestamp.fromDate(end)
     });
-
-    // 2️⃣ Eliminar disponibilidad
-    await deleteDoc(doc(db, "availability", slotId));
 
     alert("Cita reservada correctamente");
     form.reset();
-    slotSelect.innerHTML = "<option value=''>Selecciona horario</option>";
 
   } catch (err) {
     console.error(err);
     alert("Error al reservar la cita");
   }
 });
+
+/* =========================
+   INIT
+========================= */
+await loadTherapists();
