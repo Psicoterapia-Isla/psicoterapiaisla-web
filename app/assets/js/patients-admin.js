@@ -17,8 +17,8 @@ const searchInput = document.getElementById("patient-search");
 const listContainer = document.getElementById("patients-list");
 
 if (!searchInput || !listContainer) {
-  console.error("❌ Elementos DOM no encontrados");
-  throw new Error("DOM incompleto");
+  console.error("DOM no encontrado");
+  throw new Error("DOM no cargado");
 }
 
 /* =========================
@@ -36,7 +36,7 @@ onAuthStateChanged(auth, async (user) => {
   const userSnap = await getDoc(doc(db, "users", user.uid));
 
   if (!userSnap.exists() || userSnap.data().role !== "admin") {
-    alert("Acceso restringido a administradores");
+    alert("Acceso restringido");
     window.location.href = "index.html";
     return;
   }
@@ -45,44 +45,47 @@ onAuthStateChanged(auth, async (user) => {
 });
 
 /* =========================
-   CARGA PACIENTES
+   CARGA DE PACIENTES (NORMALIZED)
 ========================= */
 async function loadPatients() {
   listContainer.innerHTML = "Cargando pacientes...";
 
-  const snapshot = await getDocs(collection(db, "patients"));
+  try {
+    const snapshot = await getDocs(
+      collection(db, "patients_normalized")
+    );
 
-  allPatients = snapshot.docs.map(d => ({
-    id: d.id,
-    ...d.data()
-  }));
+    allPatients = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
 
-  renderPatients(allPatients);
+    renderPatients(allPatients);
+
+  } catch (err) {
+    console.error(err);
+    listContainer.innerHTML = "Error cargando pacientes";
+  }
 }
 
 /* =========================
-   RENDER CORRECTO
+   RENDER
 ========================= */
 function renderPatients(patients) {
   if (!patients.length) {
-    listContainer.innerHTML = "No hay pacientes.";
+    listContainer.innerHTML = "No hay pacientes";
     return;
   }
 
-  listContainer.innerHTML = patients
-    .map(p => `
-      <div class="patient-row">
-        <strong>
-          ${p.nombre || p.name || ""} ${p.apellidos || p.lastName || ""}
-        </strong><br>
-        <small>
-          DNI: ${p.dni || "-"} ·
-          Email: ${p.email || "-"} ·
-          Tel: ${p.telefono || p.phone || "-"}
-        </small>
-      </div>
-    `)
-    .join("");
+  listContainer.innerHTML = patients.map(p => `
+    <div class="patient-row">
+      <strong>${p.nombre || ""} ${p.apellidos || ""}</strong><br>
+      <small>
+        DNI: ${p.dni || "-"} · 
+        Email: ${p.email || "-"}
+      </small>
+    </div>
+  `).join("");
 }
 
 /* =========================
@@ -92,8 +95,8 @@ searchInput.addEventListener("input", () => {
   const q = searchInput.value.toLowerCase().trim();
 
   const filtered = allPatients.filter(p =>
-    (p.nombre || p.name || "").toLowerCase().includes(q) ||
-    (p.apellidos || p.lastName || "").toLowerCase().includes(q) ||
+    (p.nombre || "").toLowerCase().includes(q) ||
+    (p.apellidos || "").toLowerCase().includes(q) ||
     (p.email || "").toLowerCase().includes(q) ||
     (p.dni || "").toLowerCase().includes(q)
   );
