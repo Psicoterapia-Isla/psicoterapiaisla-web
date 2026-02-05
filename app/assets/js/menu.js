@@ -1,7 +1,8 @@
-import { getAuth, onAuthStateChanged, signOut } 
+import { getAuth, onAuthStateChanged, signOut }
   from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
 import { db } from "./firebase.js";
-import { doc, getDoc } 
+import { doc, getDoc }
   from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 let menuRendered = false;
@@ -16,13 +17,18 @@ export async function loadMenu() {
     if (!user || menuRendered) return;
     menuRendered = true;
 
-    // 🔐 Rol real
+    /* ======================
+       ROL REAL
+    ====================== */
     const snap = await getDoc(doc(db, "users", user.uid));
     const role = snap.exists() ? snap.data().role : "patient";
 
     const isAdmin = role === "admin";
     const isTherapist = role === "therapist" || isAdmin;
 
+    /* ======================
+       MENU
+    ====================== */
     menu.innerHTML = `
       <div class="app-menu-inner">
 
@@ -33,15 +39,15 @@ export async function loadMenu() {
 
         <!-- FORO -->
         <div class="menu-group">
-          <button class="menu-group-toggle">
-            Foro
-          </button>
+          <button class="menu-group-toggle">Foro</button>
           <div class="menu-group-content">
-            <a href="foro.html">Temas del foro</a>
+            <a href="foro.html">Foro</a>
           </div>
         </div>
 
-        <!-- PACIENTE -->
+        <!-- ======================
+             PACIENTE
+        ====================== -->
         ${
           !isTherapist
             ? `
@@ -54,14 +60,21 @@ export async function loadMenu() {
             <a href="diario.html">Escribir diario</a>
             <a href="mi-diario.html">Mi diario</a>
             <a href="exercises-list.html">Ejercicios</a>
-            <a href="agenda-paciente.html">Agenda</a>
+
+            <hr>
+
+            <!-- NUEVO -->
+            <a href="reservar.html">Reservar cita</a>
+            <a href="agenda-paciente.html">Mis citas</a>
           </div>
         </div>
         `
             : ""
         }
 
-        <!-- TERAPEUTA / ADMIN -->
+        <!-- ======================
+             TERAPEUTA
+        ====================== -->
         ${
           isTherapist
             ? `
@@ -70,18 +83,31 @@ export async function loadMenu() {
             Espacio terapeuta
           </button>
           <div class="menu-group-content">
+
+            <!-- AGENDA -->
             <a href="agenda-terapeuta.html">Agenda profesional</a>
+            <a href="availability.html">Definir disponibilidad</a>
+
+            <hr>
+
+            <!-- CLÍNICO -->
             <a href="diario-terapeuta.html">Diarios pacientes</a>
             <a href="entries-by-exercise.html">Respuestas por ejercicio</a>
             <a href="entries-by-patient.html">Respuestas por paciente</a>
+
+            <hr>
+
+            <!-- CONTENIDO -->
             <a href="exercises-admin.html">Gestionar ejercicios</a>
 
             ${
               isAdmin
                 ? `
                 <hr>
+
+                <!-- ADMIN -->
                 <a href="patients-admin.html">Gestión de pacientes</a>
-                <a href="patient-invoices.html">Facturación pacientes</a>
+                <a href="patient-invoices.html">Facturación</a>
                 `
                 : ""
             }
@@ -100,14 +126,18 @@ export async function loadMenu() {
       </div>
     `;
 
-    /* navegación directa */
+    /* ======================
+       NAVEGACIÓN
+    ====================== */
     menu.querySelectorAll("[data-link]").forEach(btn => {
       btn.addEventListener("click", () => {
         window.location.href = btn.dataset.link;
       });
     });
 
-    /* desplegables */
+    /* ======================
+       DESPLEGABLES
+    ====================== */
     menu.querySelectorAll(".menu-group > .menu-group-toggle")
       .forEach(btn => {
         btn.addEventListener("click", () => {
@@ -122,7 +152,9 @@ export async function loadMenu() {
         });
       });
 
-    /* logout */
+    /* ======================
+       LOGOUT
+    ====================== */
     document.getElementById("logout-btn")
       .addEventListener("click", async () => {
         await signOut(auth);
