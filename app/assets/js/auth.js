@@ -6,6 +6,19 @@ import {
   onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
+/**
+ * Login explícito (pantalla login.html)
+ */
+export async function login(email, password) {
+  return await signInWithEmailAndPassword(auth, email, password);
+}
+
+/**
+ * Protege páginas privadas
+ * - NO toca Firestore
+ * - SOLO comprueba auth
+ * - No genera 403
+ */
 export function requireAuth() {
   return new Promise((resolve) => {
     onAuthStateChanged(auth, (user) => {
@@ -14,12 +27,12 @@ export function requireAuth() {
         return;
       }
 
-      // 🔴 DEBUG TEMPORAL (IMPORTANTE)
+      // ✅ DEBUG ÚTIL (puedes quitarlo luego)
       console.log("✅ Usuario autenticado");
-      console.log("👉 UID:", user.uid);
-      console.log("👉 Email:", user.email);
+      console.log("UID:", user.uid);
+      console.log("Email:", user.email);
 
-      // Opcional pero útil
+      // 🔒 Disponible globalmente si hace falta
       window.__USER__ = user;
 
       resolve(user);
