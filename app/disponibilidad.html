@@ -1,74 +1,39 @@
-import { auth } from "./firebase.js";
-import { db } from "./firebase.js";
-import {
-  collection,
-  getDocs,
-  setDoc,
-  doc
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Disponibilidad | Psicoterapia Isla</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="assets/css/app.css">
+</head>
 
-const grid = document.getElementById("availabilityGrid");
-const saveBtn = document.getElementById("saveAvailability");
+<body class="app-body">
+<header class="app-menu"></header>
 
-const days = ["monday","tuesday","wednesday","thursday","friday","saturday","sunday"];
-const labels = ["L","M","X","J","V","S","D"];
-const hours = Array.from({ length: 12 }, (_, i) => i + 9);
+<main class="app-container">
+  <section class="card">
 
-const state = {}; // day_hour -> available
+    <h1>Disponibilidad semanal</h1>
+    <p class="muted">
+      Horario base: 9:00–21:00 · sesiones de 60 minutos
+    </p>
 
-const user = auth.currentUser;
-const therapistId = user.uid;
+    <div id="availabilityGrid" class="availability-grid"></div>
 
-// HEADER
-grid.appendChild(document.createElement("div"));
-labels.forEach(l => {
-  const d = document.createElement("div");
-  d.textContent = l;
-  d.style.fontWeight = "600";
-  grid.appendChild(d);
-});
+    <button id="saveAvailability" class="btn-primary">
+      Guardar cambios
+    </button>
 
-// GRID
-hours.forEach(hour => {
-  const h = document.createElement("div");
-  h.textContent = `${hour}:00`;
-  h.className = "hour";
-  grid.appendChild(h);
+  </section>
+</main>
 
-  days.forEach(day => {
-    const key = `${day}_${hour}`;
-    state[key] = true;
+<script type="module">
+  import { requireAuth } from "./assets/js/auth.js";
+  import { loadMenu } from "./assets/js/menu.js";
+  await requireAuth();
+  await loadMenu();
+</script>
 
-    const slot = document.createElement("div");
-    slot.className = "availability-slot available";
-    slot.textContent = "Disponible";
-
-    slot.onclick = () => {
-      state[key] = !state[key];
-      slot.classList.toggle("available");
-      slot.classList.toggle("unavailable");
-      slot.textContent = state[key] ? "Disponible" : "No disponible";
-    };
-
-    grid.appendChild(slot);
-  });
-});
-
-// GUARDAR
-saveBtn.onclick = async () => {
-  for (const key in state) {
-    const [day, hour] = key.split("_");
-
-    await setDoc(
-      doc(db, "availability", `${therapistId}_${day}_${hour}`),
-      {
-        therapistId,
-        day,
-        hour: Number(hour),
-        available: state[key]
-      }
-    );
-  }
-
-  alert("Disponibilidad guardada");
-};
+<script type="module" src="assets/js/availability-grid.js"></script>
+</body>
+</html>
