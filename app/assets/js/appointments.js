@@ -1,41 +1,32 @@
-import { db } from "../firebase/config";
+// app/assets/js/appointments.js
+
+import { db } from "./firebase.js";
 import {
   collection,
   addDoc,
-  updateDoc,
-  doc,
   serverTimestamp
-} from "firebase/firestore";
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
+/**
+ * Crea una cita REAL en Firestore
+ */
 export async function createAppointment({
   patientId,
   therapistId,
-  availabilityId,
   start,
   end
 }) {
-  const appointmentRef = await addDoc(
-    collection(db, "appointments"),
-    {
-      patientId,
-      therapistId,
-      availabilityId,
+  return await addDoc(collection(db, "appointments"), {
+    patientId: patientId,
+    therapistId: therapistId,
 
-      start,
-      end,
+    start: start,        // Timestamp
+    end: end,            // Timestamp
 
-      status: "reserved",
-      billable: true,
-      invoiceId: null,
+    status: "reserved",  // reserved | completed | cancelled
+    billable: true,      // podrá facturarse
+    invoiceId: null,     // se rellenará después
 
-      createdAt: serverTimestamp()
-    }
-  );
-
-  // Bloquear slot
-  await updateDoc(doc(db, "availability", availabilityId), {
-    isBooked: true
+    createdAt: serverTimestamp()
   });
-
-  return appointmentRef.id;
 }
