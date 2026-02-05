@@ -4,27 +4,65 @@
   <meta charset="UTF-8" />
   <title>Disponibilidad | Psicoterapia Isla</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
   <link rel="stylesheet" href="assets/css/app.css">
+
+  <style>
+    .availability-grid {
+      display: grid;
+      grid-template-columns: 80px repeat(7, 1fr);
+      gap: 6px;
+      margin-top: 20px;
+    }
+
+    .hour-label {
+      font-size: 0.85rem;
+      text-align: right;
+      padding-right: 6px;
+      color: #666;
+    }
+
+    .day-label {
+      text-align: center;
+      font-weight: 600;
+    }
+
+    .slot {
+      height: 36px;
+      border-radius: 6px;
+      cursor: pointer;
+      background: #e57373; /* rojo por defecto */
+      transition: background 0.2s;
+    }
+
+    .slot.available {
+      background: #4caf50; /* verde */
+    }
+
+    .slot.readonly {
+      cursor: default;
+      opacity: 0.9;
+    }
+  </style>
 </head>
 
 <body class="app-body">
+
 <header class="app-menu"></header>
 
 <main class="app-container">
-  <section class="card">
 
+  <section class="card">
     <h1>Disponibilidad semanal</h1>
-    <p class="muted">
-      Horario base: 9:00–21:00 · sesiones de 60 minutos
-    </p>
+    <p>Horario base: 9:00–21:00 · sesiones de 60 minutos</p>
 
     <div id="availabilityGrid" class="availability-grid"></div>
 
     <button id="saveAvailability" class="btn-primary">
       Guardar cambios
     </button>
-
   </section>
+
 </main>
 
 <script type="module">
@@ -35,5 +73,6 @@
 </script>
 
 <script type="module" src="assets/js/availability-grid.js"></script>
+
 </body>
 </html>
