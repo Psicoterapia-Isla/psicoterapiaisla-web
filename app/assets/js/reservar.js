@@ -1,5 +1,3 @@
-// app/assets/js/reservar.js
-
 import { auth } from "./firebase.js";
 import { db } from "./firebase.js";
 import { createAppointment } from "./appointments.js";
@@ -8,82 +6,195 @@ import {
   collection,
   getDocs,
   query,
-  where,
-  Timestamp
+  where
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 /* =========================
-   ELEMENTOS
+   ESTADO
 ========================= */
+let currentWeekStart = startOfWeek(new Date());
+let selectedTherapistId = null;
+
 const therapistSelect = document.getElementById("therapistId");
-const startInput = document.getElementById("start");
-const endInput = document.getElementById("end");
-const form = document.getElementById("reservationForm");
+const calendarBody = document.getElementById("calendarBody");
+const weekLabel = document.getElementById("currentWeekLabel");
+const message = document.getElementById("calendarMessage");
 
 /* =========================
-   CARGAR TERAPEUTAS
+   TERAPEUTAS
 ========================= */
-async function loadTherapists() {
-  therapistSelect.innerHTML =
-    `<option value="">Selecciona terapeuta</option>`;
+const therapistsSnap = await getDocs(
+  query(collection(db, "therapists"), where("active", "==", true))
+);
 
-  const snap = await getDocs(collection(db, "therapists"));
+therapistsSnap.forEach(doc => {
+  const opt = document.createElement("option");
+  opt.value = doc.id;
+  opt.textContent = doc.data().name || doc.id;
+  therapistSelect.appendChild(opt);
+});
 
-  snap.forEach(doc => {
-    const data = doc.data();
+/* =========================
+   EVENTOS
+========================= */
+therapistSelect.addEventListener("change", async () => {
+  selectedTherapistId = therapistSelect.value;
+  if (!selectedTherapistId) return;
+  await renderWeek();
+});
 
-    const option = document.createElement("option");
-    option.value = doc.id;
-    option.textContent = data.name || "Terapeuta";
+document.getElementById("prevWeek").onclick = async () => {
+  currentWeekStart.setDate(currentWeekStart.getDate() - 7);
+  await renderWeek();
+};
 
-    therapistSelect.appendChild(option);
+document.getElementById("nextWeek").onclick = async () => {
+  currentWeekStart.setDate(currentWeekStart.getDate() + 7);
+  await renderWeek();
+};
+
+/* =========================
+   RENDER SEMANA
+========================= */
+async function renderWeek() {
+  calendarBody.innerHTML = "";
+  message.textContent = "";
+
+  const weekEnd = new Date(currentWeekStart);
+  weekEnd.setDate(weekEnd.getDate() + 7);
+
+  weekLabel.textContent = formatWeek(currentWeekStart);
+
+  const availabilitySnap = await getDocs(
+    query(
+      collection(db, "availability"),
+      where("therapistId", "==", selectedTherapistId)
+    )
+  );
+
+  const slots = buildSlots(availabilitySnap.docs, currentWeekStart);
+
+  if (slots.length === 0) {
+    message.textContent = "No hay disponibilidad esta semana.";
+    return;
+  }
+
+  renderGrid(slots);
+}
+
+/* =========================
+   SLOT BUILDER (60 MIN)
+========================= */
+function buildSlots(docs, weekStart) {
+  const slots = [];
+
+  docs.forEach(doc => {
+    const { start, end } = doc.data();
+    let cursor = start.toDate();
+
+    while (cursor < end.toDate()) {
+      const slotEnd = new Date(cursor);
+      slotEnd.setHours(slotEnd.getHours() + 1);
+
+      if (
+        cursor >= weekStart &&
+        cursor < addDays(weekStart, 7)
+      ) {
+        slots.push({
+          start: new Date(cursor),
+          end: slotEnd
+        });
+      }
+
+      cursor = slotEnd;
+    }
+  });
+
+  return slots;
+}
+
+/* =========================
+   GRID
+========================= */
+function renderGrid(slots) {
+  const hours = [...new Set(slots.map(s => s.start.getHours()))].sort();
+
+  hours.forEach(hour => {
+    const row = document.createElement("div");
+    row.className = "calendar-row";
+
+    const timeCell = document.createElement("div");
+    timeCell.className = "time-cell";
+    timeCell.textContent = `${hour}:00`;
+    row.appendChild(timeCell);
+
+    for (let d = 0; d < 5; d++) {
+      const cell = document.createElement("div");
+      cell.className = "slot-cell";
+
+      const slot = slots.find(s =>
+        s.start.getHours() === hour &&
+        s.start.getDay() === d + 1
+      );
+
+      if (slot) {
+        cell.classList.add("available");
+        cell.textContent = "Disponible";
+
+        cell.onclick = async () => {
+          await reserve(slot);
+        };
+      }
+
+      row.appendChild(cell);
+    }
+
+    calendarBody.appendChild(row);
   });
 }
 
 /* =========================
-   RESERVAR CITA
+   RESERVAR
 ========================= */
-form.addEventListener("submit", async (e) => {
-  e.preventDefault();
-
+async function reserve(slot) {
   const user = auth.currentUser;
-  if (!user) {
-    alert("No autenticado");
-    return;
-  }
-
-  const therapistId = therapistSelect.value;
-  if (!therapistId) {
-    alert("Selecciona terapeuta");
-    return;
-  }
-
-  const start = new Date(startInput.value);
-  const end = new Date(endInput.value);
-
-  if (end <= start) {
-    alert("La hora de fin debe ser posterior al inicio");
-    return;
-  }
+  if (!user) return alert("No autenticado");
 
   try {
     await createAppointment({
       patientId: user.uid,
-      therapistId,
-      start: Timestamp.fromDate(start),
-      end: Timestamp.fromDate(end)
+      therapistId: selectedTherapistId,
+      start: slot.start,
+      end: slot.end
     });
 
-    alert("Cita reservada correctamente");
-    form.reset();
+    alert("Cita reservada");
+    await renderWeek();
 
-  } catch (err) {
-    console.error(err);
-    alert("Error al reservar la cita");
+  } catch (e) {
+    console.error(e);
+    alert("Error al reservar");
   }
-});
+}
 
 /* =========================
-   INIT
+   HELPERS
 ========================= */
-await loadTherapists();
+function startOfWeek(date) {
+  const d = new Date(date);
+  const day = d.getDay() || 7;
+  if (day !== 1) d.setDate(d.getDate() - (day - 1));
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+function addDays(date, days) {
+  const d = new Date(date);
+  d.setDate(d.getDate() + days);
+  return d;
+}
+
+function formatWeek(date) {
+  const end = addDays(date, 4);
+  return `${date.toLocaleDateString()} – ${end.toLocaleDateString()}`;
+}
