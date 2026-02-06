@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Agenda diaria | Psicoterapia Isla</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="assets/css/app.css">
+
+  <style>
+    /* === AGENDA DIARIA === */
+
+    .agenda-wrapper {
+      max-width: 520px;
+      margin: 0 auto;
+      padding: 1rem;
+    }
+
+    .agenda-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+
+    .agenda-header h1 {
+      font-size: 1.6rem;
+      color: var(--green-dark);
+    }
+
+    .agenda-date {
+      font-size: 0.95rem;
+      color: #666;
+    }
+
+    .day-column {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .time-slot {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.75rem;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: transform 0.15s ease;
+    }
+
+    .time-slot:active {
+      transform: scale(0.97);
+    }
+
+    .slot-hour {
+      width: 52px;
+      font-weight: 600;
+      color: #333;
+      font-size: 0.95rem;
+    }
+
+    .slot-body {
+      flex: 1;
+      font-size: 0.9rem;
+    }
+
+    /* ESTADOS */
+    .available {
+      background: #dff3e6;
+      color: #1f6b4e;
+    }
+
+    .blocked {
+      background: #f3dede;
+      color: #7a2f2f;
+    }
+
+    .reserved {
+      background: #fff2cc;
+      color: #8a6d1d;
+    }
+
+    .done {
+      background: #e6f0ff;
+      color: #2a4e8a;
+    }
+
+    .location {
+      font-size: 0.75rem;
+      opacity: 0.8;
+    }
+
+    /* Scroll vertical real */
+    .agenda-scroll {
+      height: calc(100vh - 160px);
+      overflow-y: auto;
+      padding-bottom: 1rem;
+    }
+  </style>
+</head>
+
+<body class="app-body">
+
+<header class="app-menu"></header>
+
+<main class="agenda-wrapper">
+
+  <div class="agenda-header">
+    <div>
+      <h1>Viernes 6</h1>
+      <div class="agenda-date">Febrero 2026</div>
+    </div>
+    <button class="btn-primary">Semana</button>
+  </div>
+
+  <div class="agenda-scroll">
+    <div class="day-column" id="agendaDay"></div>
+  </div>
+
+</main>
+
+<script type="module">
+  import { loadMenu } from "./assets/js/menu.js";
+  await loadMenu();
+
+  const agendaDay = document.getElementById("agendaDay");
+
+  const BASE_HOURS = [...Array(12)].map((_, i) => i + 9); // 9–20
+
+  // MOCK DE DATOS (luego Firebase)
+  const mockSlots = {
+    9:  { status: "done", location: "Viladecans", label: "Ana María Santos" },
+    10: { status: "reserved", location: "Viladecans", label: "Visita psicología" },
+    11: { status: "available", location: "Online", label: "Disponible" },
+    12: { status: "blocked", location: "Badalona", label: "Bloqueado" },
+    13: { status: "available", location: "Online", label: "Disponible" },
+    14: { status: "available", location: "Viladecans", label: "Disponible" },
+    15: { status: "reserved", location: "Viladecans", label: "Visita psicología" },
+    16: { status: "available", location: "Online", label: "Disponible" },
+    17: { status: "blocked", location: "Badalona", label: "No disponible" },
+    18: { status: "available", location: "Viladecans", label: "Disponible" },
+    19: { status: "available", location: "Online", label: "Disponible" },
+    20: { status: "blocked", location: "—", label: "Fin jornada" },
+  };
+
+  BASE_HOURS.forEach(hour => {
+    const data = mockSlots[hour];
+
+    const slot = document.createElement("div");
+    slot.className = `time-slot ${data.status}`;
+    slot.dataset.hour = hour;
+
+    slot.innerHTML = `
+      <div class="slot-hour">${hour}:00</div>
+      <div class="slot-body">
+        <div>${data.label}</div>
+        <div class="location">${data.location}</div>
+      </div>
+    `;
+
+    slot.addEventListener("click", () => {
+      console.log("Slot clicado:", hour, data);
+    });
+
+    agendaDay.appendChild(slot);
+  });
+</script>
+
+</body>
+</html>
