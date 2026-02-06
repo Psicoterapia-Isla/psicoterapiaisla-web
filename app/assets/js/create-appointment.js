@@ -5,22 +5,18 @@ import {
   addDoc,
   collection,
   serverTimestamp,
-  Timestamp
+  Timestamp,
+  doc,
+  getDoc
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-let currentDateISO = null;
+let selectedDateISO = null;
 
 /* =========================
-   MODAL
+   MODAL CONTROL
 ========================= */
 window.openCreateModal = (dateISO) => {
-  currentDateISO = dateISO;
-
-  if (!currentDateISO) {
-    alert("Fecha no válida");
-    return;
-  }
-
+  selectedDateISO = dateISO;
   document.getElementById("createModal").style.display = "block";
 };
 
@@ -29,27 +25,48 @@ window.closeCreateModal = () => {
 };
 
 /* =========================
-   CREATE APPOINTMENT
+   AUTOCOMPLETE PACIENTE
 ========================= */
-window.createAppointment = async () => {
-  if (!currentDateISO) {
-    alert("No hay fecha seleccionada");
-    return;
+const phoneInput = document.getElementById("cPatientPhone");
+const nameInput  = document.getElementById("cPatientName");
+
+phoneInput?.addEventListener("blur", async () => {
+  const phone = phoneInput.value.trim();
+  if (!/^\d{9}$/.test(phone)) return;
+
+  // 1️⃣ patients (UID = teléfono)
+  let snap = await getDoc(doc(db, "patients", phone));
+
+  // 2️⃣ fallback patients_normalized
+  if (!snap.exists()) {
+    snap = await getDoc(doc(db, "patients_normalized", phone));
   }
 
-  const phone   = document.getElementById("cPatientPhone").value.trim();
-  const name    = document.getElementById("cPatientName").value.trim();
+  if (snap.exists()) {
+    const data = snap.data();
+    nameInput.value =
+      data.fullName ||
+      `${data.name || ""} ${data.surname || ""}`.trim();
+    nameInput.disabled = true;
+  } else {
+    nameInput.value = "";
+    nameInput.disabled = false;
+  }
+});
+
+/* =========================
+   CREAR CITA
+========================= */
+window.createAppointment = async () => {
+
+  const phone   = phoneInput.value.trim();
+  const name    = nameInput.value.trim();
   const service = document.getElementById("cService").value;
   const startH  = document.getElementById("cStart").value;
   const endH    = document.getElementById("cEnd").value;
 
   if (!/^\d{9}$/.test(phone)) {
-    alert("Teléfono inválido (9 dígitos)");
-    return;
-  }
-
-  if (!name) {
-    alert("Nombre obligatorio");
+    alert("Teléfono inválido");
     return;
   }
 
@@ -59,36 +76,21 @@ window.createAppointment = async () => {
   }
 
   const user = auth.currentUser;
-  if (!user) {
-    alert("Usuario no autenticado");
-    return;
-  }
+  if (!user) return;
 
-  /* =========================
-     FECHAS CORRECTAS
-  ========================= */
-  const baseDate = new Date(currentDateISO);
-
+  const base = new Date(selectedDateISO);
   const [sh, sm] = startH.split(":");
   const [eh, em] = endH.split(":");
 
-  const start = new Date(baseDate);
-  start.setHours(Number(sh), Number(sm), 0, 0);
+  const start = new Date(base);
+  start.setHours(sh, sm, 0, 0);
 
-  const end = new Date(baseDate);
-  end.setHours(Number(eh), Number(em), 0, 0);
+  const end = new Date(base);
+  end.setHours(eh, em, 0, 0);
 
-  if (end <= start) {
-    alert("La hora de fin debe ser posterior");
-    return;
-  }
-
-  /* =========================
-     FIRESTORE
-  ========================= */
   await addDoc(collection(db, "appointments"), {
     therapistId: user.uid,
-    patientId: phone,          // UID paciente = teléfono
+    patientId: phone,        // 📌 UID = teléfono
     patientName: name,
     service,
     start: Timestamp.fromDate(start),
