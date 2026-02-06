@@ -137,7 +137,7 @@
 </script>
 
 <!-- ======================
-     LÓGICA AGENDA
+     LÓGICA AGENDA + FACTURA
 ====================== -->
 <script type="module">
   import { auth } from "./assets/js/firebase.js";
@@ -149,27 +149,35 @@
     where
   } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
+  import { completeSessionAndInvoice } from "./assets/js/invoiceFromAppointment.js";
+
   const agendaDay = document.getElementById("agendaDay");
   const title = document.getElementById("agendaDayTitle");
   const dateText = document.getElementById("agendaDateText");
 
-  // ---- FECHA ACTUAL (por defecto)
+  /* ===== FECHA ACTUAL ===== */
   const today = new Date();
   const yyyyMmDd = today.toISOString().split("T")[0];
 
-  title.textContent = today.toLocaleDateString("es-ES", { weekday: "long", day: "numeric" });
-  dateText.textContent = today.toLocaleDateString("es-ES", { month: "long", year: "numeric" });
+  title.textContent = today.toLocaleDateString("es-ES", {
+    weekday: "long",
+    day: "numeric"
+  });
+  dateText.textContent = today.toLocaleDateString("es-ES", {
+    month: "long",
+    year: "numeric"
+  });
 
-  // ---- HORARIO BASE 9–21
+  /* ===== HORARIO BASE 9–21 ===== */
   const BASE_HOURS = Array.from({ length: 12 }, (_, i) => i + 9);
 
-  // ---- USUARIO
+  /* ===== USUARIO ===== */
   const user = auth.currentUser;
   const therapistId = user.uid;
 
-  // ---- CARGAR SLOTS DESDE FIRESTORE
+  /* ===== CARGAR SLOTS DESDE FIRESTORE ===== */
   const q = query(
-    collection(db, "agendaTerapeuta"),
+    collection(db, "agenda_slots"),
     where("therapistId", "==", therapistId),
     where("date", "==", yyyyMmDd)
   );
@@ -179,16 +187,15 @@
   const slotsFromDB = {};
   snap.forEach(doc => {
     const d = doc.data();
-    slotsFromDB[d.hour] = d;
+    slotsFromDB[d.hour] = { id: doc.id, ...d };
   });
 
-  // ---- RENDER COMPLETO (SIN MOCKS)
+  /* ===== RENDER + ACCIÓN FACTURA ===== */
   BASE_HOURS.forEach(hour => {
 
     const data = slotsFromDB[hour] || {
       status: "blocked",
-      label: "No disponible",
-      location: ""
+      label: "No disponible"
     };
 
     const slot = document.createElement("div");
@@ -206,28 +213,37 @@
                 : "No disponible"
           }
         </div>
-        <div class="location">
-          ${data.location || ""}
-        </div>
+        <div class="location">${data.location || ""}</div>
       </div>
     `;
 
-    slot.addEventListener("click", () => {
-      console.log("Slot:", {
-        hour,
-        data
-      });
+    /* ===== CLICK TERAPEUTA ===== */
+    slot.addEventListener("click", async () => {
+
+      if (data.status !== "reserved") return;
+
+      const ok = confirm("¿Marcar sesión como realizada y crear factura?");
+      if (!ok) return;
+
+      try {
+        await completeSessionAndInvoice({
+          appointmentId: data.appointmentId,
+          patientId: data.patientId,
+          therapistId
+        });
+
+        alert("Sesión completada y factura creada");
+        location.reload();
+
+      } catch (err) {
+        console.error(err);
+        alert("Error al crear la factura");
+      }
     });
 
     agendaDay.appendChild(slot);
   });
 </script>
-<script type="module">
-  import { loadMenu } from "./assets/js/menu.js";
-  await loadMenu();
-</script>
 
-<script type="module" src="assets/js/agenda-day.js"></script>
-<script type="module" src="assets/js/agenda-day.js"></script>
 </body>
 </html>
