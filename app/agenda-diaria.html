@@ -119,7 +119,6 @@
               padding:1rem; border-radius:14px;">
 
     <h3>Nueva cita</h3>
-
     <p id="cDateLabel"></p>
 
     <label>Teléfono paciente (9 dígitos)</label>
@@ -156,7 +155,9 @@ import {
   query,
   where,
   orderBy,
-  Timestamp
+  Timestamp,
+  doc,
+  getDoc
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 await requireAuth();
@@ -187,18 +188,52 @@ document.getElementById("dayMonth").textContent =
 /* =========================
    CONTEXTO
 ========================= */
-const user = auth.currentUser;
-const therapistId = user.uid;
+const therapistId = auth.currentUser.uid;
 const agendaList = document.getElementById("agendaList");
+
+/* =========================
+   CREAR CITA (MODAL + AUTOCOMPLETE)
+========================= */
+window.openCreateModal = (iso) => {
+  document.getElementById("createModal").style.display = "block";
+  document.getElementById("cDateLabel").textContent =
+    new Date(iso).toLocaleDateString("es-ES");
+
+  const phoneInput = document.getElementById("cPatientPhone");
+  const nameInput  = document.getElementById("cPatientName");
+
+  phoneInput.value = "";
+  nameInput.value = "";
+  nameInput.disabled = false;
+
+  phoneInput.onblur = async () => {
+    const phone = phoneInput.value.trim();
+    if (!/^\d{9}$/.test(phone)) return;
+
+    let snap = await getDoc(doc(db, "patients", phone));
+    if (!snap.exists()) {
+      snap = await getDoc(doc(db, "patients_normalized", phone));
+    }
+
+    if (snap.exists()) {
+      const d = snap.data();
+      nameInput.value =
+        d.fullName || `${d.name || ""} ${d.surname || ""}`.trim();
+      nameInput.disabled = true;
+    } else {
+      nameInput.disabled = false;
+    }
+  };
+};
+
+window.closeCreateModal = () => {
+  document.getElementById("createModal").style.display = "none";
+};
 
 /* =========================
    BOTÓN NUEVA CITA
 ========================= */
-document.getElementById("btnNew").onclick = () => {
-  openCreateModal(dateISO);
-  document.getElementById("cDateLabel").textContent =
-    baseDate.toLocaleDateString("es-ES");
-};
+document.getElementById("btnNew").onclick = () => openCreateModal(dateISO);
 
 /* =========================
    QUERY CITAS
@@ -225,11 +260,11 @@ function openModal(id, data) {
   selectedAppointmentId = id;
   selectedAppointment = data;
 
-  document.getElementById("modalPatient").textContent =
-    data.patientName || "Sin nombre";
-
   const s = data.start.toDate();
   const e = data.end.toDate();
+
+  document.getElementById("modalPatient").textContent =
+    data.patientName || "Sin nombre";
 
   document.getElementById("modalTime").textContent =
     `${s.getHours().toString().padStart(2,"0")}:00 – ${e.getHours().toString().padStart(2,"0")}:00`;
@@ -251,7 +286,6 @@ document.getElementById("btnDone").onclick = async () => {
     concept: selectedAppointment.service || "Sesión de terapia"
   });
 
-  closeModal();
   location.reload();
 };
 
@@ -261,54 +295,39 @@ document.getElementById("btnDone").onclick = async () => {
 const HOURS_START = 9;
 const HOURS_END = 21;
 
-const appointmentsByHour = {};
+const byHour = {};
 snap.forEach(d => {
-  const a = d.data();
-  appointmentsByHour[a.start.toDate().getHours()] = { id: d.id, data: a };
+  byHour[d.data().start.toDate().getHours()] = { id: d.id, data: d.data() };
 });
 
-for (let hour = HOURS_START; hour < HOURS_END; hour++) {
-
-  if (appointmentsByHour[hour]) {
-    const { id, data } = appointmentsByHour[hour];
+for (let h = HOURS_START; h < HOURS_END; h++) {
+  if (byHour[h]) {
+    const { id, data } = byHour[h];
     const slot = document.createElement("div");
     slot.className = "slot slot-green";
-
     slot.innerHTML = `
-      <div class="slot-time">${hour}:00</div>
+      <div class="slot-time">${h}:00</div>
       <div class="slot-body">
         <strong>${data.patientName}</strong><br>
         ${data.service}<br>
         <span class="slot-status">${data.status}</span>
-      </div>
-    `;
-
+      </div>`;
     slot.onclick = () => openModal(id, data);
     agendaList.appendChild(slot);
-
   } else {
     const slot = document.createElement("div");
     slot.className = "slot slot-grey";
-
     slot.innerHTML = `
-      <div class="slot-time">${hour}:00</div>
+      <div class="slot-time">${h}:00</div>
       <div class="slot-body">
         <strong>Libre</strong><br>
         <span class="slot-status">Disponible</span>
-      </div>
-    `;
-
+      </div>`;
     slot.onclick = () => {
       openCreateModal(dateISO);
-      document.getElementById("cDateLabel").textContent =
-        baseDate.toLocaleDateString("es-ES");
-
-      document.getElementById("cStart").value =
-        `${hour.toString().padStart(2,"0")}:00`;
-      document.getElementById("cEnd").value =
-        `${(hour+1).toString().padStart(2,"0")}:00`;
+      document.getElementById("cStart").value = `${String(h).padStart(2,"0")}:00`;
+      document.getElementById("cEnd").value = `${String(h+1).padStart(2,"0")}:00`;
     };
-
     agendaList.appendChild(slot);
   }
 }
