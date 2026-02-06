@@ -17,12 +17,16 @@
 .day-header {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  justify-content: space-between;
   margin-bottom: 1rem;
 }
-<button class="btn-primary" onclick="openCreateModal()">
-  ➕ Nueva cita
-</button>
+
+.day-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
 .day-circle {
   width: 42px;
   height: 42px;
@@ -58,14 +62,8 @@
   flex: 1;
 }
 
-.slot-green {
-  background: #e6f4d7;
-}
-
-.slot-grey {
-  background: #e5e7eb;
-  color: #555;
-}
+.slot-green { background: #e6f4d7; }
+.slot-grey  { background: #e5e7eb; color: #555; }
 
 .slot-status {
   font-size: 0.7rem;
@@ -81,11 +79,17 @@
 <main class="agenda-wrapper">
 
   <div class="day-header">
-    <div class="day-circle" id="dayNumber"></div>
-    <div>
-      <div class="day-title" id="dayName"></div>
-      <div id="dayMonth"></div>
+    <div class="day-left">
+      <div class="day-circle" id="dayNumber"></div>
+      <div>
+        <div class="day-title" id="dayName"></div>
+        <div id="dayMonth"></div>
+      </div>
     </div>
+
+    <button class="btn-primary" id="btnNew">
+      ➕ Nueva cita
+    </button>
   </div>
 
   <div id="agendaList"></div>
@@ -93,7 +97,7 @@
 </main>
 
 <!-- =========================
-     MODAL CRM CITA
+     MODAL GESTIÓN CITA
 ========================= -->
 <div id="appointmentModal"
      style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:999;">
@@ -111,140 +115,9 @@
   </div>
 </div>
 
-<script type="module">
-/* =========================
-   AUTH + MENU
-========================= */
-import { requireAuth } from "./assets/js/auth.js";
-import { loadMenu } from "./assets/js/menu.js";
-import { auth, db } from "./assets/js/firebase.js";
-import { completeSessionAndInvoice } from "./assets/js/invoiceFromAppointment.js";
-
-import {
-  collection,
-  getDocs,
-  query,
-  where,
-  orderBy,
-  Timestamp
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
-await requireAuth();
-await loadMenu();
-
-/* =========================
-   CONTEXTO FECHA
-========================= */
-const user = auth.currentUser;
-const therapistId = user.uid;
-const agendaList = document.getElementById("agendaList");
-
-const today = new Date();
-const startOfDay = new Date(today);
-startOfDay.setHours(0,0,0,0);
-const endOfDay = new Date(today);
-endOfDay.setHours(24,0,0,0);
-
-document.getElementById("dayNumber").textContent =
-  startOfDay.getDate();
-
-document.getElementById("dayName").textContent =
-  startOfDay.toLocaleDateString("es-ES", { weekday: "long" });
-
-document.getElementById("dayMonth").textContent =
-  startOfDay.toLocaleDateString("es-ES", { month: "long", year: "numeric" });
-
-/* =========================
-   QUERY APPOINTMENTS
-========================= */
-const q = query(
-  collection(db, "appointments"),
-  where("therapistId", "==", therapistId),
-  where("start", ">=", Timestamp.fromDate(startOfDay)),
-  where("start", "<", Timestamp.fromDate(endOfDay)),
-  orderBy("start")
-);
-
-const snap = await getDocs(q);
-
-if (snap.empty) {
-  agendaList.innerHTML = "<p>No hay citas este día</p>";
-}
-
-/* =========================
-   MODAL STATE
-========================= */
-let selectedAppointmentId = null;
-let selectedAppointment = null;
-
-window.closeModal = () => {
-  document.getElementById("appointmentModal").style.display = "none";
-};
-
-function openModal(id, data) {
-  selectedAppointmentId = id;
-  selectedAppointment = data;
-
-  document.getElementById("modalPatient").textContent =
-    data.patientName || "Sin nombre";
-
-  const s = data.start.toDate();
-  const e = data.end.toDate();
-
-  document.getElementById("modalTime").textContent =
-    `${s.getHours().toString().padStart(2,"0")}:00 – ${e.getHours().toString().padStart(2,"0")}:00`;
-
-  // 🔒 Si ya está completada, no permitir repetir
-  document.getElementById("btnDone").style.display =
-    data.status === "completed" ? "none" : "block";
-
-  document.getElementById("appointmentModal").style.display = "block";
-}
-
-/* =========================
-   ACTION: MARCAR REALIZADA + FACTURA
-========================= */
-document.getElementById("btnDone").onclick = async () => {
-  if (!selectedAppointmentId || !selectedAppointment) return;
-
-  await completeSessionAndInvoice({
-    appointmentId: selectedAppointmentId,
-    patientId: selectedAppointment.patientId,
-    therapistId,
-    amount: selectedAppointment.amount || 60,
-    concept: selectedAppointment.service || "Sesión de terapia"
-  });
-
-  closeModal();
-  location.reload();
-};
-
-/* =========================
-   RENDER
-========================= */
-snap.forEach(d => {
-  const a = d.data();
-  const start = a.start.toDate();
-
-  const slot = document.createElement("div");
-  slot.className =
-    `slot ${a.status === "scheduled" ? "slot-green" : "slot-grey"}`;
-
-  slot.innerHTML = `
-    <div class="slot-time">
-      ${start.getHours().toString().padStart(2,"0")}:00
-    </div>
-    <div class="slot-body">
-      <strong>${a.patientName || "Bloqueo"}</strong><br>
-      ${a.service || ""}<br>
-      <span class="slot-status">${a.status}</span>
-    </div>
-  `;
-
-  slot.onclick = () => openModal(d.id, a);
-  agendaList.appendChild(slot);
-});
-</script>
+<!-- =========================
+     MODAL CREAR CITA
+========================= -->
 <div id="createModal"
      style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:1000;">
   <div style="background:#fff; max-width:420px; margin:10vh auto;
@@ -273,6 +146,176 @@ snap.forEach(d => {
     <button onclick="closeCreateModal()">Cancelar</button>
   </div>
 </div>
+
+<script type="module">
+/* =========================
+   AUTH + MENU
+========================= */
+import { requireAuth } from "./assets/js/auth.js";
+import { loadMenu } from "./assets/js/menu.js";
+import { auth, db } from "./assets/js/firebase.js";
+import { completeSessionAndInvoice } from "./assets/js/invoiceFromAppointment.js";
+
+import {
+  collection,
+  getDocs,
+  query,
+  where,
+  orderBy,
+  Timestamp
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+await requireAuth();
+await loadMenu();
+
+/* =========================
+   FECHA ACTIVA (CLAVE)
+========================= */
+const params = new URLSearchParams(window.location.search);
+const dateISO = params.get("date") || new Date().toISOString().split("T")[0];
+
+const baseDate = new Date(dateISO);
+baseDate.setHours(0,0,0,0);
+
+const startOfDay = new Date(baseDate);
+const endOfDay   = new Date(baseDate);
+endOfDay.setHours(24,0,0,0);
+
+/* =========================
+   HEADER
+========================= */
+document.getElementById("dayNumber").textContent = baseDate.getDate();
+document.getElementById("dayName").textContent =
+  baseDate.toLocaleDateString("es-ES", { weekday: "long" });
+document.getElementById("dayMonth").textContent =
+  baseDate.toLocaleDateString("es-ES", { month: "long", year: "numeric" });
+
+/* =========================
+   CONTEXTO
+========================= */
+const user = auth.currentUser;
+const therapistId = user.uid;
+const agendaList = document.getElementById("agendaList");
+
+/* =========================
+   NUEVA CITA (BOTÓN)
+========================= */
+document.getElementById("btnNew").onclick = () => {
+  openCreateModal(dateISO);
+};
+
+/* =========================
+   QUERY CITAS
+========================= */
+const snap = await getDocs(query(
+  collection(db, "appointments"),
+  where("therapistId", "==", therapistId),
+  where("start", ">=", Timestamp.fromDate(startOfDay)),
+  where("start", "<", Timestamp.fromDate(endOfDay)),
+  orderBy("start")
+));
+
+/* =========================
+   MODAL GESTIÓN
+========================= */
+let selectedAppointmentId = null;
+let selectedAppointment = null;
+
+window.closeModal = () => {
+  document.getElementById("appointmentModal").style.display = "none";
+};
+
+function openModal(id, data) {
+  selectedAppointmentId = id;
+  selectedAppointment = data;
+
+  document.getElementById("modalPatient").textContent =
+    data.patientName || "Sin nombre";
+
+  const s = data.start.toDate();
+  const e = data.end.toDate();
+
+  document.getElementById("modalTime").textContent =
+    `${s.getHours().toString().padStart(2,"0")}:00 – ${e.getHours().toString().padStart(2,"0")}:00`;
+
+  document.getElementById("btnDone").style.display =
+    data.status === "completed" ? "none" : "block";
+
+  document.getElementById("appointmentModal").style.display = "block";
+}
+
+document.getElementById("btnDone").onclick = async () => {
+  if (!selectedAppointmentId) return;
+
+  await completeSessionAndInvoice({
+    appointmentId: selectedAppointmentId,
+    patientId: selectedAppointment.patientId,
+    therapistId,
+    amount: selectedAppointment.amount || 60,
+    concept: selectedAppointment.service || "Sesión de terapia"
+  });
+
+  closeModal();
+  location.reload();
+};
+
+/* =========================
+   RENDER AGENDA (HUECOS + CITAS)
+========================= */
+const HOURS_START = 9;
+const HOURS_END = 21;
+
+const appointmentsByHour = {};
+snap.forEach(d => {
+  const a = d.data();
+  const h = a.start.toDate().getHours();
+  appointmentsByHour[h] = { id: d.id, data: a };
+});
+
+for (let hour = HOURS_START; hour < HOURS_END; hour++) {
+
+  if (appointmentsByHour[hour]) {
+    const { id, data } = appointmentsByHour[hour];
+    const slot = document.createElement("div");
+    slot.className = "slot slot-green";
+
+    slot.innerHTML = `
+      <div class="slot-time">${hour}:00</div>
+      <div class="slot-body">
+        <strong>${data.patientName}</strong><br>
+        ${data.service}<br>
+        <span class="slot-status">${data.status}</span>
+      </div>
+    `;
+
+    slot.onclick = () => openModal(id, data);
+    agendaList.appendChild(slot);
+
+  } else {
+    const slot = document.createElement("div");
+    slot.className = "slot slot-grey";
+
+    slot.innerHTML = `
+      <div class="slot-time">${hour}:00</div>
+      <div class="slot-body">
+        <strong>Libre</strong><br>
+        <span class="slot-status">Disponible</span>
+      </div>
+    `;
+
+    slot.onclick = () => {
+      openCreateModal(dateISO);
+      document.getElementById("cStart").value =
+        `${hour.toString().padStart(2,"0")}:00`;
+      document.getElementById("cEnd").value =
+        `${(hour+1).toString().padStart(2,"0")}:00`;
+    };
+
+    agendaList.appendChild(slot);
+  }
+}
+</script>
+
 <script type="module" src="assets/js/create-appointment.js"></script>
 </body>
 </html>
