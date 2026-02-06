@@ -1,3 +1,5 @@
+// app/assets/js/menu.js
+
 import { getAuth, onAuthStateChanged, signOut }
   from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
@@ -63,7 +65,6 @@ export async function loadMenu() {
 
             <hr>
 
-            <!-- NUEVO -->
             <a href="reservar.html">Reservar cita</a>
             <a href="agenda-paciente.html">Mis citas</a>
           </div>
