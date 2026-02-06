@@ -71,19 +71,7 @@
 }
 </style>
 </head>
-<!-- MODAL CITA -->
-<div id="appointmentModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:999;">
-  <div style="background:#fff; max-width:420px; margin:10vh auto; padding:1rem; border-radius:14px;">
-    <h3 id="modalPatient"></h3>
-    <p id="modalTime"></p>
 
-    <button id="btnDone" class="btn-primary">Marcar realizada</button>
-    <button id="btnInvoice" class="btn-secondary">Crear factura</button>
-
-    <hr>
-    <button onclick="closeModal()">Cerrar</button>
-  </div>
-</div>
 <body class="app-body">
 
 <header class="app-menu"></header>
@@ -102,7 +90,28 @@
 
 </main>
 
+<!-- =========================
+     MODAL CRM CITA
+========================= -->
+<div id="appointmentModal"
+     style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:999;">
+  <div style="background:#fff; max-width:420px; margin:10vh auto;
+              padding:1rem; border-radius:14px;">
+    <h3 id="modalPatient"></h3>
+    <p id="modalTime"></p>
+
+    <button id="btnDone" class="btn-primary">Marcar realizada</button>
+    <button id="btnInvoice" class="btn-secondary">Crear factura</button>
+
+    <hr>
+    <button onclick="closeModal()">Cerrar</button>
+  </div>
+</div>
+
 <script type="module">
+/* =========================
+   AUTH + MENU
+========================= */
 import { requireAuth } from "./assets/js/auth.js";
 import { loadMenu } from "./assets/js/menu.js";
 import { auth, db } from "./assets/js/firebase.js";
@@ -112,19 +121,26 @@ import {
   query,
   where,
   orderBy,
-  Timestamp
+  Timestamp,
+  updateDoc,
+  doc
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 await requireAuth();
 await loadMenu();
 
+/* =========================
+   CONTEXTO FECHA
+========================= */
 const user = auth.currentUser;
 const therapistId = user.uid;
 const agendaList = document.getElementById("agendaList");
 
 const today = new Date();
-const startOfDay = new Date(today.setHours(0,0,0,0));
-const endOfDay = new Date(today.setHours(24,0,0,0));
+const startOfDay = new Date(today);
+startOfDay.setHours(0,0,0,0);
+const endOfDay = new Date(today);
+endOfDay.setHours(24,0,0,0);
 
 document.getElementById("dayNumber").textContent =
   startOfDay.getDate();
@@ -135,6 +151,9 @@ document.getElementById("dayName").textContent =
 document.getElementById("dayMonth").textContent =
   startOfDay.toLocaleDateString("es-ES", { month: "long", year: "numeric" });
 
+/* =========================
+   QUERY APPOINTMENTS
+========================= */
 const q = query(
   collection(db, "appointments"),
   where("therapistId", "==", therapistId),
@@ -149,14 +168,70 @@ if (snap.empty) {
   agendaList.innerHTML = "<p>No hay citas este día</p>";
 }
 
-snap.forEach(doc => {
-  const a = doc.data();
+/* =========================
+   MODAL STATE
+========================= */
+let selectedAppointmentId = null;
+let selectedAppointment = null;
+
+window.closeModal = () => {
+  document.getElementById("appointmentModal").style.display = "none";
+};
+
+function openModal(id, data) {
+  selectedAppointmentId = id;
+  selectedAppointment = data;
+
+  document.getElementById("modalPatient").textContent =
+    data.patientName || "Sin nombre";
+
+  const s = data.start.toDate();
+  const e = data.end.toDate();
+
+  document.getElementById("modalTime").textContent =
+    `${s.getHours().toString().padStart(2,"0")}:00 – ${e.getHours().toString().padStart(2,"0")}:00`;
+
+  document.getElementById("appointmentModal").style.display = "block";
+}
+
+/* =========================
+   ACTIONS
+========================= */
+document.getElementById("btnDone").onclick = async () => {
+  if (!selectedAppointmentId) return;
+
+  await updateDoc(
+    doc(db, "appointments", selectedAppointmentId),
+    { status: "done" }
+  );
+
+  closeModal();
+  location.reload();
+};
+
+document.getElementById("btnInvoice").onclick = async () => {
+  if (!selectedAppointmentId) return;
+
+  await updateDoc(
+    doc(db, "appointments", selectedAppointmentId),
+    { status: "invoiced" }
+  );
+
+  closeModal();
+  location.reload();
+};
+
+/* =========================
+   RENDER
+========================= */
+snap.forEach(d => {
+  const a = d.data();
 
   const start = a.start.toDate();
-  const end = a.end.toDate();
 
   const slot = document.createElement("div");
-  slot.className = `slot ${a.status === "scheduled" ? "slot-green" : "slot-grey"}`;
+  slot.className =
+    `slot ${a.status === "scheduled" ? "slot-green" : "slot-grey"}`;
 
   slot.innerHTML = `
     <div class="slot-time">
@@ -169,10 +244,7 @@ snap.forEach(doc => {
     </div>
   `;
 
-  slot.onclick = () => {
-    console.log("Abrir gestión cita:", doc.id);
-    // aquí va modal / acción / facturación
-  };
+  slot.onclick = () => openModal(d.id, a);
 
   agendaList.appendChild(slot);
 });
