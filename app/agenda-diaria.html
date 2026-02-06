@@ -179,54 +179,59 @@
     year: "numeric"
   });
 
-  /* ===== USUARIO ===== */
-  const user = auth.currentUser;
-  const therapistId = user.uid;
-
   /* ===== HORAS BASE ===== */
   const HOURS = Array.from({ length: 12 }, (_, i) => i + 9);
 
-  /* ===== CARGA DATOS ===== */
-  const q = query(
-    collection(db, "agenda_slots"),
-    where("therapistId", "==", therapistId),
-    where("date", "==", yyyyMmDd)
-  );
+  /* ===== AUTH SEGURA ===== */
+  auth.onAuthStateChanged(async (user) => {
+    if (!user) return;
 
-  const snap = await getDocs(q);
-  const slots = {};
+    const therapistId = user.uid;
 
-  snap.forEach(doc => {
-    const d = doc.data();
-    slots[d.hour] = d;
-  });
+    /* ===== QUERY ===== */
+    const q = query(
+      collection(db, "agenda_slots"),
+      where("therapistId", "==", therapistId),
+      where("date", "==", yyyyMmDd)
+    );
 
-  /* ===== RENDER ===== */
-  HOURS.forEach(hour => {
+    const snap = await getDocs(q);
+    const slots = {};
 
-    const data = slots[hour];
-    let state = "blocked";
-    let titleText = "Bloqueado";
-    let subText = "";
+    snap.forEach(doc => {
+      const d = doc.data();
+      slots[d.hour] = d;
+    });
 
-    if (data) {
-      state = "available";
-      titleText = "Disponible";
-      subText = data.location || "";
-    }
+    /* ===== RENDER ===== */
+    agendaList.innerHTML = "";
 
-    const card = document.createElement("div");
-    card.className = `slot-card slot-${state}`;
+    HOURS.forEach(hour => {
 
-    card.innerHTML = `
-      <div class="slot-hour">${hour}:00</div>
-      <div class="slot-content">
-        <div class="slot-title">${titleText}</div>
-        <div class="slot-sub">${subText}</div>
-      </div>
-    `;
+      const data = slots[hour];
+      let state = "blocked";
+      let titleText = "Bloqueado";
+      let subText = "";
 
-    agendaList.appendChild(card);
+      if (data) {
+        state = "available";
+        titleText = "Disponible";
+        subText = data.location || "";
+      }
+
+      const card = document.createElement("div");
+      card.className = `slot-card slot-${state}`;
+
+      card.innerHTML = `
+        <div class="slot-hour">${hour}:00</div>
+        <div class="slot-content">
+          <div class="slot-title">${titleText}</div>
+          <div class="slot-sub">${subText}</div>
+        </div>
+      `;
+
+      agendaList.appendChild(card);
+    });
   });
 </script>
 
