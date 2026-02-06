@@ -7,6 +7,7 @@ import {
   addDoc,
   deleteDoc,
   doc,
+  updateDoc,
   serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
@@ -26,10 +27,7 @@ auth.onAuthStateChanged(async (user) => {
     date: today
   });
 
-  renderAgenda({
-    therapistId,
-    slots
-  });
+  renderAgenda({ therapistId, slots });
 });
 
 /* ======================
@@ -40,16 +38,21 @@ function renderAgenda({ therapistId, slots }) {
 
   for (let hour = START_HOUR; hour < END_HOUR; hour++) {
     const slotHour = `${hour}:00`;
-
     const availability = slots[hour];
 
     let status = "blocked";
-    let label = "Bloqueado";
+    let label = "No disponible";
     let location = "";
 
     if (availability) {
-      status = "available";
-      label = "Disponible";
+      status = availability.status || "available";
+      label =
+        status === "available"
+          ? "Disponible"
+          : status === "reserved"
+            ? availability.patientName || "Reservado"
+            : "Bloqueado";
+
       location = availability.location || "";
     }
 
@@ -64,39 +67,32 @@ function renderAgenda({ therapistId, slots }) {
       </div>
     `;
 
-    /* ======================
-       CLICK EN SLOT
-    ====================== */
     slot.addEventListener("click", async () => {
 
-      // 🔴 → 🟢 (crear disponibilidad)
+      // 🟢 Crear disponibilidad
       if (!availability) {
         await addDoc(collection(db, "agenda_slots"), {
           therapistId,
           date: today,
           hour,
-          start: new Date(`${today}T${hour}:00`),
-          end: new Date(`${today}T${hour + 1}:00`),
+          status: "available",
           location: "Consulta",
           createdAt: serverTimestamp()
         });
       }
 
-      // 🟢 → 🔴 (eliminar disponibilidad)
-      if (availability) {
+      // 🔴 Eliminar disponibilidad
+      if (availability && availability.status === "available") {
         await deleteDoc(doc(db, "agenda_slots", availability.id));
       }
 
-      // 🔄 Recargar día
-      const refreshed = await getAgendaForDay({
+      // 🔄 Recargar
+      const refreshedSlots = await getAgendaForDay({
         therapistId,
         date: today
       });
 
-      renderAgenda({
-        therapistId,
-        slots: refreshed
-      });
+      renderAgenda({ therapistId, slots: refreshedSlots });
     });
 
     agendaDay.appendChild(slot);
