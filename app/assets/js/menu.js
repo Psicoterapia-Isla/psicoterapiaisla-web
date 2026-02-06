@@ -86,21 +86,21 @@ export async function loadMenu() {
           <div class="menu-group-content">
 
             <!-- AGENDA -->
-            <a href="agenda-terapeuta.html">Agenda profesional</a>
+            <a href="agenda-semanal.html">Agenda semanal</a>
+            <a href="agenda-diaria.html">Agenda diaria</a>
             <a href="disponibilidad.html">Definir disponibilidad</a>
-            <a href="agenda-diaria.html">Gestion citas</a>
 
             <hr>
 
-            <!-- CLÍNICO -->
+            <!-- CRM / CLÍNICO -->
+            <a href="patients-admin.html">Pacientes</a>
             <a href="diario-terapeuta.html">Diarios pacientes</a>
-            <a href="entries-by-exercise.html">Respuestas por ejercicio</a>
-            <a href="entries-by-patient.html">Respuestas por paciente</a>
+            <a href="entries-by-patient.html">Registros por paciente</a>
 
             <hr>
 
-            <!-- CONTENIDO -->
-            <a href="exercises-admin.html">Gestionar ejercicios</a>
+            <!-- FACTURACIÓN -->
+            <a href="patient-invoices.html">Facturación</a>
 
             ${
               isAdmin
@@ -108,8 +108,7 @@ export async function loadMenu() {
                 <hr>
 
                 <!-- ADMIN -->
-                <a href="patients-admin.html">Gestión de pacientes</a>
-                <a href="patient-invoices.html">Facturación</a>
+                <a href="exercises-admin.html">Gestionar ejercicios</a>
                 `
                 : ""
             }
