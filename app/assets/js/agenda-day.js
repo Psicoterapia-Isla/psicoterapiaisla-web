@@ -5,47 +5,59 @@ import { getAgendaForDay } from "./agendaFirestore.js";
 
 const agendaDay = document.getElementById("agendaDay");
 
-// 9–21
-const BASE_HOURS = [...Array(13)].map((_, i) => i + 9);
+// Configuración base
+const START_HOUR = 9;
+const END_HOUR = 21;
+const SLOT_MINUTES = 60;
 
+// Fecha actual (YYYY-MM-DD)
+const today = new Date().toISOString().split("T")[0];
+
+// Esperar auth real
 auth.onAuthStateChanged(async (user) => {
   if (!user) return;
 
   const therapistId = user.uid;
-  const today = new Date().toISOString().slice(0, 10);
 
   const { slots, appointments } = await getAgendaForDay({
     therapistId,
     date: today
   });
 
-  renderAgenda(slots, appointments);
+  renderAgenda({
+    slots,
+    appointments
+  });
 });
 
-function renderAgenda(slots, appointments) {
-
+/* ======================
+   RENDER AGENDA
+====================== */
+function renderAgenda({ slots, appointments }) {
   agendaDay.innerHTML = "";
 
-  BASE_HOURS.forEach(hour => {
+  for (let hour = START_HOUR; hour < END_HOUR; hour++) {
+    const slotDate = `${hour}:00`;
 
-    const slotStart = `${hour}:00`;
+    const slot = document.createElement("div");
+    slot.classList.add("time-slot");
 
-    const slot = slots.find(s =>
-      new Date(s.start.seconds * 1000).getHours() === hour
+    const availability = slots.find(s =>
+      new Date(s.start.toDate()).getHours() === hour
     );
 
     const appointment = appointments.find(a =>
-      new Date(a.start.seconds * 1000).getHours() === hour
+      new Date(a.start.toDate()).getHours() === hour
     );
 
     let status = "blocked";
     let label = "No disponible";
     let location = "";
 
-    if (slot) {
+    if (availability) {
       status = "available";
       label = "Disponible";
-      location = slot.location || "";
+      location = availability.location || "";
     }
 
     if (appointment) {
@@ -55,20 +67,29 @@ function renderAgenda(slots, appointments) {
 
       label = appointment.status === "completed"
         ? "Sesión realizada"
-        : "Reservada";
+        : "Reservado";
+
+      location = appointment.location || "";
     }
 
-    const div = document.createElement("div");
-    div.className = `time-slot ${status}`;
+    slot.classList.add(status);
 
-    div.innerHTML = `
-      <div class="slot-hour">${hour}:00</div>
+    slot.innerHTML = `
+      <div class="slot-hour">${slotDate}</div>
       <div class="slot-body">
         <div>${label}</div>
         <div class="location">${location}</div>
       </div>
     `;
 
-    agendaDay.appendChild(div);
-  });
+    slot.addEventListener("click", () => {
+      console.log("Slot:", {
+        hour,
+        availability,
+        appointment
+      });
+    });
+
+    agendaDay.appendChild(slot);
+  }
 }
