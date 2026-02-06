@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Agenda semanal | Psicoterapia Isla</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <link rel="stylesheet" href="assets/css/app.css">
+
+  <style>
+    .week-wrapper {
+      max-width: 520px;
+      margin: 0 auto;
+      padding: 1rem;
+    }
+
+    .week-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+
+    .week-days {
+      display: flex;
+      overflow-x: auto;
+      gap: 0.5rem;
+      padding-bottom: 0.5rem;
+    }
+
+    .day-pill {
+      min-width: 90px;
+      padding: 0.75rem;
+      border-radius: 12px;
+      text-align: center;
+      cursor: pointer;
+      background: #f2f2f2;
+      font-size: 0.85rem;
+      flex-shrink: 0;
+    }
+
+    .day-pill.active {
+      background: var(--green-dark);
+      color: white;
+      font-weight: 600;
+    }
+
+    .slots-preview {
+      margin-top: 1rem;
+    }
+
+    .slot-mini {
+      padding: 0.6rem;
+      border-radius: 8px;
+      margin-bottom: 0.4rem;
+      font-size: 0.85rem;
+    }
+
+    .available { background: #dff3e6; }
+    .reserved { background: #fff2cc; }
+    .blocked  { background: #f3dede; }
+    .done     { background: #e6f0ff; }
+  </style>
+</head>
+
+<body class="app-body">
+
+<header class="app-menu"></header>
+
+<main class="week-wrapper">
+
+  <div class="week-header">
+    <h1>Agenda semanal</h1>
+    <a href="agenda-diaria.html" class="btn-primary">Hoy</a>
+  </div>
+
+  <!-- DÍAS -->
+  <div class="week-days" id="weekDays"></div>
+
+  <!-- PREVIEW -->
+  <div class="slots-preview" id="slotsPreview">
+    Selecciona un día
+  </div>
+
+</main>
+
+<script type="module">
+  import { loadMenu } from "./assets/js/menu.js";
+  await loadMenu();
+</script>
+
+<script type="module" src="assets/js/agenda-week.js"></script>
+
+</body>
+</html>
