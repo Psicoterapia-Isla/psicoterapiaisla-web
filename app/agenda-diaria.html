@@ -87,9 +87,7 @@
       </div>
     </div>
 
-    <button class="btn-primary" id="btnNew">
-      ➕ Nueva cita
-    </button>
+    <button class="btn-primary" id="btnNew">➕ Nueva cita</button>
   </div>
 
   <div id="agendaList"></div>
@@ -106,10 +104,7 @@
     <h3 id="modalPatient"></h3>
     <p id="modalTime"></p>
 
-    <button id="btnDone" class="btn-primary">
-      Marcar realizada
-    </button>
-
+    <button id="btnDone" class="btn-primary">Marcar realizada</button>
     <hr>
     <button onclick="closeModal()">Cerrar</button>
   </div>
@@ -124,6 +119,8 @@
               padding:1rem; border-radius:14px;">
 
     <h3>Nueva cita</h3>
+
+    <p id="cDateLabel"></p>
 
     <label>Teléfono paciente (9 dígitos)</label>
     <input id="cPatientPhone" type="text" maxlength="9" />
@@ -148,9 +145,6 @@
 </div>
 
 <script type="module">
-/* =========================
-   AUTH + MENU
-========================= */
 import { requireAuth } from "./assets/js/auth.js";
 import { loadMenu } from "./assets/js/menu.js";
 import { auth, db } from "./assets/js/firebase.js";
@@ -169,7 +163,7 @@ await requireAuth();
 await loadMenu();
 
 /* =========================
-   FECHA ACTIVA (CLAVE)
+   FECHA ACTIVA
 ========================= */
 const params = new URLSearchParams(window.location.search);
 const dateISO = params.get("date") || new Date().toISOString().split("T")[0];
@@ -178,7 +172,7 @@ const baseDate = new Date(dateISO);
 baseDate.setHours(0,0,0,0);
 
 const startOfDay = new Date(baseDate);
-const endOfDay   = new Date(baseDate);
+const endOfDay = new Date(baseDate);
 endOfDay.setHours(24,0,0,0);
 
 /* =========================
@@ -198,10 +192,12 @@ const therapistId = user.uid;
 const agendaList = document.getElementById("agendaList");
 
 /* =========================
-   NUEVA CITA (BOTÓN)
+   BOTÓN NUEVA CITA
 ========================= */
 document.getElementById("btnNew").onclick = () => {
   openCreateModal(dateISO);
+  document.getElementById("cDateLabel").textContent =
+    baseDate.toLocaleDateString("es-ES");
 };
 
 /* =========================
@@ -251,7 +247,7 @@ document.getElementById("btnDone").onclick = async () => {
     appointmentId: selectedAppointmentId,
     patientId: selectedAppointment.patientId,
     therapistId,
-    amount: selectedAppointment.amount || 60,
+    amount: 60,
     concept: selectedAppointment.service || "Sesión de terapia"
   });
 
@@ -260,7 +256,7 @@ document.getElementById("btnDone").onclick = async () => {
 };
 
 /* =========================
-   RENDER AGENDA (HUECOS + CITAS)
+   RENDER HORAS
 ========================= */
 const HOURS_START = 9;
 const HOURS_END = 21;
@@ -268,8 +264,7 @@ const HOURS_END = 21;
 const appointmentsByHour = {};
 snap.forEach(d => {
   const a = d.data();
-  const h = a.start.toDate().getHours();
-  appointmentsByHour[h] = { id: d.id, data: a };
+  appointmentsByHour[a.start.toDate().getHours()] = { id: d.id, data: a };
 });
 
 for (let hour = HOURS_START; hour < HOURS_END; hour++) {
@@ -305,6 +300,9 @@ for (let hour = HOURS_START; hour < HOURS_END; hour++) {
 
     slot.onclick = () => {
       openCreateModal(dateISO);
+      document.getElementById("cDateLabel").textContent =
+        baseDate.toLocaleDateString("es-ES");
+
       document.getElementById("cStart").value =
         `${hour.toString().padStart(2,"0")}:00`;
       document.getElementById("cEnd").value =
