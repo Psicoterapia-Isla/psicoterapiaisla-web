@@ -1,5 +1,3 @@
-// app/assets/js/agenda-week.js
-
 import { requireAuth } from "./auth.js";
 import { auth, db } from "./firebase.js";
 import {
@@ -10,26 +8,20 @@ import {
   Timestamp
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-/* =========================
-   AUTH
-========================= */
 await requireAuth();
 
 const user = auth.currentUser;
-if (!user) throw new Error("Usuario no autenticado");
-
+if (!user) throw new Error("Auth no disponible");
 const therapistId = user.uid;
 
-/* =========================
-   GRID CONFIG
-========================= */
 const grid = document.getElementById("weekGrid");
+
 const START_HOUR = 9;
 const END_HOUR = 21;
 const DAYS = 7;
 
 /* =========================
-   SEMANA ACTUAL (LUNES)
+   FECHA BASE (LUNES)
 ========================= */
 const today = new Date();
 const monday = new Date(today);
@@ -39,32 +31,30 @@ monday.setHours(0,0,0,0);
 /* =========================
    HEADERS
 ========================= */
-grid.appendChild(document.createElement("div")); // esquina
+grid.appendChild(document.createElement("div")); // esquina vacía
 
 for (let d = 0; d < DAYS; d++) {
   const day = new Date(monday);
   day.setDate(monday.getDate() + d);
 
-  const h = document.createElement("div");
-  h.className = "day-header";
-  h.textContent = day.toLocaleDateString("es-ES", {
+  const header = document.createElement("div");
+  header.className = "day-header";
+  header.textContent = day.toLocaleDateString("es-ES", {
     weekday: "short",
     day: "numeric"
   });
 
-  h.onclick = () => {
-    window.location.href =
-      `agenda-diaria.html?date=${day.toISOString().split("T")[0]}`;
+  header.onclick = () => {
+    const iso = day.toISOString().split("T")[0];
+    window.location.href = `agenda-diaria.html?date=${iso}`;
   };
 
-  grid.appendChild(h);
+  grid.appendChild(header);
 }
 
 /* =========================
-   GRID BASE (HORAS)
+   GRID HORAS
 ========================= */
-const cells = [];
-
 for (let hour = START_HOUR; hour < END_HOUR; hour++) {
 
   const hourCell = document.createElement("div");
@@ -75,19 +65,7 @@ for (let hour = START_HOUR; hour < END_HOUR; hour++) {
   for (let d = 0; d < DAYS; d++) {
     const cell = document.createElement("div");
     cell.className = "week-slot blocked";
-    cell.dataset.day = d;
-    cell.dataset.hour = hour;
-
-    cell.onclick = () => {
-      const date = new Date(monday);
-      date.setDate(monday.getDate() + d);
-
-      window.location.href =
-        `agenda-diaria.html?date=${date.toISOString().split("T")[0]}`;
-    };
-
     grid.appendChild(cell);
-    cells.push(cell);
   }
 }
 
@@ -99,36 +77,36 @@ const end = Timestamp.fromDate(
   new Date(monday.getTime() + 7 * 24 * 60 * 60 * 1000)
 );
 
-const snap = await getDocs(query(
-  collection(db, "appointments"),
-  where("therapistId", "==", therapistId),
-  where("start", ">=", start),
-  where("start", "<", end)
-));
+const snap = await getDocs(
+  query(
+    collection(db, "appointments"),
+    where("therapistId", "==", therapistId),
+    where("start", ">=", start),
+    where("start", "<", end)
+  )
+);
 
 /* =========================
-   RENDER APPOINTMENTS
+   PINTAR CITAS
 ========================= */
-snap.forEach(docSnap => {
-  const a = docSnap.data();
+snap.forEach(doc => {
+  const a = doc.data();
   if (!a.start) return;
 
   const s = a.start.toDate();
-  const day = (s.getDay() + 6) % 7;
-  const hour = s.getHours();
+  const dayIndex = (s.getDay() + 6) % 7;
+  const hourIndex = s.getHours() - START_HOUR;
 
-  if (hour < START_HOUR || hour >= END_HOUR) return;
+  if (hourIndex < 0 || hourIndex >= END_HOUR - START_HOUR) return;
 
   const index =
-    (hour - START_HOUR) * DAYS + day;
+    1 +                       // esquina
+    dayIndex +                // día
+    (hourIndex + 1) * (DAYS + 1); // fila
 
-  const cell = cells[index];
+  const cell = grid.children[index];
   if (!cell) return;
 
-  cell.className =
-    `week-slot ${a.status === "completed" ? "done" : "reserved"}`;
-
-  cell.innerHTML = `
-    <strong>${a.patientName || ""}</strong>
-  `;
+  cell.className = `week-slot ${a.status || "reserved"}`;
+  cell.textContent = a.patientName || "";
 });
