@@ -8,37 +8,33 @@
 <link rel="stylesheet" href="assets/css/app.css">
 
 <style>
-.week-wrapper {
-  padding: 1rem;
-  overflow-x: auto;
-}
+.week-wrapper { padding:1rem; overflow-x:auto; }
 
 .week-grid {
-  display: grid;
-  grid-template-columns: 60px repeat(7, minmax(120px,1fr));
-  gap: 0.4rem;
+  display:grid;
+  grid-template-columns:60px repeat(7,minmax(120px,1fr));
+  gap:.4rem;
 }
 
 .week-hour {
-  font-size: 0.75rem;
-  text-align: right;
-  padding-right: 6px;
-  color: #666;
+  font-size:.75rem;
+  text-align:right;
+  padding-right:6px;
+  color:#666;
 }
 
 .day-header {
-  text-align: center;
-  font-weight: 600;
-  font-size: 0.85rem;
-  cursor: pointer;
+  text-align:center;
+  font-weight:600;
+  cursor:pointer;
 }
 
 .week-slot {
-  height: 44px;
-  border-radius: 8px;
-  padding: 4px;
-  font-size: 0.7rem;
-  cursor: pointer;
+  height:44px;
+  border-radius:8px;
+  padding:4px;
+  font-size:.7rem;
+  cursor:pointer;
 }
 
 .available { background:#e6f4d7; }
@@ -56,15 +52,45 @@
   <div id="weekGrid" class="week-grid"></div>
 </main>
 
+<!-- MODAL CREAR CITA -->
+<div id="createModal"
+     style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:1000;">
+  <div style="background:#fff; max-width:420px; margin:10vh auto;
+              padding:1rem; border-radius:14px;">
+
+    <h3>Nueva cita</h3>
+    <p id="cDateLabel"></p>
+
+    <label>Teléfono paciente (9 dígitos)</label>
+    <input id="cPatientPhone" maxlength="9">
+
+    <label>Nombre paciente</label>
+    <input id="cPatientName">
+
+    <label>Servicio</label>
+    <input id="cService" value="Visita Psicología">
+
+    <label>Hora inicio</label>
+    <input id="cStart" type="time">
+
+    <label>Hora fin</label>
+    <input id="cEnd" type="time">
+
+    <br><br>
+    <button class="btn-primary" onclick="createAppointment()">Guardar</button>
+    <button onclick="closeCreateModal()">Cancelar</button>
+  </div>
+</div>
+
 <script type="module">
 import { requireAuth } from "./assets/js/auth.js";
 import { loadMenu } from "./assets/js/menu.js";
-
 await requireAuth();
 await loadMenu();
 </script>
 
 <script type="module" src="assets/js/agenda-week.js"></script>
+<script type="module" src="assets/js/create-appointment.js"></script>
 
 </body>
 </html>
