@@ -71,7 +71,19 @@
 }
 </style>
 </head>
+<!-- MODAL CITA -->
+<div id="appointmentModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:999;">
+  <div style="background:#fff; max-width:420px; margin:10vh auto; padding:1rem; border-radius:14px;">
+    <h3 id="modalPatient"></h3>
+    <p id="modalTime"></p>
 
+    <button id="btnDone" class="btn-primary">Marcar realizada</button>
+    <button id="btnInvoice" class="btn-secondary">Crear factura</button>
+
+    <hr>
+    <button onclick="closeModal()">Cerrar</button>
+  </div>
+</div>
 <body class="app-body">
 
 <header class="app-menu"></header>
