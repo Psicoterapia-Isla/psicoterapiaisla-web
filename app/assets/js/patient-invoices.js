@@ -18,7 +18,7 @@ const invoicesTableBody = document.getElementById("invoices-table-body");
 let allPatients = [];
 
 /* ===========================
-   CARGA INICIAL DE PACIENTES
+   CARGA PACIENTES
 =========================== */
 async function loadPatients() {
   const snap = await getDocs(collection(db, "patients"));
@@ -31,7 +31,7 @@ async function loadPatients() {
 loadPatients();
 
 /* ===========================
-   BUSCADOR
+   BUSCADOR PACIENTE
 =========================== */
 searchInput.addEventListener("input", () => {
   const term = searchInput.value.toLowerCase().trim();
@@ -45,12 +45,10 @@ searchInput.addEventListener("input", () => {
   const matches = allPatients.filter(p =>
     [p.name, p.surname, p.dni, p.email, p.phone]
       .filter(Boolean)
-      .some(value =>
-        value.toLowerCase().includes(term)
-      )
+      .some(v => v.toLowerCase().includes(term))
   );
 
-  if (matches.length === 0) {
+  if (!matches.length) {
     resultsBox.innerHTML = `<div class="search-empty">Sin resultados</div>`;
     resultsBox.style.display = "block";
     return;
@@ -61,10 +59,7 @@ searchInput.addEventListener("input", () => {
     item.className = "search-item";
     item.textContent = `${p.name || ""} ${p.surname || ""} · ${p.dni || p.email || ""}`;
 
-    item.addEventListener("click", () => {
-      selectPatient(p);
-    });
-
+    item.addEventListener("click", () => selectPatient(p));
     resultsBox.appendChild(item);
   });
 
@@ -72,14 +67,13 @@ searchInput.addEventListener("input", () => {
 });
 
 /* ===========================
-   SELECCIÓN DE PACIENTE
+   SELECCIÓN PACIENTE
 =========================== */
 async function selectPatient(patient) {
   searchInput.value = "";
   resultsBox.innerHTML = "";
   resultsBox.style.display = "none";
 
-  /* mostrar datos */
   patientDetails.innerHTML = `
     <p><strong>Nombre:</strong> ${patient.name || "-"}</p>
     <p><strong>Apellidos:</strong> ${patient.surname || "-"}</p>
@@ -89,12 +83,11 @@ async function selectPatient(patient) {
   `;
 
   patientInfo.classList.remove("hidden");
-
   await loadInvoices(patient.id);
 }
 
 /* ===========================
-   FACTURAS
+   FACTURAS DEL PACIENTE
 =========================== */
 async function loadInvoices(patientId) {
   invoicesTableBody.innerHTML = "";
@@ -102,7 +95,7 @@ async function loadInvoices(patientId) {
   const q = query(
     collection(db, "invoices"),
     where("patientId", "==", patientId),
-    orderBy("date", "desc")
+    orderBy("createdAt", "desc")
   );
 
   const snap = await getDocs(q);
@@ -122,9 +115,9 @@ async function loadInvoices(patientId) {
 
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td>${inv.concept || "-"}</td>
-      <td>${inv.date?.toDate
-        ? inv.date.toDate().toLocaleDateString()
+      <td>${inv.concept || "Sesión terapéutica"}</td>
+      <td>${inv.createdAt?.toDate
+        ? inv.createdAt.toDate().toLocaleDateString("es-ES")
         : "-"}</td>
       <td>${inv.amount ? `${inv.amount} €` : "-"}</td>
       <td>
@@ -148,9 +141,9 @@ async function loadInvoices(patientId) {
 =========================== */
 function translateStatus(status) {
   switch (status) {
+    case "draft": return "Borrador";
+    case "issued": return "Emitida";
     case "paid": return "Pagada";
-    case "pending": return "Pendiente";
-    case "overdue": return "Vencida";
     default: return "-";
   }
 }
