@@ -1,57 +1,56 @@
 // app/assets/js/agenda-day.js
 
-import { auth } from "./firebase.js";
+import { auth, db } from "./firebase.js";
 import { getAgendaForDay } from "./agendaFirestore.js";
+import {
+  collection,
+  addDoc,
+  deleteDoc,
+  doc,
+  serverTimestamp
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 const agendaDay = document.getElementById("agendaDay");
 
-// Configuración base
 const START_HOUR = 9;
 const END_HOUR = 21;
-const SLOT_MINUTES = 60;
-
-// Fecha actual (YYYY-MM-DD)
 const today = new Date().toISOString().split("T")[0];
 
-// Esperar auth real
 auth.onAuthStateChanged(async (user) => {
   if (!user) return;
 
   const therapistId = user.uid;
 
-  const { slots, appointments } = await getAgendaForDay({
+  const data = await getAgendaForDay({
     therapistId,
     date: today
   });
 
   renderAgenda({
-    slots,
-    appointments
+    therapistId,
+    ...data
   });
 });
 
 /* ======================
    RENDER AGENDA
 ====================== */
-function renderAgenda({ slots, appointments }) {
+function renderAgenda({ therapistId, slots, appointments }) {
   agendaDay.innerHTML = "";
 
   for (let hour = START_HOUR; hour < END_HOUR; hour++) {
-    const slotDate = `${hour}:00`;
+    const slotHour = `${hour}:00`;
 
     const slot = document.createElement("div");
     slot.classList.add("time-slot");
 
-    const availability = slots.find(s =>
-      new Date(s.start.toDate()).getHours() === hour
-    );
-
+    const availability = slots[hour];
     const appointment = appointments.find(a =>
       new Date(a.start.toDate()).getHours() === hour
     );
 
     let status = "blocked";
-    let label = "No disponible";
+    let label = "Bloqueado";
     let location = "";
 
     if (availability) {
@@ -68,25 +67,53 @@ function renderAgenda({ slots, appointments }) {
       label = appointment.status === "completed"
         ? "Sesión realizada"
         : "Reservado";
-
-      location = appointment.location || "";
     }
 
     slot.classList.add(status);
 
     slot.innerHTML = `
-      <div class="slot-hour">${slotDate}</div>
+      <div class="slot-hour">${slotHour}</div>
       <div class="slot-body">
         <div>${label}</div>
         <div class="location">${location}</div>
       </div>
     `;
 
-    slot.addEventListener("click", () => {
-      console.log("Slot:", {
-        hour,
-        availability,
-        appointment
+    /* ======================
+       CLICK EN SLOT
+    ====================== */
+    slot.addEventListener("click", async () => {
+
+      // ❌ Citas no se tocan
+      if (status === "reserved" || status === "done") return;
+
+      // 🔴 → 🟢 CREAR DISPONIBILIDAD
+      if (!availability) {
+        await addDoc(collection(db, "agenda_slots"), {
+          therapistId,
+          date: today,
+          hour,
+          start: new Date(`${today}T${hour}:00`),
+          end: new Date(`${today}T${hour + 1}:00`),
+          location: "Consulta",
+          createdAt: serverTimestamp()
+        });
+      }
+
+      // 🟢 → 🔴 BORRAR DISPONIBILIDAD
+      if (availability) {
+        await deleteDoc(doc(db, "agenda_slots", availability.id));
+      }
+
+      // 🔄 Recargar día
+      const refreshed = await getAgendaForDay({
+        therapistId,
+        date: today
+      });
+
+      renderAgenda({
+        therapistId,
+        ...refreshed
       });
     });
 
