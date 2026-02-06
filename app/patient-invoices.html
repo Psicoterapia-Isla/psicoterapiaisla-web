@@ -2,83 +2,60 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <title>Facturación por paciente</title>
-
-  <!-- estilos base -->
-  <link rel="stylesheet" href="styles/app.css" />
-  <link rel="stylesheet" href="styles/menu.css" />
-  <link rel="stylesheet" href="styles/tables.css" />
-
+  <title>Facturación | Psicoterapia Isla</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- CSS GLOBAL -->
+  <link rel="stylesheet" href="assets/css/app.css">
 </head>
 
-<body class="app-layout">
+<body class="app-body">
 
-  <!-- MENÚ -->
-  <aside class="app-menu"></aside>
+<!-- MENÚ -->
+<header class="app-menu"></header>
 
-  <!-- CONTENIDO -->
-  <main class="app-content">
+<main class="app-container">
 
-    <header class="page-header">
-      <h1>Facturación por paciente</h1>
-      <p class="page-subtitle">
-        Busca un paciente por datos identificativos y consulta su estado de facturación
-      </p>
-    </header>
+  <section class="card">
 
-    <!-- BUSCADOR DE PACIENTES -->
-    <section class="filters">
-      <label for="patient-search" class="visually-hidden">
-        Buscar paciente
-      </label>
+    <h1>Facturación</h1>
+    <p class="page-subtitle">
+      Gestión de facturas por paciente
+    </p>
 
+    <!-- FILTROS -->
+    <div class="filters">
       <input
         type="text"
-        id="patient-search"
-        placeholder="Buscar por nombre, apellido, DNI, email o teléfono"
-        autocomplete="off"
+        id="searchInput"
+        placeholder="Buscar por paciente o email"
       />
 
-      <!-- resultados dinámicos -->
-      <div id="patient-results" class="search-results"></div>
-    </section>
+      <select id="statusFilter">
+        <option value="">Todos los estados</option>
+        <option value="draft">Borrador</option>
+        <option value="issued">Emitida</option>
+        <option value="paid">Pagada</option>
+      </select>
+    </div>
 
-    <!-- PACIENTE SELECCIONADO -->
-    <section id="patient-info" class="card hidden">
-      <h2>Paciente</h2>
-      <div id="patient-details"></div>
-    </section>
+    <!-- LISTADO -->
+    <div id="invoicesList"></div>
 
-    <!-- FACTURAS -->
-    <section id="invoices-section" class="card hidden">
-      <h2>Facturas</h2>
+  </section>
 
-      <table class="data-table">
-        <thead>
-          <tr>
-            <th>Concepto</th>
-            <th>Fecha</th>
-            <th>Importe</th>
-            <th>Estado</th>
-            <th>Acciones</th>
-          </tr>
-        </thead>
-        <tbody id="invoices-table-body">
-          <!-- filas dinámicas -->
-        </tbody>
-      </table>
+</main>
 
-      <button id="new-invoice-btn" class="primary-btn">
-        + Nueva factura
-      </button>
-    </section>
+<!-- AUTH + MENÚ -->
+<script type="module">
+  import { requireAuth } from "./assets/js/auth.js";
+  import { loadMenu } from "./assets/js/menu.js";
+  await requireAuth();
+  await loadMenu();
+</script>
 
-  </main>
-
-  <!-- scripts -->
-  <script type="module" src="js/menu.js"></script>
-  <script type="module" src="js/patient-invoices.js"></script>
+<!-- LÓGICA FACTURACIÓN -->
+<script type="module" src="assets/js/patient-invoices.js"></script>
 
 </body>
 </html>
