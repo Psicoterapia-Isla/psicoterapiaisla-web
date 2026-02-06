@@ -1,66 +1,53 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <title>Agenda semanal | Psicoterapia Isla</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta charset="UTF-8" />
+<title>Agenda semanal | Psicoterapia Isla</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <link rel="stylesheet" href="assets/css/app.css">
+<link rel="stylesheet" href="assets/css/app.css">
 
-  <style>
-    .week-wrapper {
-      max-width: 520px;
-      margin: 0 auto;
-      padding: 1rem;
-    }
+<style>
+.week-wrapper {
+  padding: 1rem;
+  overflow-x: auto;
+}
 
-    .week-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 1rem;
-    }
+.week-grid {
+  display: grid;
+  grid-template-columns: 60px repeat(7, minmax(120px,1fr));
+  gap: 0.4rem;
+}
 
-    .week-days {
-      display: flex;
-      overflow-x: auto;
-      gap: 0.5rem;
-      padding-bottom: 0.5rem;
-    }
+.week-hour {
+  font-size: 0.75rem;
+  text-align: right;
+  padding-right: 6px;
+  color: #666;
+}
 
-    .day-pill {
-      min-width: 90px;
-      padding: 0.75rem;
-      border-radius: 12px;
-      text-align: center;
-      cursor: pointer;
-      background: #f2f2f2;
-      font-size: 0.85rem;
-      flex-shrink: 0;
-    }
+.day-header {
+  text-align: center;
+  font-weight: 600;
+  font-size: 0.85rem;
+}
 
-    .day-pill.active {
-      background: var(--green-dark);
-      color: white;
-      font-weight: 600;
-    }
+.week-slot {
+  height: 44px;
+  border-radius: 8px;
+  cursor: pointer;
+}
 
-    .slots-preview {
-      margin-top: 1rem;
-    }
+.available { background:#dff3e6; }
+.blocked   { background:#f3dede; }
+.reserved  { background:#fff2cc; }
+.done      { background:#e6f0ff; }
 
-    .slot-mini {
-      padding: 0.6rem;
-      border-radius: 8px;
-      margin-bottom: 0.4rem;
-      font-size: 0.85rem;
-    }
-
-    .available { background: #dff3e6; }
-    .reserved { background: #fff2cc; }
-    .blocked  { background: #f3dede; }
-    .done     { background: #e6f0ff; }
-  </style>
+.week-slot small {
+  font-size: 0.65rem;
+  padding-left: 4px;
+}
+</style>
 </head>
 
 <body class="app-body">
@@ -68,25 +55,15 @@
 <header class="app-menu"></header>
 
 <main class="week-wrapper">
-
-  <div class="week-header">
-    <h1>Agenda semanal</h1>
-    <a href="agenda-diaria.html" class="btn-primary">Hoy</a>
-  </div>
-
-  <!-- DÍAS -->
-  <div class="week-days" id="weekDays"></div>
-
-  <!-- PREVIEW -->
-  <div class="slots-preview" id="slotsPreview">
-    Selecciona un día
-  </div>
-
+  <div id="weekGrid" class="week-grid"></div>
 </main>
 
 <script type="module">
-  import { loadMenu } from "./assets/js/menu.js";
-  await loadMenu();
+import { requireAuth } from "./assets/js/auth.js";
+import { loadMenu } from "./assets/js/menu.js";
+
+await requireAuth();
+await loadMenu();
 </script>
 
 <script type="module" src="assets/js/agenda-week.js"></script>
