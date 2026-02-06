@@ -4,32 +4,144 @@
   <meta charset="UTF-8" />
   <title>Agenda diaria | Psicoterapia Isla</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <link rel="stylesheet" href="assets/css/app.css">
+
+  <!-- CSS GLOBAL -->
+  <link rel="stylesheet" href="assets/css/app.css" />
+
+  <style>
+    /* =========================
+       AGENDA DIARIA – ESTILO APP
+    ========================= */
+
+    .agenda-wrapper {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 1rem;
+    }
+
+    .agenda-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+
+    .agenda-title {
+      font-size: 1.6rem;
+      font-weight: 600;
+      color: var(--green-dark);
+      text-transform: capitalize;
+    }
+
+    .agenda-subtitle {
+      font-size: 0.9rem;
+      color: #666;
+    }
+
+    .agenda-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      margin-top: 1rem;
+    }
+
+    /* ===== TARJETA ===== */
+
+    .slot-card {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 0.9rem 1rem;
+      border-radius: 14px;
+      font-size: 0.95rem;
+    }
+
+    .slot-hour {
+      width: 64px;
+      font-weight: 600;
+      text-align: right;
+      flex-shrink: 0;
+    }
+
+    .slot-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 0.15rem;
+    }
+
+    .slot-title {
+      font-weight: 500;
+    }
+
+    .slot-sub {
+      font-size: 0.8rem;
+      opacity: 0.75;
+    }
+
+    /* ===== ESTADOS ===== */
+
+    .slot-blocked {
+      background: #f1f1f1;
+      color: #777;
+    }
+
+    .slot-available {
+      background: #e3f4ea;
+      color: #1f6b4e;
+    }
+
+    .slot-reserved {
+      background: #e6f0ff;
+      color: #2a4e8a;
+    }
+
+    .slot-done {
+      background: #dff3e6;
+      color: #1f6b4e;
+      opacity: 0.85;
+    }
+
+    /* ===== BOTÓN ===== */
+
+    .btn-week {
+      background: var(--green-dark);
+      color: #fff;
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: 999px;
+      font-size: 0.85rem;
+      cursor: pointer;
+    }
+  </style>
 </head>
 
 <body class="app-body">
 
+<!-- MENÚ -->
 <header class="app-menu"></header>
 
 <main class="agenda-wrapper">
 
+  <!-- CABECERA -->
   <div class="agenda-header">
     <div>
-      <h1 id="agendaDayTitle"></h1>
-      <div class="agenda-date" id="agendaDateText"></div>
+      <div id="agendaTitle" class="agenda-title"></div>
+      <div id="agendaSubtitle" class="agenda-subtitle"></div>
     </div>
-    <button class="btn-primary" onclick="location.href='agenda-semanal.html'">
+    <button class="btn-week" onclick="location.href='agenda-semanal.html'">
       Semana
     </button>
   </div>
 
-  <div class="agenda-scroll">
-    <div class="day-column" id="agendaDay"></div>
-  </div>
+  <!-- LISTADO -->
+  <div id="agendaList" class="agenda-list"></div>
 
 </main>
 
-<!-- AUTH + MENÚ -->
+<!-- ======================
+     AUTH + MENÚ
+====================== -->
 <script type="module">
   import { requireAuth } from "./assets/js/auth.js";
   import { loadMenu } from "./assets/js/menu.js";
@@ -37,8 +149,86 @@
   await loadMenu();
 </script>
 
-<!-- AGENDA (ÚNICA FUENTE DE VERDAD) -->
-<script type="module" src="assets/js/agenda-day.js"></script>
+<!-- ======================
+     LÓGICA AGENDA DIARIA
+====================== -->
+<script type="module">
+  import { auth, db } from "./assets/js/firebase.js";
+  import {
+    collection,
+    getDocs,
+    query,
+    where
+  } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+  const agendaList = document.getElementById("agendaList");
+  const title = document.getElementById("agendaTitle");
+  const subtitle = document.getElementById("agendaSubtitle");
+
+  /* ===== FECHA ===== */
+  const today = new Date();
+  const yyyyMmDd = today.toISOString().split("T")[0];
+
+  title.textContent = today.toLocaleDateString("es-ES", {
+    weekday: "long",
+    day: "numeric"
+  });
+
+  subtitle.textContent = today.toLocaleDateString("es-ES", {
+    month: "long",
+    year: "numeric"
+  });
+
+  /* ===== USUARIO ===== */
+  const user = auth.currentUser;
+  const therapistId = user.uid;
+
+  /* ===== HORAS BASE ===== */
+  const HOURS = Array.from({ length: 12 }, (_, i) => i + 9);
+
+  /* ===== CARGA DATOS ===== */
+  const q = query(
+    collection(db, "agenda_slots"),
+    where("therapistId", "==", therapistId),
+    where("date", "==", yyyyMmDd)
+  );
+
+  const snap = await getDocs(q);
+  const slots = {};
+
+  snap.forEach(doc => {
+    const d = doc.data();
+    slots[d.hour] = d;
+  });
+
+  /* ===== RENDER ===== */
+  HOURS.forEach(hour => {
+
+    const data = slots[hour];
+    let state = "blocked";
+    let titleText = "Bloqueado";
+    let subText = "";
+
+    if (data) {
+      state = "available";
+      titleText = "Disponible";
+      subText = data.location || "";
+    }
+
+    const card = document.createElement("div");
+    card.className = `slot-card slot-${state}`;
+
+    card.innerHTML = `
+      <div class="slot-hour">${hour}:00</div>
+      <div class="slot-content">
+        <div class="slot-title">${titleText}</div>
+        <div class="slot-sub">${subText}</div>
+      </div>
+    `;
+
+    agendaList.appendChild(card);
+  });
+</script>
 
 </body>
 </html>
