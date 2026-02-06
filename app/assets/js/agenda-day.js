@@ -7,37 +7,40 @@ import {
   addDoc,
   deleteDoc,
   doc,
-  updateDoc,
   serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 /* ======================
-   CONFIG
+   DOM
 ====================== */
 const agendaDay = document.getElementById("agendaDay");
 
+if (!agendaDay) {
+  console.error("❌ #agendaDay no existe en el DOM");
+  throw new Error("agendaDay missing");
+}
+
+/* ======================
+   CONFIG
+====================== */
 const START_HOUR = 9;
 const END_HOUR = 21;
 const today = new Date().toISOString().split("T")[0];
 
 /* ======================
-   INIT (auth YA resuelto)
+   INIT (AUTH SEGURO)
 ====================== */
-const user = auth.currentUser;
+auth.onAuthStateChanged(async (user) => {
+  if (!user) return;
 
-if (!user) {
-  console.error("Usuario no disponible en agenda-day.js");
-  throw new Error("Auth no resuelto");
-}
-
-const therapistId = user.uid;
+  const therapistId = user.uid;
+  await loadDay(therapistId);
+});
 
 /* ======================
-   LOAD + RENDER
+   LOAD DAY
 ====================== */
-loadDay();
-
-async function loadDay() {
+async function loadDay(therapistId) {
   const slots = await getAgendaForDay({
     therapistId,
     date: today
@@ -53,7 +56,6 @@ function renderAgenda({ therapistId, slots }) {
   agendaDay.innerHTML = "";
 
   for (let hour = START_HOUR; hour < END_HOUR; hour++) {
-
     const availability = slots[hour];
 
     let status = "blocked";
@@ -97,7 +99,7 @@ function renderAgenda({ therapistId, slots }) {
         await deleteDoc(doc(db, "agenda_slots", availability.id));
       }
 
-      await loadDay();
+      await loadDay(therapistId);
     });
 
     agendaDay.appendChild(slot);
