@@ -100,8 +100,9 @@
     <h3 id="modalPatient"></h3>
     <p id="modalTime"></p>
 
-    <button id="btnDone" class="btn-primary">Marcar realizada</button>
-    <button id="btnInvoice" class="btn-secondary">Crear factura</button>
+    <button id="btnDone" class="btn-primary">
+      Marcar realizada
+    </button>
 
     <hr>
     <button onclick="closeModal()">Cerrar</button>
@@ -115,15 +116,15 @@
 import { requireAuth } from "./assets/js/auth.js";
 import { loadMenu } from "./assets/js/menu.js";
 import { auth, db } from "./assets/js/firebase.js";
+import { completeSessionAndInvoice } from "./assets/js/invoiceFromAppointment.js";
+
 import {
   collection,
   getDocs,
   query,
   where,
   orderBy,
-  Timestamp,
-  updateDoc,
-  doc
+  Timestamp
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 await requireAuth();
@@ -191,31 +192,26 @@ function openModal(id, data) {
   document.getElementById("modalTime").textContent =
     `${s.getHours().toString().padStart(2,"0")}:00 – ${e.getHours().toString().padStart(2,"0")}:00`;
 
+  // 🔒 Si ya está completada, no permitir repetir
+  document.getElementById("btnDone").style.display =
+    data.status === "completed" ? "none" : "block";
+
   document.getElementById("appointmentModal").style.display = "block";
 }
 
 /* =========================
-   ACTIONS
+   ACTION: MARCAR REALIZADA + FACTURA
 ========================= */
 document.getElementById("btnDone").onclick = async () => {
-  if (!selectedAppointmentId) return;
+  if (!selectedAppointmentId || !selectedAppointment) return;
 
-  await updateDoc(
-    doc(db, "appointments", selectedAppointmentId),
-    { status: "done" }
-  );
-
-  closeModal();
-  location.reload();
-};
-
-document.getElementById("btnInvoice").onclick = async () => {
-  if (!selectedAppointmentId) return;
-
-  await updateDoc(
-    doc(db, "appointments", selectedAppointmentId),
-    { status: "invoiced" }
-  );
+  await completeSessionAndInvoice({
+    appointmentId: selectedAppointmentId,
+    patientId: selectedAppointment.patientId,
+    therapistId,
+    amount: selectedAppointment.amount || 60,
+    concept: selectedAppointment.service || "Sesión de terapia"
+  });
 
   closeModal();
   location.reload();
@@ -226,7 +222,6 @@ document.getElementById("btnInvoice").onclick = async () => {
 ========================= */
 snap.forEach(d => {
   const a = d.data();
-
   const start = a.start.toDate();
 
   const slot = document.createElement("div");
@@ -245,7 +240,6 @@ snap.forEach(d => {
   `;
 
   slot.onclick = () => openModal(d.id, a);
-
   agendaList.appendChild(slot);
 });
 </script>
