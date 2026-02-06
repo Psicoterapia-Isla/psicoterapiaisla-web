@@ -7,6 +7,7 @@ import {
   addDoc,
   deleteDoc,
   doc,
+  updateDoc,
   serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
@@ -84,28 +85,59 @@ function renderAgenda({ therapistId, slots, appointments }) {
     ====================== */
     slot.addEventListener("click", async () => {
 
-      // ❌ Citas no se tocan
-      if (status === "reserved" || status === "done") return;
+      /* ======================
+         CASO 1: SESIÓN REALIZADA
+      ====================== */
+      if (appointment && appointment.status === "reserved") {
+        const ok = confirm(
+          "¿Marcar esta sesión como realizada?\nQuedará lista para facturación."
+        );
+        if (!ok) return;
 
-      // 🔴 → 🟢 CREAR DISPONIBILIDAD
-      if (!availability) {
-        await addDoc(collection(db, "agenda_slots"), {
-          therapistId,
-          date: today,
-          hour,
-          start: new Date(`${today}T${hour}:00`),
-          end: new Date(`${today}T${hour + 1}:00`),
-          location: "Consulta",
-          createdAt: serverTimestamp()
-        });
+        await updateDoc(
+          doc(db, "appointments", appointment.id),
+          {
+            status: "completed",
+            billable: true,
+            completedAt: serverTimestamp()
+          }
+        );
       }
 
-      // 🟢 → 🔴 BORRAR DISPONIBILIDAD
-      if (availability) {
-        await deleteDoc(doc(db, "agenda_slots", availability.id));
+      /* ======================
+         CASO 2: NO TOCAR HECHAS
+      ====================== */
+      if (appointment && appointment.status === "completed") {
+        return;
       }
 
-      // 🔄 Recargar día
+      /* ======================
+         CASO 3: BLOQUEO / DESBLOQUEO
+      ====================== */
+      if (!appointment) {
+
+        // 🔴 → 🟢
+        if (!availability) {
+          await addDoc(collection(db, "agenda_slots"), {
+            therapistId,
+            date: today,
+            hour,
+            start: new Date(`${today}T${hour}:00`),
+            end: new Date(`${today}T${hour + 1}:00`),
+            location: "Consulta",
+            createdAt: serverTimestamp()
+          });
+        }
+
+        // 🟢 → 🔴
+        if (availability) {
+          await deleteDoc(doc(db, "agenda_slots", availability.id));
+        }
+      }
+
+      /* ======================
+         RECARGAR DÍA
+      ====================== */
       const refreshed = await getAgendaForDay({
         therapistId,
         date: today
