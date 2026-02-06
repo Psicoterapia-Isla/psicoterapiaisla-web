@@ -1,100 +1,85 @@
-// app/assets/js/agenda-week.js
+import { auth, db } from "./firebase.js";
+import {
+  collection,
+  getDocs,
+  query,
+  where,
+  Timestamp
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-import { auth } from "./firebase.js";
-import { getAgendaForDay } from "./agendaFirestore.js";
+const grid = document.getElementById("weekGrid");
 
-const weekDaysEl = document.getElementById("weekDays");
-const previewEl = document.getElementById("slotsPreview");
+const START_HOUR = 9;
+const END_HOUR = 21;
+const DAYS = 7;
 
-const DAYS = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
 const today = new Date();
+const monday = new Date(today);
+monday.setDate(today.getDate() - ((today.getDay() + 6) % 7));
+monday.setHours(0,0,0,0);
 
-auth.onAuthStateChanged(async (user) => {
-  if (!user) return;
+const user = auth.currentUser;
+const therapistId = user.uid;
 
-  const therapistId = user.uid;
-  renderWeek(therapistId);
+/* ===== HEADERS ===== */
+grid.appendChild(document.createElement("div")); // esquina vacía
+
+for (let d=0; d<DAYS; d++) {
+  const day = new Date(monday);
+  day.setDate(monday.getDate() + d);
+
+  const h = document.createElement("div");
+  h.className = "day-header";
+  h.textContent = day.toLocaleDateString("es-ES",{weekday:"short",day:"numeric"});
+  h.onclick = () => {
+    window.location.href =
+      `agenda-diaria.html?date=${day.toISOString().split("T")[0]}`;
+  };
+  grid.appendChild(h);
+}
+
+/* ===== HOURS + SLOTS ===== */
+for (let hour = START_HOUR; hour < END_HOUR; hour++) {
+
+  const hourCell = document.createElement("div");
+  hourCell.className = "week-hour";
+  hourCell.textContent = `${hour}:00`;
+  grid.appendChild(hourCell);
+
+  for (let d=0; d<DAYS; d++) {
+    const cell = document.createElement("div");
+    cell.className = "week-slot blocked";
+    cell.dataset.hour = hour;
+    cell.dataset.day = d;
+    grid.appendChild(cell);
+  }
+}
+
+/* ===== LOAD DATA ===== */
+const start = Timestamp.fromDate(monday);
+const end = Timestamp.fromDate(
+  new Date(monday.getTime() + 7*24*60*60*1000)
+);
+
+const snap = await getDocs(query(
+  collection(db,"appointments"),
+  where("therapistId","==",therapistId),
+  where("start",">=",start),
+  where("start","<",end)
+));
+
+snap.forEach(doc => {
+  const a = doc.data();
+  const s = a.start.toDate();
+  const day = (s.getDay()+6)%7;
+  const hour = s.getHours();
+
+  const index =
+    1 + day + (hour-START_HOUR+1)*8;
+
+  const cell = grid.children[index];
+  if (!cell) return;
+
+  cell.className = `week-slot ${a.status === "completed" ? "done" : "reserved"}`;
+  cell.innerHTML = `<small>${a.patientName || ""}</small>`;
 });
-
-/* ======================
-   SEMANA
-====================== */
-async function renderWeek(therapistId) {
-  weekDaysEl.innerHTML = "";
-
-  for (let i = 0; i < 7; i++) {
-    const date = new Date(today);
-    date.setDate(today.getDate() + i);
-
-    const iso = date.toISOString().split("T")[0];
-    const pill = document.createElement("div");
-
-    pill.className = "day-pill";
-    if (i === 0) pill.classList.add("active");
-
-    pill.innerHTML = `
-      <div>${DAYS[date.getDay()]}</div>
-      <div>${date.getDate()}/${date.getMonth() + 1}</div>
-    `;
-
-    pill.addEventListener("click", async () => {
-      document
-        .querySelectorAll(".day-pill")
-        .forEach(p => p.classList.remove("active"));
-
-      pill.classList.add("active");
-
-      await loadPreview({
-        therapistId,
-        date: iso
-      });
-    });
-
-    weekDaysEl.appendChild(pill);
-
-    if (i === 0) {
-      await loadPreview({ therapistId, date: iso });
-    }
-  }
-}
-
-/* ======================
-   PREVIEW DÍA
-====================== */
-async function loadPreview({ therapistId, date }) {
-  previewEl.innerHTML = "Cargando…";
-
-  const { slots, appointments } = await getAgendaForDay({
-    therapistId,
-    date
-  });
-
-  previewEl.innerHTML = "";
-
-  for (let hour = 9; hour < 21; hour++) {
-    let status = "blocked";
-    let label = "Bloqueado";
-
-    if (slots[hour]) {
-      status = "available";
-      label = "Disponible";
-    }
-
-    const appt = appointments.find(a =>
-      new Date(a.start.toDate()).getHours() === hour
-    );
-
-    if (appt) {
-      status = appt.status === "completed" ? "done" : "reserved";
-      label = appt.status === "completed"
-        ? "Sesión realizada"
-        : "Reservado";
-    }
-
-    const row = document.createElement("div");
-    row.className = `slot-mini ${status}`;
-    row.textContent = `${hour}:00 — ${label}`;
-
-    previewEl.appendChild(row);
-  }
-}
