@@ -4,13 +4,17 @@
   <meta charset="UTF-8" />
   <title>Agenda diaria | Psicoterapia Isla</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- CSS GLOBAL -->
   <link rel="stylesheet" href="assets/css/app.css">
 
   <style>
-    /* === AGENDA DIARIA === */
+    /* =========================
+       AGENDA DIARIA – MOBILE FIRST
+    ========================= */
 
     .agenda-wrapper {
-      max-width: 520px;
+      max-width: 560px;
       margin: 0 auto;
       padding: 1rem;
     }
@@ -23,29 +27,34 @@
     }
 
     .agenda-header h1 {
-      font-size: 1.6rem;
+      font-size: 1.5rem;
       color: var(--green-dark);
     }
 
     .agenda-date {
-      font-size: 0.95rem;
+      font-size: 0.9rem;
       color: #666;
+    }
+
+    .agenda-scroll {
+      height: calc(100vh - 170px);
+      overflow-y: auto;
+      padding-bottom: 2rem;
     }
 
     .day-column {
       display: flex;
       flex-direction: column;
-      gap: 0.5rem;
+      gap: 0.6rem;
     }
 
     .time-slot {
       display: flex;
-      align-items: center;
       gap: 0.75rem;
       padding: 0.75rem;
-      border-radius: 10px;
+      border-radius: 12px;
       cursor: pointer;
-      transition: transform 0.15s ease;
+      transition: transform 0.15s ease, opacity 0.15s ease;
     }
 
     .time-slot:active {
@@ -55,13 +64,18 @@
     .slot-hour {
       width: 52px;
       font-weight: 600;
-      color: #333;
-      font-size: 0.95rem;
+      font-size: 0.9rem;
     }
 
     .slot-body {
       flex: 1;
-      font-size: 0.9rem;
+      font-size: 0.85rem;
+    }
+
+    .location {
+      font-size: 0.7rem;
+      opacity: 0.75;
+      margin-top: 2px;
     }
 
     /* ESTADOS */
@@ -84,82 +98,125 @@
       background: #e6f0ff;
       color: #2a4e8a;
     }
-
-    .location {
-      font-size: 0.75rem;
-      opacity: 0.8;
-    }
-
-    /* Scroll vertical real */
-    .agenda-scroll {
-      height: calc(100vh - 160px);
-      overflow-y: auto;
-      padding-bottom: 1rem;
-    }
   </style>
 </head>
 
 <body class="app-body">
 
+<!-- MENÚ -->
 <header class="app-menu"></header>
 
 <main class="agenda-wrapper">
 
+  <!-- CABECERA -->
   <div class="agenda-header">
     <div>
-      <h1>Viernes 6</h1>
-      <div class="agenda-date">Febrero 2026</div>
+      <h1 id="agendaDayTitle">Agenda</h1>
+      <div class="agenda-date" id="agendaDateText"></div>
     </div>
-    <button class="btn-primary">Semana</button>
+    <button class="btn-primary" onclick="window.location.href='agenda-semanal.html'">
+      Semana
+    </button>
   </div>
 
+  <!-- AGENDA -->
   <div class="agenda-scroll">
     <div class="day-column" id="agendaDay"></div>
   </div>
 
 </main>
 
+<!-- ======================
+     AUTH + MENÚ
+====================== -->
 <script type="module">
+  import { requireAuth } from "./assets/js/auth.js";
   import { loadMenu } from "./assets/js/menu.js";
+  await requireAuth();
   await loadMenu();
+</script>
+
+<!-- ======================
+     LÓGICA AGENDA
+====================== -->
+<script type="module">
+  import { auth } from "./assets/js/firebase.js";
+  import { db } from "./assets/js/firebase.js";
+  import {
+    collection,
+    getDocs,
+    query,
+    where
+  } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
   const agendaDay = document.getElementById("agendaDay");
+  const title = document.getElementById("agendaDayTitle");
+  const dateText = document.getElementById("agendaDateText");
 
-  const BASE_HOURS = [...Array(12)].map((_, i) => i + 9); // 9–20
+  // ---- FECHA ACTUAL (por defecto)
+  const today = new Date();
+  const yyyyMmDd = today.toISOString().split("T")[0];
 
-  // MOCK DE DATOS (luego Firebase)
-  const mockSlots = {
-    9:  { status: "done", location: "Viladecans", label: "Ana María Santos" },
-    10: { status: "reserved", location: "Viladecans", label: "Visita psicología" },
-    11: { status: "available", location: "Online", label: "Disponible" },
-    12: { status: "blocked", location: "Badalona", label: "Bloqueado" },
-    13: { status: "available", location: "Online", label: "Disponible" },
-    14: { status: "available", location: "Viladecans", label: "Disponible" },
-    15: { status: "reserved", location: "Viladecans", label: "Visita psicología" },
-    16: { status: "available", location: "Online", label: "Disponible" },
-    17: { status: "blocked", location: "Badalona", label: "No disponible" },
-    18: { status: "available", location: "Viladecans", label: "Disponible" },
-    19: { status: "available", location: "Online", label: "Disponible" },
-    20: { status: "blocked", location: "—", label: "Fin jornada" },
-  };
+  title.textContent = today.toLocaleDateString("es-ES", { weekday: "long", day: "numeric" });
+  dateText.textContent = today.toLocaleDateString("es-ES", { month: "long", year: "numeric" });
 
+  // ---- HORARIO BASE 9–21
+  const BASE_HOURS = Array.from({ length: 12 }, (_, i) => i + 9);
+
+  // ---- USUARIO
+  const user = auth.currentUser;
+  const therapistId = user.uid;
+
+  // ---- CARGAR SLOTS DESDE FIRESTORE
+  const q = query(
+    collection(db, "agendaTerapeuta"),
+    where("therapistId", "==", therapistId),
+    where("date", "==", yyyyMmDd)
+  );
+
+  const snap = await getDocs(q);
+
+  const slotsFromDB = {};
+  snap.forEach(doc => {
+    const d = doc.data();
+    slotsFromDB[d.hour] = d;
+  });
+
+  // ---- RENDER COMPLETO (SIN MOCKS)
   BASE_HOURS.forEach(hour => {
-    const data = mockSlots[hour];
+
+    const data = slotsFromDB[hour] || {
+      status: "blocked",
+      label: "No disponible",
+      location: ""
+    };
 
     const slot = document.createElement("div");
     slot.className = `time-slot ${data.status}`;
-    slot.dataset.hour = hour;
 
     slot.innerHTML = `
       <div class="slot-hour">${hour}:00</div>
       <div class="slot-body">
-        <div>${data.label}</div>
-        <div class="location">${data.location}</div>
+        <div>
+          ${
+            data.patientName
+              ? data.patientName
+              : data.status === "available"
+                ? "Disponible"
+                : "No disponible"
+          }
+        </div>
+        <div class="location">
+          ${data.location || ""}
+        </div>
       </div>
     `;
 
     slot.addEventListener("click", () => {
-      console.log("Slot clicado:", hour, data);
+      console.log("Slot:", {
+        hour,
+        data
+      });
     });
 
     agendaDay.appendChild(slot);
