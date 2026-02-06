@@ -10,25 +10,14 @@ import {
   serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-/* ======================
-   DOM
-====================== */
 const agendaDay = document.getElementById("agendaDay");
 
-if (!agendaDay) {
-  console.error("❌ #agendaDay no existe en el DOM");
-  throw new Error("agendaDay missing");
-}
-
-/* ======================
-   CONFIG
-====================== */
 const START_HOUR = 9;
 const END_HOUR = 21;
 const today = new Date().toISOString().split("T")[0];
 
 /* ======================
-   INIT (AUTH SEGURO)
+   ESPERAR A AUTH (OBLIGATORIO)
 ====================== */
 auth.onAuthStateChanged(async (user) => {
   if (!user) return;
@@ -37,9 +26,6 @@ auth.onAuthStateChanged(async (user) => {
   await loadDay(therapistId);
 });
 
-/* ======================
-   LOAD DAY
-====================== */
 async function loadDay(therapistId) {
   const slots = await getAgendaForDay({
     therapistId,
@@ -50,12 +36,13 @@ async function loadDay(therapistId) {
 }
 
 /* ======================
-   RENDER AGENDA
+   RENDER
 ====================== */
 function renderAgenda({ therapistId, slots }) {
   agendaDay.innerHTML = "";
 
   for (let hour = START_HOUR; hour < END_HOUR; hour++) {
+
     const availability = slots[hour];
 
     let status = "blocked";
@@ -81,7 +68,6 @@ function renderAgenda({ therapistId, slots }) {
 
     slot.addEventListener("click", async () => {
 
-      // 🔴 → 🟢
       if (!availability) {
         await addDoc(collection(db, "agenda_slots"), {
           therapistId,
@@ -92,10 +78,7 @@ function renderAgenda({ therapistId, slots }) {
           location: "Consulta",
           createdAt: serverTimestamp()
         });
-      }
-
-      // 🟢 → 🔴
-      if (availability) {
+      } else {
         await deleteDoc(doc(db, "agenda_slots", availability.id));
       }
 
