@@ -1,112 +1,99 @@
 import { requireAuth } from "./auth.js";
 import { auth, db } from "./firebase.js";
 import {
-  collection,
-  getDocs,
-  query,
-  where,
-  Timestamp
+  collection, getDocs, query, where, Timestamp
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 await requireAuth();
 
 const user = auth.currentUser;
-if (!user) throw new Error("Auth no disponible");
 const therapistId = user.uid;
-
 const grid = document.getElementById("weekGrid");
 
 const START_HOUR = 9;
 const END_HOUR = 21;
 const DAYS = 7;
 
-/* =========================
-   FECHA BASE (LUNES)
-========================= */
+/* SEMANA */
 const today = new Date();
 const monday = new Date(today);
-monday.setDate(today.getDate() - ((today.getDay() + 6) % 7));
+monday.setDate(today.getDate() - ((today.getDay()+6)%7));
 monday.setHours(0,0,0,0);
 
-/* =========================
-   HEADERS
-========================= */
-grid.appendChild(document.createElement("div")); // esquina vacía
+/* HEADERS */
+grid.appendChild(document.createElement("div"));
 
-for (let d = 0; d < DAYS; d++) {
+for (let d=0; d<DAYS; d++) {
   const day = new Date(monday);
-  day.setDate(monday.getDate() + d);
+  day.setDate(monday.getDate()+d);
 
-  const header = document.createElement("div");
-  header.className = "day-header";
-  header.textContent = day.toLocaleDateString("es-ES", {
-    weekday: "short",
-    day: "numeric"
-  });
-
-  header.onclick = () => {
-    const iso = day.toISOString().split("T")[0];
-    window.location.href = `agenda-diaria.html?date=${iso}`;
+  const h = document.createElement("div");
+  h.className = "day-header";
+  h.textContent = day.toLocaleDateString("es-ES",{weekday:"short",day:"numeric"});
+  h.onclick = () => {
+    window.location.href =
+      `agenda-diaria.html?date=${day.toISOString().split("T")[0]}`;
   };
-
-  grid.appendChild(header);
+  grid.appendChild(h);
 }
 
-/* =========================
-   GRID HORAS
-========================= */
-for (let hour = START_HOUR; hour < END_HOUR; hour++) {
-
+/* GRID */
+for (let hour=START_HOUR; hour<END_HOUR; hour++) {
   const hourCell = document.createElement("div");
-  hourCell.className = "week-hour";
-  hourCell.textContent = `${hour}:00`;
+  hourCell.className="week-hour";
+  hourCell.textContent=`${hour}:00`;
   grid.appendChild(hourCell);
 
-  for (let d = 0; d < DAYS; d++) {
+  for (let d=0; d<DAYS; d++) {
     const cell = document.createElement("div");
-    cell.className = "week-slot blocked";
+    cell.className="week-slot available";
+    cell.onclick = () => {
+      openCreateModal(dayISO(d), hour);
+    };
     grid.appendChild(cell);
   }
 }
 
-/* =========================
-   LOAD APPOINTMENTS
-========================= */
+/* DATA */
 const start = Timestamp.fromDate(monday);
-const end = Timestamp.fromDate(
-  new Date(monday.getTime() + 7 * 24 * 60 * 60 * 1000)
-);
+const end = Timestamp.fromDate(new Date(monday.getTime()+7*86400000));
 
-const snap = await getDocs(
-  query(
-    collection(db, "appointments"),
-    where("therapistId", "==", therapistId),
-    where("start", ">=", start),
-    where("start", "<", end)
-  )
-);
+const snap = await getDocs(query(
+  collection(db,"appointments"),
+  where("therapistId","==",therapistId),
+  where("start",">=",start),
+  where("start","<",end)
+));
 
-/* =========================
-   PINTAR CITAS
-========================= */
 snap.forEach(doc => {
   const a = doc.data();
-  if (!a.start) return;
-
   const s = a.start.toDate();
-  const dayIndex = (s.getDay() + 6) % 7;
-  const hourIndex = s.getHours() - START_HOUR;
+  const d = (s.getDay()+6)%7;
+  const h = s.getHours();
+  if (h<START_HOUR || h>=END_HOUR) return;
 
-  if (hourIndex < 0 || hourIndex >= END_HOUR - START_HOUR) return;
-
-  const index =
-    1 +                       // esquina
-    dayIndex +                // día
-    (hourIndex + 1) * (DAYS + 1); // fila
-
+  const index = 1 + d + (h-START_HOUR+1)*(DAYS+1);
   const cell = grid.children[index];
   if (!cell) return;
 
-  cell.className = `week-slot ${a.status || "reserved"}`;
+  cell.className = `week-slot ${a.status==="completed"?"done":"reserved"}`;
   cell.textContent = a.patientName || "";
 });
+
+/* HELPERS */
+function dayISO(offset){
+  const d=new Date(monday);
+  d.setDate(monday.getDate()+offset);
+  return d.toISOString().split("T")[0];
+}
+
+window.openCreateModal = (dateISO, hour) => {
+  document.getElementById("createModal").style.display="block";
+  document.getElementById("cDateLabel").textContent =
+    new Date(dateISO).toLocaleDateString("es-ES");
+  document.getElementById("cStart").value =
+    `${hour.toString().padStart(2,"0")}:00`;
+  document.getElementById("cEnd").value =
+    `${(hour+1).toString().padStart(2,"0")}:00`;
+  window.__selectedDateISO = dateISO;
+};
