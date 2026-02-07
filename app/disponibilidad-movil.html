@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<title>Disponibilidad semanal | Psicoterapia Isla</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link rel="stylesheet" href="assets/css/app.css">
+
+<style>
+body {
+  background:#f9fafb;
+}
+
+.mobile-wrapper {
+  max-width:480px;
+  margin:0 auto;
+  padding:1rem;
+}
+
+.day-block {
+  margin-bottom:1.25rem;
+  background:#fff;
+  border-radius:14px;
+  padding:1rem;
+}
+
+.day-title {
+  font-weight:600;
+  margin-bottom:.75rem;
+}
+
+.hour-row {
+  margin-bottom:.75rem;
+}
+
+.hour-label {
+  font-size:.85rem;
+  margin-bottom:.4rem;
+  color:#374151;
+}
+
+.mode-row {
+  display:flex;
+  gap:.4rem;
+  flex-wrap:wrap;
+}
+
+.mode-chip {
+  padding:.45rem .75rem;
+  border-radius:999px;
+  border:none;
+  font-size:.8rem;
+  background:#e5e7eb;
+  color:#374151;
+  cursor:pointer;
+}
+
+.mode-chip.active {
+  background:#1f6b4e;
+  color:#fff;
+}
+
+.save-bar {
+  position:sticky;
+  bottom:0;
+  background:#fff;
+  padding:.75rem;
+  box-shadow:0 -4px 10px rgba(0,0,0,.05);
+}
+</style>
+</head>
+
+<body class="app-body">
+<header class="app-menu"></header>
+
+<main class="mobile-wrapper" id="app"></main>
+
+<div class="save-bar">
+  <button id="saveBtn" class="btn-primary" style="width:100%">
+    Guardar disponibilidad
+  </button>
+</div>
+
+<script type="module">
+import { requireAuth } from "./assets/js/auth.js";
+import { loadMenu } from "./assets/js/menu.js";
+import { auth, db } from "./assets/js/firebase.js";
+
+import {
+  doc,
+  getDoc,
+  setDoc,
+  serverTimestamp
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+/* =========================
+   AUTH
+========================= */
+await requireAuth();
+await loadMenu();
+
+const user = auth.currentUser;
+if (!user) throw new Error("No autenticado");
+
+const therapistId = user.uid;
+
+/* =========================
+   FECHA (LUNES)
+========================= */
+const now = new Date();
+const monday = new Date(now);
+monday.setDate(now.getDate() - ((now.getDay() + 6) % 7));
+monday.setHours(12,0,0,0);
+
+const weekKey = monday.toISOString().slice(0,10);
+const docRef = doc(db,"availability",`${therapistId}_${weekKey}`);
+
+/* =========================
+   CONFIG
+========================= */
+const DAYS = [
+  { key:"mon", label:"Lunes" },
+  { key:"tue", label:"Martes" },
+  { key:"wed", label:"Miércoles" },
+  { key:"thu", label:"Jueves" },
+  { key:"fri", label:"Viernes" },
+  { key:"sat", label:"Sábado" },
+  { key:"sun", label:"Domingo" }
+];
+
+const HOURS = Array.from({length:12},(_,i)=>i+9);
+
+const MODES = [
+  { key:"online", label:"Online" },
+  { key:"viladecans", label:"Viladecans" },
+  { key:"badalona", label:"Badalona" }
+];
+
+const state = {};
+
+/* =========================
+   LOAD DATA
+========================= */
+const snap = await getDoc(docRef);
+if (snap.exists() && snap.data().slots) {
+  Object.assign(state, snap.data().slots);
+}
+
+/* =========================
+   RENDER
+========================= */
+const app = document.getElementById("app");
+
+DAYS.forEach(day=>{
+  const dayBlock = document.createElement("div");
+  dayBlock.className="day-block";
+
+  dayBlock.innerHTML = `
+    <div class="day-title">${day.label}</div>
+  `;
+
+  HOURS.forEach(hour=>{
+    const key = `${day.key}_${hour}`;
+    if (!state[key]) {
+      state[key] = {
+        online:false,
+        viladecans:false,
+        badalona:false
+      };
+    }
+
+    const row = document.createElement("div");
+    row.className="hour-row";
+
+    const label = document.createElement("div");
+    label.className="hour-label";
+    label.textContent = `${hour}:00`;
+
+    const modes = document.createElement("div");
+    modes.className="mode-row";
+
+    MODES.forEach(m=>{
+      const chip = document.createElement("button");
+      chip.className="mode-chip";
+      chip.textContent = m.label;
+
+      if (state[key][m.key]) {
+        chip.classList.add("active");
+      }
+
+      chip.onclick = () => {
+        state[key][m.key] = !state[key][m.key];
+        chip.classList.toggle("active", state[key][m.key]);
+      };
+
+      modes.appendChild(chip);
+    });
+
+    row.appendChild(label);
+    row.appendChild(modes);
+    dayBlock.appendChild(row);
+  });
+
+  app.appendChild(dayBlock);
+});
+
+/* =========================
+   SAVE
+========================= */
+saveBtn.onclick = async () => {
+  await setDoc(docRef,{
+    therapistId,
+    weekStart: weekKey,
+    slots: state,
+    updatedAt: serverTimestamp()
+  });
+
+  alert("Disponibilidad guardada correctamente");
+};
+</script>
+</body>
+</html>
