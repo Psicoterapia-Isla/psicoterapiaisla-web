@@ -79,10 +79,11 @@
     </button>
 
     <hr>
-    <button onclick="closeAppointmentModal()">Cerrar</button>
+
     <button id="amSaveBtn" class="btn-primary">
-  Guardar cambios
-</button>
+      Guardar cambios
+    </button>
+    <button onclick="closeAppointmentModal()">Cerrar</button>
   </div>
 </div>
 
@@ -95,7 +96,7 @@
     <p id="cDateLabel"></p>
 
     <label>Teléfono paciente (9 dígitos)</label>
-    <input id="cPatientPhone" maxlength="9">
+    <input id="cPatientPhone" maxlength="9" required>
 
     <label>Nombre paciente</label>
     <input id="cPatientName">
@@ -106,9 +107,9 @@
     <label>Modalidad / ubicación</label>
     <select id="cModality" required>
       <option value="">Selecciona una opción</option>
-      <option value="viladecans">Presencial · Viladecans</option>
-      <option value="badalona">Presencial · Badalona</option>
-      <option value="online">Online</option>
+      <option value="Viladecans">Presencial · Viladecans</option>
+      <option value="Badalona">Presencial · Badalona</option>
+      <option value="Online">Online</option>
     </select>
 
     <label>Hora inicio</label>
@@ -123,20 +124,19 @@
   </div>
 </div>
 
-<!-- ================= JS ================= -->
 <script type="module">
 import { requireAuth } from "./assets/js/auth.js";
 import { loadMenu } from "./assets/js/menu.js";
 import { auth, db } from "./assets/js/firebase.js";
 import {
-  markAppointmentCompleted,
-  invoiceAppointment,
-  markInvoicePaid
-} from "./assets/js/appointment-manager.js";
+  doc, updateDoc,
+  collection, getDocs, query, where, orderBy, Timestamp, getDoc
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 import {
-  collection, getDocs, query, where, orderBy, Timestamp, doc, getDoc
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+  invoiceAppointment,
+  updateInvoiceStatus
+} from "./assets/js/appointment-manager.js";
 
 await requireAuth();
 await loadMenu();
@@ -156,15 +156,13 @@ dayMonth.textContent = baseDate.toLocaleDateString("es-ES",{month:"long",year:"n
 const therapistId = auth.currentUser.uid;
 const agendaList = document.getElementById("agendaList");
 
-/* ===== AUTOCOMPLETE PACIENTE ===== */
+/* ===== AUTOCOMPLETE ===== */
 cPatientPhone.onblur = async () => {
   const phone = cPatientPhone.value.trim();
   if (!/^\d{9}$/.test(phone)) return;
 
   let snap = await getDoc(doc(db,"patients",phone));
-  if (!snap.exists()) {
-    snap = await getDoc(doc(db,"patients_normalized",phone));
-  }
+  if (!snap.exists()) snap = await getDoc(doc(db,"patients_normalized",phone));
 
   if (snap.exists()) {
     const d = snap.data();
@@ -198,8 +196,7 @@ const snap = await getDocs(query(
 /* ===== MODAL GESTIÓN ===== */
 let currentAppointment=null;
 
-window.closeAppointmentModal = () =>
-  appointmentModal.style.display="none";
+window.closeAppointmentModal=()=>appointmentModal.style.display="none";
 
 function openAppointmentModal(app){
   currentAppointment = app;
@@ -213,29 +210,40 @@ function openAppointmentModal(app){
   amCompleted.checked = app.status==="completed";
   amIssued.checked = !!app.invoiceId;
   amPaid.checked = app.paid===true;
-
   amPaid.disabled = !app.invoiceId;
+
   appointmentModal.style.display="block";
 }
 
-amCompleted.onchange = async () => {
-  if(amCompleted.checked){
-    await markAppointmentCompleted({ ...currentAppointment, id: currentAppointment.id });
-    location.reload();
-  }
+/* ===== GUARDAR CAMBIOS ===== */
+amSaveBtn.onclick = async () => {
+  if(!currentAppointment) return;
+
+  await updateDoc(
+    doc(db,"appointments",currentAppointment.id),
+    {
+      status: amCompleted.checked ? "completed" : "scheduled",
+      paid: amPaid.checked === true
+    }
+  );
+
+  appointmentModal.style.display="none";
+  location.reload();
 };
 
+/* ===== FACTURA ===== */
 amInvoiceBtn.onclick = async () => {
   if(!currentAppointment.invoiceId){
-    await invoiceAppointment({ ...currentAppointment, id: currentAppointment.id }, 60);
+    await invoiceAppointment(
+      {...currentAppointment,id:currentAppointment.id},60
+    );
     location.reload();
   }
 };
 
 amPaid.onchange = async () => {
   if(amPaid.checked && currentAppointment.invoiceId){
-    await markInvoicePaid(currentAppointment.invoiceId);
-    location.reload();
+    await updateInvoiceStatus(currentAppointment.invoiceId,{paid:true});
   }
 };
 
