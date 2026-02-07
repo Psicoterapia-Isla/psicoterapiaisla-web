@@ -39,24 +39,10 @@
   text-align:center;
 }
 
-.week-slot.disabled {
-  background:#e5e7eb;
-}
-
-.week-slot.available {
-  background:#e6f4d7;
-  cursor:pointer;
-}
-
-.week-slot.reserved {
-  background:#fff2cc;
-  cursor:pointer;
-}
-
-.week-slot.done {
-  background:#e6f0ff;
-  cursor:pointer;
-}
+.week-slot.disabled { background:#e5e7eb; }
+.week-slot.available { background:#e6f4d7; cursor:pointer; }
+.week-slot.reserved { background:#fff2cc; cursor:pointer; }
+.week-slot.done { background:#e6f0ff; cursor:pointer; }
 
 .week-slot small {
   font-size:.65rem;
@@ -72,7 +58,7 @@
   <div id="weekGrid" class="week-grid"></div>
 </main>
 
-<!-- ============ MODAL EDICIÓN CITA ============ -->
+<!-- ===== MODAL EDICIÓN CITA ===== -->
 <div id="appointmentModal"
   style="display:none; position:fixed; inset:0;
          background:rgba(0,0,0,.4); z-index:999;">
@@ -90,7 +76,7 @@
     </label><br><br>
 
     <label>Importe (€)</label>
-    <input id="amAmount" type="number" value="60" min="0"><br>
+    <input id="amAmount" type="number" min="0"><br>
 
     <label>Método de pago</label>
     <select id="amPaymentMethod">
@@ -148,7 +134,6 @@ const today = new Date();
 const monday = new Date(today);
 monday.setDate(today.getDate() - ((today.getDay() + 6) % 7));
 monday.setHours(0,0,0,0);
-
 const weekKey = monday.toISOString().slice(0,10);
 
 /* ===== DISPONIBILIDAD ===== */
@@ -217,11 +202,6 @@ for(let hour=START_HOUR; hour<END_HOUR; hour++){
     else if(avail){
       cell.className="week-slot available";
       cell.textContent="Disponible";
-      cell.onclick = () =>
-        location.href =
-          `agenda-diaria.html?date=${toISO(
-            new Date(monday.getTime()+d*86400000)
-          )}`;
     }
     else{
       cell.className="week-slot disabled";
@@ -231,8 +211,8 @@ for(let hour=START_HOUR; hour<END_HOUR; hour++){
 }
 
 /* ===== MODAL ===== */
-let currentAppointment=null;
-let currentInvoice=null;
+let currentAppointment = null;
+let currentInvoice = null;
 
 window.closeAppointmentModal = () =>
   appointmentModal.style.display="none";
@@ -250,8 +230,8 @@ async function openAppointmentModal(app){
   amModality.textContent = `Modalidad: ${app.modality || "—"}`;
 
   amCompleted.checked = app.status==="completed";
-  amIssued.checked = false;
   amPaid.checked = false;
+  amIssued.checked = false;
   amAmount.value = 60;
   amPaymentMethod.value = "";
 
@@ -275,12 +255,14 @@ amSaveBtn.onclick = async () => {
   if(amCompleted.checked && currentAppointment.status!=="completed"){
     await markAppointmentCompleted(currentAppointment);
   }
+
   if(amPaid.checked && currentInvoice){
     await markInvoicePaid(
       currentInvoice.id,
       amPaymentMethod.value
     );
   }
+
   location.reload();
 };
 
@@ -298,10 +280,6 @@ amInvoiceBtn.onclick = async () => {
     location.reload();
   }
 };
-
-function toISO(d){
-  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
-}
 </script>
 </body>
 </html>
