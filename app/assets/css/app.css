@@ -7,9 +7,7 @@
   box-sizing: border-box;
 }
 
-html {
-  font-size: 16px;
-}
+html { font-size: 16px; }
 
 body {
   margin: 0;
@@ -22,9 +20,7 @@ body {
 /* =====================================================
    ESTRUCTURA BASE
 ===================================================== */
-.app-body {
-  min-height: 100vh;
-}
+.app-body { min-height: 100vh; }
 
 .app-container {
   max-width: 1200px;
@@ -76,9 +72,7 @@ button {
   cursor: pointer;
 }
 
-.btn-primary:hover {
-  background: #2c4f45;
-}
+.btn-primary:hover { background: #2c4f45; }
 
 .btn-secondary {
   background: transparent;
@@ -89,20 +83,12 @@ button {
   cursor: pointer;
 }
 
-.btn-danger {
-  background: transparent;
-  border: 1px solid #a33;
-  color: #a33;
-  border-radius: 999px;
-  padding: 8px 18px;
-  cursor: pointer;
-}
-
 /* =====================================================
    FORMULARIOS
 ===================================================== */
 input,
-textarea {
+textarea,
+select {
   width: 100%;
   padding: 12px 14px;
   border-radius: 14px;
@@ -111,13 +97,8 @@ textarea {
   margin-bottom: 12px;
 }
 
-textarea {
-  min-height: 120px;
-  resize: vertical;
-}
-
 /* =====================================================
-   MENÚ SUPERIOR — ÚNICO SISTEMA
+   MENÚ SUPERIOR
 ===================================================== */
 .app-menu {
   background: linear-gradient(135deg, #4e7f73, #6b5a7a);
@@ -128,418 +109,74 @@ textarea {
   max-width: 1200px;
   margin: 0 auto;
   padding: 0 24px;
-
   display: flex;
-  justify-content: center;
-  align-items: center;
   gap: 14px;
   flex-wrap: wrap;
 }
 
-.app-menu-inner button,
-.app-menu-inner a {
+.app-menu-inner a,
+.app-menu-inner button {
   background: rgba(255,255,255,0.18);
   border: none;
   border-radius: 999px;
   padding: 10px 18px;
   color: #fff;
-  font-size: 0.95rem;
   text-decoration: none;
   cursor: pointer;
-  white-space: nowrap;
-}
-
-.app-menu-inner button:hover,
-.app-menu-inner a:hover {
-  background: rgba(255,255,255,0.28);
 }
 
 /* =====================================================
-   DESPLEGABLES
+   DISPONIBILIDAD — SISTEMA DEFINITIVO
 ===================================================== */
-.menu-group {
-  position: relative;
-}
 
-.menu-group-content {
-  display: none;
-  position: absolute;
-  top: 120%;
-  left: 50%;
-  transform: translateX(-50%);
-  background: #ffffff;
-  border-radius: 14px;
-  padding: 10px 12px;
-  min-width: 220px;
-  box-shadow: 0 12px 30px rgba(0,0,0,0.15);
-  z-index: 50;
-}
-
-.menu-group.open .menu-group-content {
-  display: block;
-}
-
-.menu-group-content a {
-  display: block;
-  color: #355f53;
-  padding: 6px 8px;
-  border-radius: 8px;
-}
-
-.menu-group-content a:hover {
-  background: rgba(53,95,83,0.1);
-}
-
-/* =====================================================
-   FORO
-===================================================== */
-.forum-layout {
-  display: grid;
-  grid-template-columns: 1fr 320px;
-  gap: 32px;
-}
-
-.forum-main {
-  min-width: 0;
-}
-
-#forum-placeholder {
-  background: #f0f4f2;
-  border-left: 4px solid #355f53;
-}
-
-#forum-posts {
-  margin-top: 12px;
-}
-
-.forum-post {
-  margin-bottom: 16px;
-}
-
-.forum-post-meta {
-  font-size: 0.75rem;
-  opacity: 0.7;
-  margin-bottom: 4px;
-}
-
-.forum-sidebar {
-  position: sticky;
-  top: 32px;
-}
-
-.forum-topic {
-  cursor: pointer;
-  max-width: 100%;
-  overflow: hidden;
-}
-
-.forum-topic h3 {
-  margin: 0 0 4px;
-  font-size: 1rem;
-}
-
-/* 🔴 FIX CRÍTICO — TEXTOS LARGOS */
-.forum-topic h3,
-.forum-topic p {
-  overflow-wrap: break-word;
-  word-break: break-word;
-  hyphens: auto;
-}
-
-.forum-topic-actions {
-  display: flex;
-  gap: 8px;
-  margin-top: 8px;
-}
-
-/* =====================================================
-   AUTH / WELCOME
-===================================================== */
-.auth-layout {
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
-  padding-top: 48px;
-}
-
-.auth-card {
-  width: 100%;
-  max-width: 420px;
-  background: #ffffff;
-  border-radius: 24px;
-  padding: 32px 28px;
-  box-shadow: 0 12px 40px rgba(0,0,0,.12);
-}
-
-.auth-card h1 {
-  text-align: center;
-  margin-bottom: 8px;
-}
-
-.auth-intro {
-  text-align: center;
-  font-size: 0.95rem;
-  color: #5f6f6a;
-  margin-bottom: 24px;
-}
-
-/* =====================================================
-   MÓVIL
-===================================================== */
-@media (max-width: 900px) {
-  .forum-layout {
-    grid-template-columns: 1fr;
-  }
-
-  .forum-sidebar {
-    position: static;
-    order: -1;
-  }
-}
-
-@media (max-width: 768px) {
-  .app-menu-inner {
-    justify-content: flex-start;
-    overflow-x: auto;
-  }
-
-  .app-menu-inner::-webkit-scrollbar {
-    display: none;
-  }
-}
-
-/* =====================================================
-   MENÚ — TODOS LOS BOTONES MISMO NIVEL VISUAL
-===================================================== */
-.app-menu-inner > button,
-.app-menu-inner > .menu-group > .menu-group-toggle {
-  background: rgba(255,255,255,0.18);
-  border: none;
-  border-radius: 999px;
-  padding: 10px 18px;
-  color: #fff;
-  font-size: 0.95rem;
-  cursor: pointer;
-  white-space: nowrap;
-}
-
-.app-menu-inner > button:hover,
-.app-menu-inner > .menu-group > .menu-group-toggle:hover {
-  background: rgba(255,255,255,0.28);
-}
-/* ======================
-   FORO — ROBUSTEZ TEXTO
-====================== */
-.forum-topic,
-.forum-post,
-.forum-topic p,
-.forum-post p {
-  word-break: break-word;
-  overflow-wrap: anywhere;
-}
-
-.forum-sidebar {
-  max-height: calc(100vh - 120px);
-  overflow-y: auto;
-}
-/* =========================
-   PACIENTES – ADMIN
-========================= */
-
-.patient-row {
-  padding: 10px;
-  border-bottom: 1px solid #eee;
-}
-
-.patient-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.badge {
-  font-size: 12px;
-  padding: 2px 8px;
-  border-radius: 10px;
-}
-
-.badge-historical {
-  background: #e0e0e0;
-  color: #444;
-}
-
-.badge-linked {
-  background: #c8f7dc;
-  color: #1e7f4f;
-}
-.availability-grid {
-  display: grid;
-  grid-template-columns: 80px repeat(7, 1fr);
-  gap: 6px;
-  margin-top: 20px;
-}
-
-.availability-grid .hour {
-  font-weight: 600;
-  text-align: right;
-  padding-right: 8px;
-}
-
-.availability-slot {
-  padding: 12px;
-  border-radius: 8px;
-  text-align: center;
-  cursor: pointer;
-  font-size: 0.85rem;
-  user-select: none;
-}
-
-.availability-slot.available {
-  background: #e5f4ee;
-  color: #1f6b4e;
-}
-
-.availability-slot.unavailable {
-  background: #f8e3e3;
-  color: #8b2c2c;
-}
-
-.availability-slot:hover {
-  opacity: 0.85;
-}
-/* =========================
-   DISPONIBILIDAD – GRID
-========================= */
-
-.availability-scroll {
-  overflow-x: auto;
-  width: 100%;
-}
-
-.availability-grid {
-  display: grid;
-  grid-template-columns: 80px repeat(7, 1fr);
-  gap: 6px;
-  min-width: 720px; /* 🔴 fuerza ancho mínimo */
-}
-
-.slot {
-  height: 36px;
-  border-radius: 6px;
-  cursor: pointer;
-  background: #e57373; /* rojo = no disponible */
-}
-
-.slot.available {
-  background: #4caf50; /* verde = disponible */
-}
-
-/* =========================
-   MÓVIL
-========================= */
-@media (max-width: 768px) {
-
-  .card {
-    padding: 16px;
-  }
-
-  .availability-grid {
-    min-width: 900px; /* permite scroll */
-  }
-
-  .slot {
-    height: 44px;     /* táctil */
-    font-size: 12px;
-  }
-}
-/* ===============================
-   DISPONIBILIDAD SEMANAL (GRID)
-   =============================== */
-
-/* contenedor con scroll horizontal (CLAVE PARA MÓVIL) */
+/* contenedor con scroll horizontal (CLAVE EN MÓVIL) */
 .availability-scroll {
   width: 100%;
   overflow-x: auto;
   padding-bottom: 12px;
 }
 
-/* grid principal */
+/* grid */
 .availability-grid {
   display: grid;
   grid-template-columns: 80px repeat(7, 1fr);
   gap: 6px;
-  min-width: 720px; /* 👈 CLAVE: fuerza ancho mayor que móvil */
+  min-width: 900px; /* fuerza scroll en móvil */
 }
 
-/* cabeceras (días / horas) */
-.availability-header {
-  font-weight: 600;
-  text-align: center;
-  font-size: 0.9rem;
-  opacity: 0.8;
-}
-
-/* columna horas */
-.availability-hour {
-  font-size: 0.8rem;
+/* horas */
+.hour-label {
+  font-size: 0.75rem;
   text-align: right;
   padding-right: 6px;
   opacity: 0.7;
 }
 
-/* bloques horarios */
-.availability-slot {
-  height: 42px;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: background 0.15s ease;
+/* días */
+.day-label {
+  text-align: center;
+  font-weight: 600;
+  font-size: 0.85rem;
 }
 
-/* estados */
-.availability-slot.available {
-  background: #3a6f5c; /* verde */
-}
-
-.availability-slot.unavailable {
-  background: #c56a7b; /* rojo */
-}
-.slot {
-  display:flex;
-  gap:4px;
-  justify-content:center;
-}
-
-.slot .mode {
-  flex:1;
-  padding:6px;
-  border-radius:6px;
-  border:none;
-  font-size:.7rem;
-}
-
-.slot .mode.on {
-  background:#1f6b4e;
-  color:#fff;
-}
-
-/* =========================
-   DISPONIBILIDAD (MOBILE FRIENDLY)
-========================= */
-
+/* SLOT BASE */
 .slot {
   display: flex;
   gap: 4px;
   justify-content: center;
   align-items: stretch;
+  border-radius: 8px;
 }
 
+/* slot con algo activo */
 .slot.available {
   background: #e6f4d7;
 }
 
+/* BOTONES DE MODALIDAD (mobile friendly) */
 .slot .mode {
   flex: 1;
-  padding: 8px 4px;
+  padding: 10px 4px;
   border-radius: 6px;
   border: none;
   font-size: .7rem;
@@ -553,11 +190,34 @@ textarea {
   color: #fff;
 }
 
-/* mejora interacción táctil */
 .slot .mode:active {
-  transform: scale(0.97);
+  transform: scale(0.96);
 }
-/* feedback táctil */
-.availability-slot:active {
-  transform: scale(0.97);
+
+/* =====================================================
+   AGENDA SEMANAL / DIARIA
+===================================================== */
+
+.week-slot {
+  min-height: 56px;
+  border-radius: 10px;
+  font-size: .75rem;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  text-align: center;
+}
+
+.week-slot.available { background: #e6f4d7; }
+.week-slot.reserved  { background: #fff2cc; }
+.week-slot.done      { background: #e6f0ff; }
+.week-slot.disabled  { background: #e5e7eb; }
+
+/* =====================================================
+   MÓVIL
+===================================================== */
+@media (max-width: 768px) {
+  .card { padding: 16px; }
+  .app-menu-inner { overflow-x: auto; }
 }
