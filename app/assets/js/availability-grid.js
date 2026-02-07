@@ -1,109 +1,119 @@
 import { requireAuth } from "./auth.js";
 import { auth, db } from "./firebase.js";
-
 import {
   doc,
   getDoc,
-  setDoc
+  setDoc,
+  serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-/* =========================
-   AUTH (CLAVE)
-========================= */
 await requireAuth();
 
-const user = auth.currentUser;
-if (!user) throw new Error("Usuario no autenticado");
+const therapistId = auth.currentUser.uid;
+if (!therapistId) throw new Error("No autenticado");
 
-const therapistId = user.uid;
+/* CONFIG */
+const DAYS = ["mon","tue","wed","thu","fri","sat","sun"];
+const DAY_LABELS = ["L","M","X","J","V","S","D"];
+const HOURS = Array.from({length:12},(_,i)=>i+9);
 
-/* =========================
-   DOM
-========================= */
 const grid = document.getElementById("availabilityGrid");
 const saveBtn = document.getElementById("saveAvailability");
 
-/* =========================
-   CONFIG
-========================= */
-const DAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
-const DAY_LABELS = ["L", "M", "X", "J", "V", "S", "D"];
-const HOURS = Array.from({ length: 12 }, (_, i) => i + 9); // 9–21
-
 const slotsState = {};
 
-/* =========================
-   SEMANA (LUNES)
-========================= */
+/* SEMANA ACTUAL (LUNES) */
 const now = new Date();
 const monday = new Date(now);
-monday.setDate(now.getDate() - ((now.getDay() + 6) % 7));
-monday.setHours(12, 0, 0, 0); // 🔒 anti TZ bug
+monday.setDate(now.getDate() - ((now.getDay()+6)%7));
+monday.setHours(12,0,0,0);
 
-const weekKey = monday.toISOString().slice(0, 10);
-const docRef = doc(db, "availability", `${therapistId}_${weekKey}`);
+const weekKey = monday.toISOString().slice(0,10);
+const docRef = doc(db,"availability",`${therapistId}_${weekKey}`);
 
-/* =========================
-   RENDER GRID
-========================= */
-function renderGrid() {
+/* RENDER */
+function renderGrid(){
   grid.innerHTML = "";
+  grid.appendChild(document.createElement("div"));
 
-  grid.appendChild(document.createElement("div")); // esquina vacía
-
-  DAY_LABELS.forEach(label => {
-    const el = document.createElement("div");
-    el.className = "day-label";
-    el.textContent = label;
-    grid.appendChild(el);
+  DAY_LABELS.forEach(l=>{
+    const d=document.createElement("div");
+    d.className="day-label";
+    d.textContent=l;
+    grid.appendChild(d);
   });
 
-  HOURS.forEach(hour => {
-    const label = document.createElement("div");
-    label.className = "hour-label";
-    label.textContent = `${hour}:00`;
-    grid.appendChild(label);
+  HOURS.forEach(hour=>{
+    const hl=document.createElement("div");
+    hl.className="hour-label";
+    hl.textContent=`${hour}:00`;
+    grid.appendChild(hl);
 
-    DAYS.forEach(day => {
-      const key = `${day}_${hour}`;
-      const slot = document.createElement("div");
-      slot.className = "slot";
+    DAYS.forEach(day=>{
+      const key=`${day}_${hour}`;
+      const slot=document.createElement("div");
+      slot.className="slot";
 
-      if (slotsState[key]) slot.classList.add("available");
+      const data = slotsState[key];
+      if(data){
+        if(data.allowPresential && data.allowOnline){
+          slot.classList.add("both");
+          slot.innerHTML="<small>P+O</small>";
+        } else if(data.allowPresential){
+          slot.classList.add("presential");
+          slot.innerHTML="<small>P</small>";
+        } else if(data.allowOnline){
+          slot.classList.add("online");
+          slot.innerHTML="<small>O</small>";
+        }
+      }
 
-      slot.addEventListener("click", () => {
-        slotsState[key] = !slotsState[key];
-        slot.classList.toggle("available");
-      });
-
+      slot.onclick=()=>openSlotEditor(key);
       grid.appendChild(slot);
     });
   });
 }
 
-/* =========================
-   LOAD DATA
-========================= */
-const snap = await getDoc(docRef);
-if (snap.exists()) {
-  const data = snap.data();
-  if (data.slots) {
-    Object.assign(slotsState, data.slots);
+/* EDITOR SIMPLE (ciclo) */
+function openSlotEditor(key){
+  const current = slotsState[key];
+
+  if(!current){
+    slotsState[key]={
+      location:"viladecans",
+      allowPresential:true,
+      allowOnline:false
+    };
+  } else if(current.allowPresential && !current.allowOnline){
+    current.allowOnline=true;
+  } else if(current.allowPresential && current.allowOnline){
+    slotsState[key]={
+      location:current.location,
+      allowPresential:false,
+      allowOnline:true
+    };
+  } else {
+    delete slotsState[key];
   }
+
+  renderGrid();
+}
+
+/* LOAD */
+const snap = await getDoc(docRef);
+if(snap.exists()){
+  Object.assign(slotsState, snap.data().slots || {});
 }
 
 renderGrid();
 
-/* =========================
-   SAVE
-========================= */
-saveBtn.addEventListener("click", async () => {
-  await setDoc(docRef, {
+/* SAVE */
+saveBtn.onclick = async ()=>{
+  await setDoc(docRef,{
     therapistId,
     weekStart: weekKey,
     slots: slotsState,
-    updatedAt: new Date()
+    updatedAt: serverTimestamp()
   });
-
-  alert("Disponibilidad guardada correctamente");
-});
+  alert("Disponibilidad guardada");
+};
