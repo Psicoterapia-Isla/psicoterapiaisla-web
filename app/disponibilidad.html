@@ -1,78 +1,176 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <title>Disponibilidad | Psicoterapia Isla</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta charset="UTF-8" />
+<title>Disponibilidad | Psicoterapia Isla</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <link rel="stylesheet" href="assets/css/app.css">
+<link rel="stylesheet" href="assets/css/app.css">
 
-  <style>
-    .availability-grid {
-      display: grid;
-      grid-template-columns: 80px repeat(7, 1fr);
-      gap: 6px;
-      margin-top: 20px;
-    }
+<style>
+.availability-wrapper {
+  padding:1rem;
+  overflow-x:auto;
+}
 
-    .hour-label {
-      font-size: 0.85rem;
-      text-align: right;
-      padding-right: 6px;
-      color: #666;
-    }
+.availability-grid {
+  display:grid;
+  grid-template-columns:60px repeat(7,minmax(120px,1fr));
+  gap:.4rem;
+}
 
-    .day-label {
-      text-align: center;
-      font-weight: 600;
-    }
+.hour-label {
+  font-size:.75rem;
+  text-align:right;
+  padding-right:6px;
+  color:#666;
+}
 
-    .slot {
-      height: 36px;
-      border-radius: 6px;
-      cursor: pointer;
-      background: #e57373; /* rojo por defecto */
-      transition: background 0.2s;
-    }
+.day-label {
+  text-align:center;
+  font-weight:600;
+}
 
-    .slot.available {
-      background: #4caf50; /* verde */
-    }
+.slot {
+  height:36px;
+  border-radius:8px;
+  cursor:pointer;
+  background:#e5e7eb; /* bloqueado */
+}
 
-    .slot.readonly {
-      cursor: default;
-      opacity: 0.9;
-    }
-  </style>
+.slot.available {
+  background:#e6f4d7; /* disponible */
+}
+
+.slot.readonly {
+  opacity:.6;
+  cursor:not-allowed;
+}
+</style>
 </head>
 
 <body class="app-body">
 
 <header class="app-menu"></header>
 
-<main class="app-container">
+<main class="availability-wrapper">
 
-  <section class="card">
-    <h1>Disponibilidad semanal</h1>
-    <p>Horario base: 9:00–21:00 · sesiones de 60 minutos</p>
+  <h1>Disponibilidad semanal</h1>
+  <p>Horario base · sesiones de 60 minutos</p>
 
-    <div id="availabilityGrid" class="availability-grid"></div>
+  <div id="availabilityGrid" class="availability-grid"></div>
 
-    <button id="saveAvailability" class="btn-primary">
-      Guardar cambios
-    </button>
-  </section>
+  <br>
+  <button id="saveAvailability" class="btn-primary">
+    Guardar cambios
+  </button>
 
 </main>
 
 <script type="module">
-  import { requireAuth } from "./assets/js/auth.js";
-  import { loadMenu } from "./assets/js/menu.js";
-  await requireAuth();
-  await loadMenu();
-</script>
+import { requireAuth } from "./assets/js/auth.js";
+import { loadMenu } from "./assets/js/menu.js";
+import { auth, db } from "./assets/js/firebase.js";
 
-<script type="module" src="assets/js/availability-grid.js"></script>
+import {
+  collection, getDocs, query, where,
+  setDoc, doc
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+await requireAuth();
+await loadMenu();
+
+const therapistId = auth.currentUser.uid;
+const grid = document.getElementById("availabilityGrid");
+
+const START_HOUR = 9;
+const END_HOUR = 21;
+const DAYS = 7;
+
+/* ================= LUNES BASE ================= */
+const monday = new Date();
+monday.setDate(monday.getDate() - ((monday.getDay()+6)%7));
+monday.setHours(12,0,0,0);
+
+/* ================= HEADERS ================= */
+grid.appendChild(document.createElement("div"));
+
+for(let d=0; d<DAYS; d++){
+  const day = new Date(monday);
+  day.setDate(monday.getDate()+d);
+
+  const h = document.createElement("div");
+  h.className = "day-label";
+  h.textContent =
+    day.toLocaleDateString("es-ES",{weekday:"short"});
+  grid.appendChild(h);
+}
+
+/* ================= GRID ================= */
+const slots = {};
+
+for(let hour=START_HOUR; hour<END_HOUR; hour++){
+  const hl = document.createElement("div");
+  hl.className="hour-label";
+  hl.textContent=`${hour}:00`;
+  grid.appendChild(hl);
+
+  for(let d=0; d<DAYS; d++){
+    const key = `${d}-${hour}`;
+
+    const cell = document.createElement("div");
+    cell.className="slot";
+    cell.dataset.day=d;
+    cell.dataset.hour=hour;
+
+    cell.onclick = () => {
+      cell.classList.toggle("available");
+      slots[key] = cell.classList.contains("available");
+    };
+
+    grid.appendChild(cell);
+    slots[key] = false;
+  }
+}
+
+/* ================= CARGAR DISPONIBILIDAD ================= */
+const snap = await getDocs(query(
+  collection(db,"availability"),
+  where("therapistId","==",therapistId)
+));
+
+snap.forEach(docSnap=>{
+  const a = docSnap.data();
+  const key = `${a.weekday}-${a.hour}`;
+  const index =
+    1 + a.weekday + (a.hour-START_HOUR+1)*(DAYS+1);
+
+  const cell = grid.children[index];
+  if(cell){
+    cell.classList.add("available");
+    slots[key] = true;
+  }
+});
+
+/* ================= GUARDAR ================= */
+saveAvailability.onclick = async () => {
+  for(const key in slots){
+    const [weekday,hour] = key.split("-").map(Number);
+
+    await setDoc(
+      doc(db,"availability",`${therapistId}_${weekday}_${hour}`),
+      {
+        therapistId,
+        weekday,
+        hour,
+        available: slots[key]
+      }
+    );
+  }
+
+  alert("Disponibilidad guardada");
+};
+</script>
 
 </body>
 </html>
