@@ -1,18 +1,22 @@
+// app/assets/js/appointment-manager.js
+
 import { db } from "./firebase.js";
 import {
   doc,
   updateDoc,
   addDoc,
-  getDoc,
   collection,
-  serverTimestamp
+  serverTimestamp,
+  runTransaction
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-/* =====================================================
-   MARCAR SESIÓN REALIZADA
-===================================================== */
+/* ======================================================
+   MARCAR SESIÓN COMO REALIZADA
+====================================================== */
 export async function markAppointmentCompleted(app) {
-  if (!app?.id) throw new Error("Appointment ID missing");
+  if (!app?.id) {
+    throw new Error("Appointment ID missing");
+  }
 
   await updateDoc(
     doc(db, "appointments", app.id),
@@ -23,38 +27,89 @@ export async function markAppointmentCompleted(app) {
   );
 }
 
-/* =====================================================
-   CREAR FACTURA
-   - Se crea ya como EMITIDA
-   - Importe editable (default 60)
-===================================================== */
-export async function invoiceAppointment(app, amount = 60) {
+/* ======================================================
+   CREAR FACTURA (LEGAL, NUMERADA)
+   - Marca automáticamente como EMITIDA
+   - Permite pago previo o posterior
+====================================================== */
+export async function invoiceAppointment(
+  app,
+  {
+    amount = 60,
+    paymentMethod = null, // "efectivo" | "tarjeta" | "transferencia"
+    paid = false
+  } = {}
+) {
   if (!app?.id || !app?.therapistId || !app?.patientId) {
     throw new Error("Appointment data incomplete");
   }
 
-  // 1️⃣ Crear factura (emitida automáticamente)
+  const year = new Date().getFullYear();
+  const series = "A";
+  const counterRef = doc(db, "invoice_counters", `${year}_${series}`);
+
+  // 🔒 Transacción para numeración legal
+  const invoiceNumber = await runTransaction(db, async (tx) => {
+    const snap = await tx.get(counterRef);
+
+    let current = 0;
+    if (snap.exists()) {
+      current = snap.data().current || 0;
+      tx.update(counterRef, { current: current + 1 });
+    } else {
+      tx.set(counterRef, {
+        year,
+        series,
+        current: 1,
+        createdAt: serverTimestamp()
+      });
+      current = 0;
+    }
+
+    return `${year}-${String(current + 1).padStart(3, "0")}`;
+  });
+
+  // 🧾 Crear factura
   const invoiceRef = await addDoc(
     collection(db, "invoices"),
     {
+      invoiceNumber,
+      series,
+      year,
+
       appointmentId: app.id,
       therapistId: app.therapistId,
       patientId: app.patientId,
+      patientName: app.patientName || null,
 
-      concept: app.service || "Sesión de terapia",
-      amount: Number(amount),
+      concept: app.service || "Sesión de psicoterapia",
+      amount,
+      currency: "EUR",
+
+      tax: {
+        type: "exento",
+        law: "Art. 20.1.3 LIVA"
+      },
 
       issued: true,
       issuedAt: serverTimestamp(),
 
-      paid: false,
-      paymentMethod: null,
+      payment: {
+        method: paymentMethod, // puede ser null
+        paid: paid === true,
+        paidAt: paid ? serverTimestamp() : null
+      },
+
+      pdf: {
+        generated: false,
+        url: null
+      },
 
       createdAt: serverTimestamp()
     }
   );
 
-  // 2️⃣ Vincular factura a la cita
+  // 🔗 Vincular factura a la cita
   await updateDoc(
     doc(db, "appointments", app.id),
     {
@@ -65,11 +120,31 @@ export async function invoiceAppointment(app, amount = 60) {
   return invoiceRef.id;
 }
 
-/* =====================================================
-   MARCAR FACTURA COMO EMITIDA (manual)
-===================================================== */
+/* ======================================================
+   MARCAR FACTURA COMO PAGADA
+====================================================== */
+export async function markInvoicePaid(invoiceId, paymentMethod = null) {
+  if (!invoiceId) {
+    throw new Error("Invoice ID missing");
+  }
+
+  await updateDoc(
+    doc(db, "invoices", invoiceId),
+    {
+      "payment.paid": true,
+      "payment.method": paymentMethod,
+      "payment.paidAt": serverTimestamp()
+    }
+  );
+}
+
+/* ======================================================
+   MARCAR FACTURA COMO EMITIDA (si se creó en borrador)
+====================================================== */
 export async function markInvoiceIssued(invoiceId) {
-  if (!invoiceId) throw new Error("Invoice ID missing");
+  if (!invoiceId) {
+    throw new Error("Invoice ID missing");
+  }
 
   await updateDoc(
     doc(db, "invoices", invoiceId),
@@ -78,47 +153,4 @@ export async function markInvoiceIssued(invoiceId) {
       issuedAt: serverTimestamp()
     }
   );
-}
-
-/* =====================================================
-   MARCAR FACTURA COMO PAGADA
-   - Puede estar pagada SIN estar emitida
-   - Guarda método de pago
-===================================================== */
-export async function markInvoicePaid(
-  invoiceId,
-  {
-    paymentMethod = "efectivo", // efectivo | tarjeta | transferencia | bizum
-    amountPaid = null
-  } = {}
-) {
-  if (!invoiceId) throw new Error("Invoice ID missing");
-
-  const updateData = {
-    paid: true,
-    paidAt: serverTimestamp(),
-    paymentMethod
-  };
-
-  if (amountPaid !== null) {
-    updateData.amountPaid = Number(amountPaid);
-  }
-
-  await updateDoc(
-    doc(db, "invoices", invoiceId),
-    updateData
-  );
-}
-
-/* =====================================================
-   OBTENER ESTADO COMPLETO DE FACTURA
-   (para agendas diaria / semanal)
-===================================================== */
-export async function getInvoiceStatus(invoiceId) {
-  if (!invoiceId) return null;
-
-  const snap = await getDoc(doc(db, "invoices", invoiceId));
-  if (!snap.exists()) return null;
-
-  return { id: snap.id, ...snap.data() };
 }
