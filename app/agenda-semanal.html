@@ -35,6 +35,8 @@
   padding:4px;
   font-size:.7rem;
   cursor:pointer;
+  display:flex;
+  align-items:center;
 }
 
 .available { background:#e6f4d7; }
@@ -52,19 +54,16 @@
   <div id="weekGrid" class="week-grid"></div>
 </main>
 
-<!-- =========================
-     MODAL CREAR CITA
-========================= -->
+<!-- ================= MODAL CREAR CITA ================= -->
 <div id="createModal"
-     style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:1000;">
+  style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:1000;">
   <div style="background:#fff; max-width:420px; margin:10vh auto;
               padding:1rem; border-radius:14px;">
-
     <h3>Nueva cita</h3>
     <p id="cDateLabel"></p>
 
     <label>Teléfono paciente (9 dígitos)</label>
-    <input id="cPatientPhone" type="text" maxlength="9">
+    <input id="cPatientPhone" maxlength="9">
 
     <label>Nombre paciente</label>
     <input id="cPatientName">
@@ -84,16 +83,168 @@
   </div>
 </div>
 
+<!-- ================= MODAL GESTIÓN CITA ================= -->
+<div id="appointmentModal"
+  style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:999;">
+  <div style="background:#fff; max-width:420px; margin:10vh auto;
+              padding:1rem; border-radius:14px;">
+
+    <h3 id="amPatient"></h3>
+    <p id="amDateTime"></p>
+
+    <label>
+      <input type="checkbox" id="amCompleted">
+      Sesión realizada
+    </label><br>
+
+    <label>
+      <input type="checkbox" id="amIssued" disabled>
+      Factura emitida
+    </label><br>
+
+    <label>
+      <input type="checkbox" id="amPaid" disabled>
+      Factura pagada
+    </label><br><br>
+
+    <button id="amInvoiceBtn" class="btn-primary">
+      Crear factura
+    </button>
+
+    <hr>
+    <button onclick="closeAppointmentModal()">Cerrar</button>
+  </div>
+</div>
+
+<!-- ================= JS ================= -->
 <script type="module">
 import { requireAuth } from "./assets/js/auth.js";
 import { loadMenu } from "./assets/js/menu.js";
+import { auth, db } from "./assets/js/firebase.js";
+import {
+  markAppointmentCompleted,
+  invoiceAppointment
+} from "./assets/js/appointment-manager.js";
+
+import {
+  collection, getDocs, query, where, Timestamp
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 await requireAuth();
 await loadMenu();
+
+const therapistId = auth.currentUser.uid;
+const grid = document.getElementById("weekGrid");
+
+const START_HOUR = 9;
+const END_HOUR = 21;
+const DAYS = 7;
+
+/* ===== LUNES SEMANA ACTUAL ===== */
+const today = new Date();
+const monday = new Date(today);
+monday.setDate(today.getDate() - ((today.getDay() + 6) % 7));
+monday.setHours(12,0,0,0);
+
+/* ===== CABECERAS ===== */
+grid.appendChild(document.createElement("div"));
+
+for(let d=0; d<DAYS; d++){
+  const day = new Date(monday);
+  day.setDate(monday.getDate()+d);
+  day.setHours(12,0,0,0);
+
+  const iso = toISO(day);
+
+  const h = document.createElement("div");
+  h.className="day-header";
+  h.textContent=day.toLocaleDateString("es-ES",{weekday:"short",day:"numeric"});
+  h.onclick=()=>location.href=`agenda-diaria.html?date=${iso}`;
+  grid.appendChild(h);
+}
+
+/* ===== GRID ===== */
+for(let hour=START_HOUR; hour<END_HOUR; hour++){
+  const hc=document.createElement("div");
+  hc.className="week-hour";
+  hc.textContent=`${hour}:00`;
+  grid.appendChild(hc);
+
+  for(let d=0; d<DAYS; d++){
+    const cell=document.createElement("div");
+    cell.className="week-slot available";
+    cell.dataset.day=d;
+    cell.dataset.hour=hour;
+    grid.appendChild(cell);
+  }
+}
+
+/* ===== DATOS ===== */
+const start=Timestamp.fromDate(monday);
+const end=Timestamp.fromDate(new Date(monday.getTime()+7*86400000));
+
+const snap=await getDocs(query(
+  collection(db,"appointments"),
+  where("therapistId","==",therapistId),
+  where("start",">=",start),
+  where("start","<",end)
+));
+
+snap.forEach(docSnap=>{
+  const a=docSnap.data();
+  const s=a.start.toDate();
+  const d=(s.getDay()+6)%7;
+  const h=s.getHours();
+  if(h<START_HOUR||h>=END_HOUR)return;
+
+  const index=1+d+(h-START_HOUR+1)*(DAYS+1);
+  const cell=grid.children[index];
+  if(!cell)return;
+
+  cell.className=`week-slot ${a.status==="completed"?"done":"reserved"}`;
+  cell.textContent=a.patientName||"";
+  cell.onclick=()=>openAppointmentModal({...a,id:docSnap.id});
+});
+
+/* ===== MODAL GESTIÓN ===== */
+let currentAppointment=null;
+
+window.closeAppointmentModal=()=>appointmentModal.style.display="none";
+
+function openAppointmentModal(app){
+  currentAppointment=app;
+  const s=app.start.toDate(), e=app.end.toDate();
+
+  amPatient.textContent=app.patientName;
+  amDateTime.textContent=
+    `${s.getHours().toString().padStart(2,"0")}:00 – ${e.getHours().toString().padStart(2,"0")}:00`;
+
+  amCompleted.checked=app.status==="completed";
+  amIssued.checked=!!app.invoiceId;
+
+  appointmentModal.style.display="block";
+}
+
+amCompleted.onchange=async()=>{
+  if(amCompleted.checked){
+    await markAppointmentCompleted({...currentAppointment,id:currentAppointment.id});
+    location.reload();
+  }
+};
+
+amInvoiceBtn.onclick=async()=>{
+  if(!currentAppointment.invoiceId){
+    await invoiceAppointment({...currentAppointment,id:currentAppointment.id},60);
+    location.reload();
+  }
+};
+
+/* ===== HELPERS ===== */
+function toISO(d){
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+}
 </script>
 
-<script type="module" src="assets/js/agenda-week.js"></script>
 <script type="module" src="assets/js/create-appointment.js"></script>
-<script type="module" src="assets/js/appointment-manager.js"></script>
 </body>
 </html>
