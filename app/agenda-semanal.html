@@ -46,14 +46,13 @@
 </head>
 
 <body class="app-body">
-
 <header class="app-menu"></header>
 
 <main class="week-wrapper">
   <div id="weekGrid" class="week-grid"></div>
 </main>
 
-<!-- ================= MODAL CREAR CITA ================= -->
+<!-- ================= MODAL CREAR ================= -->
 <div id="createModal"
   style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:1000;">
   <div style="background:#fff; max-width:420px; margin:10vh auto;
@@ -70,6 +69,14 @@
     <label>Servicio</label>
     <input id="cService" value="Visita Psicología">
 
+    <label>Modalidad / ubicación</label>
+    <select id="cModality" required>
+      <option value="">Selecciona una opción</option>
+      <option value="viladecans">Presencial · Viladecans</option>
+      <option value="badalona">Presencial · Badalona</option>
+      <option value="online">Online</option>
+    </select>
+
     <label>Hora inicio</label>
     <input id="cStart" type="time">
 
@@ -82,7 +89,7 @@
   </div>
 </div>
 
-<!-- ================= MODAL GESTIÓN CITA ================= -->
+<!-- ================= MODAL GESTIÓN ================= -->
 <div id="appointmentModal"
   style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:999;">
   <div style="background:#fff; max-width:420px; margin:10vh auto;
@@ -90,10 +97,21 @@
 
     <h3 id="amPatient"></h3>
     <p id="amDateTime"></p>
+    <p id="amModality"></p>
 
     <label>
       <input type="checkbox" id="amCompleted">
       Sesión realizada
+    </label><br>
+
+    <label>
+      <input type="checkbox" id="amIssued" disabled>
+      Factura emitida
+    </label><br>
+
+    <label>
+      <input type="checkbox" id="amPaid" disabled>
+      Factura pagada
     </label><br><br>
 
     <button id="amInvoiceBtn" class="btn-primary">
@@ -113,11 +131,12 @@ import { auth, db } from "./assets/js/firebase.js";
 
 import {
   markAppointmentCompleted,
-  invoiceAppointment
+  invoiceAppointment,
+  markInvoicePaid
 } from "./assets/js/appointment-manager.js";
 
 import {
-  collection, getDocs, query, where, Timestamp
+  collection, getDocs, query, where, Timestamp, doc, getDoc
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 await requireAuth();
@@ -163,15 +182,19 @@ for(let hour=START_HOUR; hour<END_HOUR; hour++){
   for(let d=0; d<DAYS; d++){
     const cell=document.createElement("div");
     cell.className="week-slot available";
-    cell.dataset.day=d;
-    cell.dataset.hour=hour;
 
     cell.onclick=()=>{
       const date=new Date(monday);
       date.setDate(monday.getDate()+d);
+
       cDateLabel.textContent=date.toLocaleDateString("es-ES");
       cStart.value=`${String(hour).padStart(2,"0")}:00`;
       cEnd.value=`${String(hour+1).padStart(2,"0")}:00`;
+      cPatientPhone.value="";
+      cPatientName.value="";
+      cPatientName.disabled=false;
+      cModality.value="";
+
       window.__selectedDateISO=toISO(date);
       createModal.style.display="block";
     };
@@ -179,6 +202,26 @@ for(let hour=START_HOUR; hour<END_HOUR; hour++){
     grid.appendChild(cell);
   }
 }
+
+/* ===== AUTOCOMPLETE PACIENTE ===== */
+cPatientPhone.onblur = async () => {
+  const phone = cPatientPhone.value.trim();
+  if (!/^\d{9}$/.test(phone)) return;
+
+  let snap = await getDoc(doc(db,"patients",phone));
+  if (!snap.exists()) {
+    snap = await getDoc(doc(db,"patients_normalized",phone));
+  }
+
+  if (snap.exists()) {
+    const d = snap.data();
+    cPatientName.value =
+      d.fullName || `${d.nombre || ""} ${d.apellidos || ""}`.trim();
+    cPatientName.disabled = true;
+  } else {
+    cPatientName.disabled = false;
+  }
+};
 
 /* ===== DATOS ===== */
 const start=Timestamp.fromDate(monday);
@@ -219,8 +262,13 @@ function openAppointmentModal(app){
   amPatient.textContent=app.patientName;
   amDateTime.textContent=
     `${s.getHours().toString().padStart(2,"0")}:00 – ${e.getHours().toString().padStart(2,"0")}:00`;
+  amModality.textContent=`Modalidad: ${app.modality}`;
 
   amCompleted.checked=app.status==="completed";
+  amIssued.checked=!!app.invoiceId;
+  amPaid.checked=app.paid===true;
+  amPaid.disabled=!app.invoiceId;
+
   appointmentModal.style.display="block";
 }
 
@@ -234,6 +282,13 @@ amCompleted.onchange=async()=>{
 amInvoiceBtn.onclick=async()=>{
   if(!currentAppointment.invoiceId){
     await invoiceAppointment({...currentAppointment,id:currentAppointment.id},60);
+    location.reload();
+  }
+};
+
+amPaid.onchange=async()=>{
+  if(amPaid.checked){
+    await markInvoicePaid(currentAppointment.invoiceId);
     location.reload();
   }
 };
