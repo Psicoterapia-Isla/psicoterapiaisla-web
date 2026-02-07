@@ -3,18 +3,16 @@ import {
   doc,
   updateDoc,
   addDoc,
+  getDoc,
   collection,
   serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-/* =========================
+/* =====================================================
    MARCAR SESIÓN REALIZADA
-========================= */
+===================================================== */
 export async function markAppointmentCompleted(app) {
-
-  if (!app?.id) {
-    throw new Error("Appointment ID missing");
-  }
+  if (!app?.id) throw new Error("Appointment ID missing");
 
   await updateDoc(
     doc(db, "appointments", app.id),
@@ -25,16 +23,17 @@ export async function markAppointmentCompleted(app) {
   );
 }
 
-/* =========================
-   CREAR FACTURA DESDE CITA
-========================= */
+/* =====================================================
+   CREAR FACTURA
+   - Se crea ya como EMITIDA
+   - Importe editable (default 60)
+===================================================== */
 export async function invoiceAppointment(app, amount = 60) {
-
   if (!app?.id || !app?.therapistId || !app?.patientId) {
     throw new Error("Appointment data incomplete");
   }
 
-  // 1️⃣ Crear factura
+  // 1️⃣ Crear factura (emitida automáticamente)
   const invoiceRef = await addDoc(
     collection(db, "invoices"),
     {
@@ -43,38 +42,35 @@ export async function invoiceAppointment(app, amount = 60) {
       patientId: app.patientId,
 
       concept: app.service || "Sesión de terapia",
-      amount,
+      amount: Number(amount),
 
-      issued: false,
+      issued: true,
+      issuedAt: serverTimestamp(),
+
       paid: false,
+      paymentMethod: null,
 
       createdAt: serverTimestamp()
     }
   );
 
-  // 2️⃣ Reflejar en la cita
+  // 2️⃣ Vincular factura a la cita
   await updateDoc(
     doc(db, "appointments", app.id),
     {
-      invoiceId: invoiceRef.id,
-      invoiceIssued: false,
-      invoicePaid: false
+      invoiceId: invoiceRef.id
     }
   );
 
   return invoiceRef.id;
 }
 
-/* =========================
-   MARCAR FACTURA EMITIDA
-========================= */
-export async function markInvoiceIssued(invoiceId, appointmentId) {
+/* =====================================================
+   MARCAR FACTURA COMO EMITIDA (manual)
+===================================================== */
+export async function markInvoiceIssued(invoiceId) {
+  if (!invoiceId) throw new Error("Invoice ID missing");
 
-  if (!invoiceId || !appointmentId) {
-    throw new Error("Missing IDs");
-  }
-
-  // 1️⃣ Actualizar factura
   await updateDoc(
     doc(db, "invoices", invoiceId),
     {
@@ -82,39 +78,47 @@ export async function markInvoiceIssued(invoiceId, appointmentId) {
       issuedAt: serverTimestamp()
     }
   );
+}
 
-  // 2️⃣ Reflejar en cita
+/* =====================================================
+   MARCAR FACTURA COMO PAGADA
+   - Puede estar pagada SIN estar emitida
+   - Guarda método de pago
+===================================================== */
+export async function markInvoicePaid(
+  invoiceId,
+  {
+    paymentMethod = "efectivo", // efectivo | tarjeta | transferencia | bizum
+    amountPaid = null
+  } = {}
+) {
+  if (!invoiceId) throw new Error("Invoice ID missing");
+
+  const updateData = {
+    paid: true,
+    paidAt: serverTimestamp(),
+    paymentMethod
+  };
+
+  if (amountPaid !== null) {
+    updateData.amountPaid = Number(amountPaid);
+  }
+
   await updateDoc(
-    doc(db, "appointments", appointmentId),
-    {
-      invoiceIssued: true
-    }
+    doc(db, "invoices", invoiceId),
+    updateData
   );
 }
 
-/* =========================
-   MARCAR FACTURA PAGADA
-========================= */
-export async function markInvoicePaid(invoiceId, appointmentId) {
+/* =====================================================
+   OBTENER ESTADO COMPLETO DE FACTURA
+   (para agendas diaria / semanal)
+===================================================== */
+export async function getInvoiceStatus(invoiceId) {
+  if (!invoiceId) return null;
 
-  if (!invoiceId || !appointmentId) {
-    throw new Error("Missing IDs");
-  }
+  const snap = await getDoc(doc(db, "invoices", invoiceId));
+  if (!snap.exists()) return null;
 
-  // 1️⃣ Actualizar factura
-  await updateDoc(
-    doc(db, "invoices", invoiceId),
-    {
-      paid: true,
-      paidAt: serverTimestamp()
-    }
-  );
-
-  // 2️⃣ Reflejar en cita
-  await updateDoc(
-    doc(db, "appointments", appointmentId),
-    {
-      invoicePaid: true
-    }
-  );
+  return { id: snap.id, ...snap.data() };
 }
