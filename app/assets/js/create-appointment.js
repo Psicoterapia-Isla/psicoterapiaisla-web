@@ -1,40 +1,61 @@
-// app/assets/js/create-appointment.js
-
 import { db, auth } from "./firebase.js";
 import {
   addDoc,
   collection,
   serverTimestamp,
-  Timestamp
+  Timestamp,
+  doc,
+  getDoc
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-window.openCreateModal = (dateISO) => {
-  window.__selectedDateISO = dateISO;
-  document.getElementById("createModal").style.display = "block";
-};
-
+/* =========================
+   MODAL
+========================= */
 window.closeCreateModal = () => {
   document.getElementById("createModal").style.display = "none";
 };
 
+/* =========================
+   AUTOCOMPLETE PACIENTE
+========================= */
+const phoneInput = document.getElementById("cPatientPhone");
+const nameInput  = document.getElementById("cPatientName");
+
+if (phoneInput) {
+  phoneInput.addEventListener("blur", async () => {
+    const phone = phoneInput.value.trim();
+    if (!/^\d{9}$/.test(phone)) return;
+
+    let snap = await getDoc(doc(db, "patients", phone));
+    if (!snap.exists()) {
+      snap = await getDoc(doc(db, "patients_normalized", phone));
+    }
+
+    if (snap.exists()) {
+      const d = snap.data();
+      nameInput.value =
+        d.nombre
+          ? `${d.nombre} ${d.apellidos || ""}`.trim()
+          : d.fullName || "";
+      nameInput.disabled = true;
+    } else {
+      nameInput.disabled = false;
+    }
+  });
+}
+
+/* =========================
+   CREAR CITA
+========================= */
 window.createAppointment = async () => {
-
-  const phone = cPatientPhone.value.trim();
-  const name = cPatientName.value.trim();
-  const service = cService.value.trim();
-  const modality = cModality.value; // 👈 NUEVO
-  const startH = cStart.value;
-  const endH = cEnd.value;
-
-  /* ================= VALIDACIONES ================= */
+  const phone   = phoneInput.value.trim();
+  const name    = nameInput.value.trim();
+  const service = document.getElementById("cService").value.trim();
+  const startH  = document.getElementById("cStart").value;
+  const endH    = document.getElementById("cEnd").value;
 
   if (!/^\d{9}$/.test(phone)) {
-    alert("Debes introducir un teléfono válido de 9 dígitos");
-    return;
-  }
-
-  if (!modality) {
-    alert("Debes seleccionar la modalidad de la sesión");
+    alert("Teléfono obligatorio (9 dígitos)");
     return;
   }
 
@@ -46,10 +67,8 @@ window.createAppointment = async () => {
   const user = auth.currentUser;
   if (!user) return;
 
-  /* ================= FECHA ================= */
-
   const baseDate = new Date(window.__selectedDateISO);
-  baseDate.setHours(0, 0, 0, 0);
+  baseDate.setHours(0,0,0,0);
 
   const [sh, sm] = startH.split(":");
   const [eh, em] = endH.split(":");
@@ -60,22 +79,15 @@ window.createAppointment = async () => {
   const end = new Date(baseDate);
   end.setHours(eh, em, 0, 0);
 
-  /* ================= GUARDAR ================= */
-
   await addDoc(collection(db, "appointments"), {
     therapistId: user.uid,
     patientId: phone,
     patientName: name,
     service,
-    modality,              // 👈 NUEVO CAMPO CLAVE
-
+    modality: document.getElementById("cModality")?.value || "presencial",
     start: Timestamp.fromDate(start),
     end: Timestamp.fromDate(end),
-
     status: "scheduled",
-    createdBy: user.uid,
-    createdByRole: "therapist",
-
     createdAt: serverTimestamp()
   });
 
