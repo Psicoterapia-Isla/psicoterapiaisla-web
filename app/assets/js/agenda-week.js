@@ -109,10 +109,12 @@ snap.forEach(docSnap => {
   const cell = grid.children[index];
   if (!cell) return;
 
-  cell.className =
-    `week-slot ${a.status === "completed" ? "done" : "reserved"}`;
+cell.className =
+  `week-slot ${a.status === "completed" ? "done" : "reserved"}`;
 
-  cell.textContent = a.patientName || "";
+cell.textContent = a.patientName || "";
+
+cell.onclick = () => openAppointmentModal(docSnap.id);
 });
 
 /* =========================
