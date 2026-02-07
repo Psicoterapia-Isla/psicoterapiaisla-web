@@ -30,12 +30,11 @@
 .week-slot {
   min-height:48px;
   border-radius:10px;
-  font-size:.7rem;
-  padding:4px;
+  font-size:.75rem;
+  padding:.4rem;
   display:flex;
-  align-items:center;
+  flex-direction:column;
   justify-content:center;
-  text-align:center;
   cursor:pointer;
 }
 
@@ -57,9 +56,35 @@
 }
 
 .week-slot small {
-  display:block;
-  font-size:.65rem;
   opacity:.7;
+  font-size:.65rem;
+}
+
+/* MODAL */
+.modal {
+  display:none;
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.4);
+  z-index:999;
+}
+
+.modal-card {
+  background:#fff;
+  max-width:420px;
+  margin:8vh auto;
+  padding:1rem;
+  border-radius:14px;
+}
+
+.modal-row {
+  margin-bottom:.75rem;
+}
+
+.modal-actions {
+  display:flex;
+  gap:.5rem;
+  justify-content:flex-end;
 }
 </style>
 </head>
@@ -71,14 +96,76 @@
   <div id="weekGrid" class="week-grid"></div>
 </main>
 
+<!-- ================= MODAL EDICIÓN ================= -->
+<div id="editModal" class="modal">
+  <div class="modal-card">
+
+    <h3 id="emPatient"></h3>
+    <div class="modal-row" id="emTime"></div>
+
+    <div class="modal-row">
+      <label>Modalidad</label>
+      <select id="emModality">
+        <option value="online">Online</option>
+        <option value="viladecans">Viladecans</option>
+        <option value="badalona">Badalona</option>
+      </select>
+    </div>
+
+    <div class="modal-row">
+      <label>
+        <input type="checkbox" id="emCompleted">
+        Sesión realizada
+      </label>
+    </div>
+
+    <div class="modal-row">
+      <label>Importe (€)</label>
+      <input type="number" id="emAmount" value="60">
+    </div>
+
+    <div class="modal-row">
+      <label>Método de pago</label>
+      <select id="emPayment">
+        <option value="">—</option>
+        <option value="efectivo">Efectivo</option>
+        <option value="tarjeta">Tarjeta</option>
+        <option value="bizum">Bizum</option>
+        <option value="transferencia">Transferencia</option>
+      </select>
+    </div>
+
+    <div class="modal-row">
+      <label>
+        <input type="checkbox" id="emPaid">
+        Pagada
+      </label>
+    </div>
+
+    <div class="modal-actions">
+      <button id="emitInvoice" class="btn-primary">Emitir factura</button>
+      <button id="saveEdit" class="btn-primary">Guardar</button>
+      <button onclick="closeModal()">Cerrar</button>
+    </div>
+
+  </div>
+</div>
+
 <script type="module">
 import { requireAuth } from "./assets/js/auth.js";
 import { loadMenu } from "./assets/js/menu.js";
 import { auth, db } from "./assets/js/firebase.js";
 
 import {
-  collection, getDocs, query, where, Timestamp, doc, getDoc
+  collection, getDocs, query, where, Timestamp,
+  doc, updateDoc
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+import {
+  invoiceAppointment,
+  markAppointmentCompleted,
+  markInvoicePaid
+} from "./assets/js/appointment-manager.js";
 
 await requireAuth();
 await loadMenu();
@@ -90,56 +177,16 @@ const START_HOUR = 9;
 const END_HOUR = 21;
 const DAYS = ["mon","tue","wed","thu","fri","sat","sun"];
 
-/* =========================
-   SEMANA ACTUAL (LUNES)
-========================= */
+let currentAppointment = null;
+
+/* ===== SEMANA ===== */
 const today = new Date();
 const monday = new Date(today);
 monday.setDate(today.getDate() - ((today.getDay() + 6) % 7));
 monday.setHours(0,0,0,0);
 
-const weekKey = monday.toISOString().slice(0,10);
-
-/* =========================
-   DISPONIBILIDAD
-========================= */
-const availabilitySnap = await getDoc(
-  doc(db,"availability",`${therapistId}_${weekKey}`)
-);
-
-const availabilitySlots =
-  availabilitySnap.exists()
-    ? availabilitySnap.data().slots || {}
-    : {};
-
-/* =========================
-   CITAS
-========================= */
-const start = Timestamp.fromDate(monday);
-const end = Timestamp.fromDate(
-  new Date(monday.getTime()+7*86400000)
-);
-
-const appointmentsSnap = await getDocs(query(
-  collection(db,"appointments"),
-  where("therapistId","==",therapistId),
-  where("start",">=",start),
-  where("start","<",end)
-));
-
-const appointmentsByKey = {};
-appointmentsSnap.forEach(d=>{
-  const a = d.data();
-  const s = a.start.toDate();
-  const key = `${DAYS[(s.getDay()+6)%7]}_${s.getHours()}`;
-  appointmentsByKey[key] = { ...a, id:d.id };
-});
-
-/* =========================
-   CABECERAS
-========================= */
+/* ===== CABECERAS ===== */
 grid.appendChild(document.createElement("div"));
-
 for(let d=0; d<7; d++){
   const day = new Date(monday);
   day.setDate(monday.getDate()+d);
@@ -148,68 +195,118 @@ for(let d=0; d<7; d++){
   h.className="day-header";
   h.textContent =
     day.toLocaleDateString("es-ES",{weekday:"short",day:"numeric"});
-
   grid.appendChild(h);
 }
 
-/* =========================
-   GRID PRINCIPAL
-========================= */
-for(let hour=START_HOUR; hour<END_HOUR; hour++){
+/* ===== CITAS ===== */
+const start = Timestamp.fromDate(monday);
+const end = Timestamp.fromDate(
+  new Date(monday.getTime()+7*86400000)
+);
+
+const snap = await getDocs(query(
+  collection(db,"appointments"),
+  where("therapistId","==",therapistId),
+  where("start",">=",start),
+  where("start","<",end)
+));
+
+const byKey = {};
+snap.forEach(d=>{
+  const a = d.data();
+  const s = a.start.toDate();
+  const key = `${DAYS[(s.getDay()+6)%7]}_${s.getHours()}`;
+  byKey[key] = {...a, id:d.id};
+});
+
+/* ===== GRID ===== */
+for(let h=START_HOUR; h<END_HOUR; h++){
   const hc=document.createElement("div");
   hc.className="week-hour";
-  hc.textContent=`${hour}:00`;
+  hc.textContent=`${h}:00`;
   grid.appendChild(hc);
 
   for(let d=0; d<7; d++){
-    const key = `${DAYS[d]}_${hour}`;
+    const key = `${DAYS[d]}_${h}`;
     const cell = document.createElement("div");
 
-    const app = appointmentsByKey[key];
-    const avail = availabilitySlots[key];
-
+    const app = byKey[key];
     if(app){
       cell.className =
-        `week-slot ${app.status==="completed"?"done":"reserved"}`;
+        "week-slot " +
+        (app.status==="completed" ? "done" : "reserved");
+
       cell.innerHTML = `
-        <strong>${app.patientName || ""}</strong>
+        <strong>${app.patientName}</strong>
         <small>${app.modality}</small>
       `;
-      cell.onclick = () =>
-        location.href =
-          `agenda-diaria.html?date=${toISO(app.start.toDate())}`;
-    }
-    else if(avail){
-      const modes = Object.keys(avail)
-        .filter(m => avail[m]);
 
-      cell.className = "week-slot available";
-      cell.innerHTML = `
-        Disponible
-        <small>${modes.join(" · ")}</small>
-      `;
-
-      cell.onclick = () =>
-        location.href =
-          `agenda-diaria.html?date=${toISO(
-            new Date(monday.getTime()+d*86400000)
-          )}`;
-    }
-    else{
+      cell.onclick = ()=>openEdit(app);
+    } else {
       cell.className="week-slot disabled";
-      cell.innerHTML="";
     }
 
     grid.appendChild(cell);
   }
 }
 
-/* =========================
-   HELPERS
-========================= */
-function toISO(d){
-  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+/* ===== MODAL ===== */
+function openEdit(app){
+  currentAppointment = app;
+
+  const s = app.start.toDate();
+  const e = app.end.toDate();
+
+  emPatient.textContent = app.patientName;
+  emTime.textContent = `${s.getHours()}:00 – ${e.getHours()}:00`;
+  emModality.value = app.modality;
+  emCompleted.checked = app.status==="completed";
+  emPaid.checked = false;
+
+  editModal.style.display="block";
 }
+
+window.closeModal = () => {
+  editModal.style.display="none";
+};
+
+/* ===== GUARDAR ===== */
+saveEdit.onclick = async () => {
+  if(emCompleted.checked){
+    await markAppointmentCompleted(currentAppointment);
+  }
+
+  await updateDoc(
+    doc(db,"appointments",currentAppointment.id),
+    {
+      modality: emModality.value
+    }
+  );
+
+  if(emPaid.checked && currentAppointment.invoiceId){
+    await markInvoicePaid(
+      currentAppointment.invoiceId,
+      emPayment.value
+    );
+  }
+
+  location.reload();
+};
+
+/* ===== FACTURA ===== */
+emitInvoice.onclick = async () => {
+  if(!currentAppointment.invoiceId){
+    await invoiceAppointment(
+      currentAppointment,
+      {
+        amount:Number(emAmount.value),
+        paymentMethod:emPayment.value,
+        paid:emPaid.checked
+      }
+    );
+    location.reload();
+  }
+};
 </script>
 </body>
 </html>
