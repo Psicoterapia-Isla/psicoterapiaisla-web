@@ -4,9 +4,8 @@ import {
   collection,
   serverTimestamp,
   Timestamp,
-  query,
-  where,
-  getDocs
+  doc,
+  getDoc
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 /* =========================
@@ -17,46 +16,42 @@ window.closeCreateModal = () => {
 };
 
 /* =========================
-   AUTOCOMPLETE PACIENTE (REAL)
+   AUTOCOMPLETE PACIENTE
 ========================= */
 const phoneInput = document.getElementById("cPatientPhone");
 const nameInput  = document.getElementById("cPatientName");
 
-let resolvedPatient = null;
+let patientFound = false;
 
 if (phoneInput && nameInput) {
-
   phoneInput.addEventListener("input", async () => {
     const phone = phoneInput.value.trim();
-    resolvedPatient = null;
+
+    patientFound = false;
+    nameInput.disabled = false;
 
     if (!/^\d{9}$/.test(phone)) {
       nameInput.value = "";
-      nameInput.disabled = false;
       return;
     }
 
-    const q = query(
-      collection(db, "patients_normalized"),
-      where("phone", "==", phone)
-    );
+    // 1️⃣ Intento directo
+    let snap = await getDoc(doc(db, "patients", phone));
 
-    const snap = await getDocs(q);
+    // 2️⃣ Fallback normalizado
+    if (!snap.exists()) {
+      snap = await getDoc(doc(db, "patients_normalized", phone));
+    }
 
-    if (!snap.empty) {
-      const docSnap = snap.docs[0];
-      const data = docSnap.data();
+    if (snap.exists()) {
+      const d = snap.data();
 
-      resolvedPatient = {
-        id: docSnap.id,
-        phone,
-        name:
-          data.fullName ||
-          `${data.nombre || ""} ${data.apellidos || ""}`.trim()
-      };
+      nameInput.value =
+        d.fullName ||
+        [d.nombre, d.apellidos].filter(Boolean).join(" ");
 
-      nameInput.value = resolvedPatient.name;
       nameInput.disabled = true;
+      patientFound = true;
     } else {
       nameInput.value = "";
       nameInput.disabled = false;
@@ -82,24 +77,24 @@ window.createAppointment = async () => {
     return;
   }
 
+  if (!name) {
+    alert("Nombre del paciente obligatorio");
+    return;
+  }
+
   if (!modality) {
-    alert("Debes seleccionar modalidad / ubicación");
+    alert("Debes seleccionar modalidad");
     return;
   }
 
   if (!startH || !endH) {
-    alert("Hora de inicio y fin obligatorias");
+    alert("Hora inicio y fin obligatorias");
     return;
   }
 
   const user = auth.currentUser;
   if (!user) {
     alert("Usuario no autenticado");
-    return;
-  }
-
-  if (!window.__selectedDateISO) {
-    alert("Fecha no definida");
     return;
   }
 
@@ -116,16 +111,22 @@ window.createAppointment = async () => {
   const end = new Date(baseDate);
   end.setHours(eh, em, 0, 0);
 
-  /* ===== GUARDAR ===== */
+  /* ===== CREAR CITA ===== */
   await addDoc(collection(db, "appointments"), {
     therapistId: user.uid,
-    patientId: phone,              // coherente con reglas actuales
-    patientName: resolvedPatient?.name || name || "Sin nombre",
+
+    // ⚠️ Identificador administrativo (no auth)
+    patientId: phone,
+    patientName: name,
+
     service: service || "Sesión",
-    modality,
+    modality, // viladecans | badalona | online
+
     start: Timestamp.fromDate(start),
     end: Timestamp.fromDate(end),
+
     status: "scheduled",
+
     createdBy: user.uid,
     createdAt: serverTimestamp()
   });
