@@ -12,7 +12,9 @@ import {
 ========================= */
 export async function markAppointmentCompleted(app) {
 
-  if (!app?.id) throw new Error("Appointment ID missing");
+  if (!app?.id) {
+    throw new Error("Appointment ID missing");
+  }
 
   await updateDoc(
     doc(db, "appointments", app.id),
@@ -50,11 +52,13 @@ export async function invoiceAppointment(app, amount = 60) {
     }
   );
 
-  // 2️⃣ Vincular factura a la cita
+  // 2️⃣ Reflejar en la cita
   await updateDoc(
     doc(db, "appointments", app.id),
     {
-      invoiceId: invoiceRef.id
+      invoiceId: invoiceRef.id,
+      invoiceIssued: false,
+      invoicePaid: false
     }
   );
 
@@ -64,10 +68,13 @@ export async function invoiceAppointment(app, amount = 60) {
 /* =========================
    MARCAR FACTURA EMITIDA
 ========================= */
-export async function markInvoiceIssued(invoiceId) {
+export async function markInvoiceIssued(invoiceId, appointmentId) {
 
-  if (!invoiceId) throw new Error("Invoice ID missing");
+  if (!invoiceId || !appointmentId) {
+    throw new Error("Missing IDs");
+  }
 
+  // 1️⃣ Actualizar factura
   await updateDoc(
     doc(db, "invoices", invoiceId),
     {
@@ -75,20 +82,39 @@ export async function markInvoiceIssued(invoiceId) {
       issuedAt: serverTimestamp()
     }
   );
+
+  // 2️⃣ Reflejar en cita
+  await updateDoc(
+    doc(db, "appointments", appointmentId),
+    {
+      invoiceIssued: true
+    }
+  );
 }
 
 /* =========================
    MARCAR FACTURA PAGADA
 ========================= */
-export async function markInvoicePaid(invoiceId) {
+export async function markInvoicePaid(invoiceId, appointmentId) {
 
-  if (!invoiceId) throw new Error("Invoice ID missing");
+  if (!invoiceId || !appointmentId) {
+    throw new Error("Missing IDs");
+  }
 
+  // 1️⃣ Actualizar factura
   await updateDoc(
     doc(db, "invoices", invoiceId),
     {
       paid: true,
       paidAt: serverTimestamp()
+    }
+  );
+
+  // 2️⃣ Reflejar en cita
+  await updateDoc(
+    doc(db, "appointments", appointmentId),
+    {
+      invoicePaid: true
     }
   );
 }
