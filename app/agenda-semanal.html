@@ -61,7 +61,7 @@
     <p id="cDateLabel"></p>
 
     <label>Teléfono paciente (9 dígitos)</label>
-    <input id="cPatientPhone" maxlength="9">
+    <input id="cPatientPhone" maxlength="9" required>
 
     <label>Nombre paciente</label>
     <input id="cPatientName">
@@ -72,9 +72,9 @@
     <label>Modalidad / ubicación</label>
     <select id="cModality" required>
       <option value="">Selecciona una opción</option>
-      <option value="viladecans">Presencial · Viladecans</option>
-      <option value="badalona">Presencial · Badalona</option>
-      <option value="online">Online</option>
+      <option value="Viladecans">Presencial · Viladecans</option>
+      <option value="Badalona">Presencial · Badalona</option>
+      <option value="Online">Online</option>
     </select>
 
     <label>Hora inicio</label>
@@ -119,25 +119,26 @@
     </button>
 
     <hr>
+
+    <button id="amSaveBtn" class="btn-primary">Guardar cambios</button>
     <button onclick="closeAppointmentModal()">Cerrar</button>
   </div>
 </div>
 
-<!-- ================= JS ================= -->
 <script type="module">
 import { requireAuth } from "./assets/js/auth.js";
 import { loadMenu } from "./assets/js/menu.js";
 import { auth, db } from "./assets/js/firebase.js";
 
 import {
-  markAppointmentCompleted,
-  invoiceAppointment,
-  markInvoicePaid
-} from "./assets/js/appointment-manager.js";
+  doc, updateDoc,
+  collection, getDocs, query, where, Timestamp, getDoc
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 import {
-  collection, getDocs, query, where, Timestamp, doc, getDoc
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+  invoiceAppointment,
+  updateInvoiceStatus
+} from "./assets/js/appointment-manager.js";
 
 await requireAuth();
 await loadMenu();
@@ -203,15 +204,13 @@ for(let hour=START_HOUR; hour<END_HOUR; hour++){
   }
 }
 
-/* ===== AUTOCOMPLETE PACIENTE ===== */
+/* ===== AUTOCOMPLETE ===== */
 cPatientPhone.onblur = async () => {
   const phone = cPatientPhone.value.trim();
   if (!/^\d{9}$/.test(phone)) return;
 
   let snap = await getDoc(doc(db,"patients",phone));
-  if (!snap.exists()) {
-    snap = await getDoc(doc(db,"patients_normalized",phone));
-  }
+  if (!snap.exists()) snap = await getDoc(doc(db,"patients_normalized",phone));
 
   if (snap.exists()) {
     const d = snap.data();
@@ -272,13 +271,20 @@ function openAppointmentModal(app){
   appointmentModal.style.display="block";
 }
 
-amCompleted.onchange=async()=>{
-  if(amCompleted.checked){
-    await markAppointmentCompleted({...currentAppointment,id:currentAppointment.id});
-    location.reload();
-  }
+/* ===== GUARDAR ===== */
+amSaveBtn.onclick=async()=>{
+  await updateDoc(
+    doc(db,"appointments",currentAppointment.id),
+    {
+      status: amCompleted.checked ? "completed" : "scheduled",
+      paid: amPaid.checked===true
+    }
+  );
+  appointmentModal.style.display="none";
+  location.reload();
 };
 
+/* ===== FACTURA ===== */
 amInvoiceBtn.onclick=async()=>{
   if(!currentAppointment.invoiceId){
     await invoiceAppointment({...currentAppointment,id:currentAppointment.id},60);
@@ -287,9 +293,8 @@ amInvoiceBtn.onclick=async()=>{
 };
 
 amPaid.onchange=async()=>{
-  if(amPaid.checked){
-    await markInvoicePaid(currentAppointment.invoiceId);
-    location.reload();
+  if(amPaid.checked && currentAppointment.invoiceId){
+    await updateInvoiceStatus(currentAppointment.invoiceId,{paid:true});
   }
 };
 
