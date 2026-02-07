@@ -123,48 +123,63 @@
   <div id="agendaList"></div>
 </main>
 
-<!-- ================= MODAL CREAR CITA ================= -->
-<div id="createModal" class="modal">
+<!-- ================= MODAL CREAR / EDITAR ================= -->
+<div id="appointmentModal" class="modal">
   <div class="modal-card">
 
-    <h3>Nueva cita</h3>
-    <div class="modal-row" id="cDateLabel"></div>
+    <h3 id="amTitle"></h3>
+    <div class="modal-row" id="amDate"></div>
 
     <div class="modal-row">
-      <label>Teléfono paciente</label>
-      <input id="cPatientPhone" maxlength="9">
-    </div>
-
-    <div class="modal-row">
-      <label>Nombre paciente</label>
-      <input id="cPatientName">
-    </div>
-
-    <div class="modal-row">
-      <label>Servicio</label>
-      <input id="cService" value="Sesión de psicoterapia">
+      <label>Paciente</label>
+      <input id="amPatientName">
     </div>
 
     <div class="modal-row">
       <label>Modalidad</label>
-      <select id="cModality">
-        <option value="">Selecciona</option>
-        <option value="viladecans">Presencial · Viladecans</option>
-        <option value="badalona">Presencial · Badalona</option>
+      <select id="amModality">
+        <option value="">—</option>
+        <option value="viladecans">Viladecans</option>
+        <option value="badalona">Badalona</option>
         <option value="online">Online</option>
       </select>
     </div>
 
     <div class="modal-row inline">
-      <label>Inicio</label>
-      <input id="cStart" type="time">
-      <label>Fin</label>
-      <input id="cEnd" type="time">
+      <input type="checkbox" id="amCompleted">
+      <label>Sesión realizada</label>
+    </div>
+
+    <div class="modal-row">
+      <label>Importe (€)</label>
+      <input id="amAmount" type="number" value="60">
+    </div>
+
+    <div class="modal-row">
+      <label>Método de pago</label>
+      <select id="amPayment">
+        <option value="">—</option>
+        <option value="efectivo">Efectivo</option>
+        <option value="tarjeta">Tarjeta</option>
+        <option value="bizum">Bizum</option>
+        <option value="transferencia">Transferencia</option>
+      </select>
+    </div>
+
+    <div class="modal-row inline">
+      <input type="checkbox" id="amPaid">
+      <label>Pagada</label>
+    </div>
+
+    <div class="modal-row inline">
+      <input type="checkbox" id="amIssued" disabled>
+      <label>Factura emitida</label>
     </div>
 
     <div class="modal-actions">
-      <button id="cSaveBtn" class="btn-primary">Guardar</button>
-      <button onclick="closeCreateModal()">Cancelar</button>
+      <button id="amInvoice" class="btn-primary">Emitir factura</button>
+      <button id="amSave" class="btn-primary">Guardar</button>
+      <button onclick="closeModal()">Cerrar</button>
     </div>
 
   </div>
@@ -176,132 +191,52 @@ import { loadMenu } from "./assets/js/menu.js";
 import { auth, db } from "./assets/js/firebase.js";
 
 import {
-  collection, addDoc, getDocs, query, where, orderBy,
-  Timestamp, doc, getDoc, serverTimestamp
+  markAppointmentCompleted,
+  invoiceAppointment,
+  markInvoicePaid
+} from "./assets/js/appointment-manager.js";
+
+import {
+  collection, getDocs, query, where, orderBy,
+  Timestamp, doc, getDoc
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 await requireAuth();
 await loadMenu();
+
+const therapistId = auth.currentUser.uid;
+const agendaList = document.getElementById("agendaList");
+
+let currentAppointment = null;
+let currentInvoice = null;
 
 /* ================= FECHA ================= */
 let currentDate =
   new URLSearchParams(location.search).get("date")
   || new Date().toISOString().split("T")[0];
 
-function go(date){
-  location.href = `agenda-diaria.html?date=${date}`;
-}
+function go(date){ location.href = `agenda-diaria.html?date=${date}`; }
 
-prevDay.onclick = () => {
-  const d = new Date(currentDate);
-  d.setDate(d.getDate()-1);
-  go(toISO(d));
-};
-
-nextDay.onclick = () => {
-  const d = new Date(currentDate);
-  d.setDate(d.getDate()+1);
-  go(toISO(d));
-};
-
-todayBtn.onclick = () =>
-  go(new Date().toISOString().split("T")[0]);
+prevDay.onclick = () => { const d=new Date(currentDate); d.setDate(d.getDate()-1); go(toISO(d)); };
+nextDay.onclick = () => { const d=new Date(currentDate); d.setDate(d.getDate()+1); go(toISO(d)); };
+todayBtn.onclick = () => go(new Date().toISOString().split("T")[0]);
 
 const baseDate = new Date(currentDate);
 baseDate.setHours(0,0,0,0);
 
 dayNumber.textContent = baseDate.getDate();
-dayName.textContent =
-  baseDate.toLocaleDateString("es-ES",{weekday:"long"});
-dayMonth.textContent =
-  baseDate.toLocaleDateString("es-ES",{month:"long",year:"numeric"});
+dayName.textContent = baseDate.toLocaleDateString("es-ES",{weekday:"long"});
+dayMonth.textContent = baseDate.toLocaleDateString("es-ES",{month:"long",year:"numeric"});
 
-const therapistId = auth.currentUser.uid;
-const agendaList = document.getElementById("agendaList");
+/* ================= MODAL ================= */
+window.closeModal = () => appointmentModal.style.display="none";
 
-/* ================= MODAL CREAR ================= */
-window.closeCreateModal = () =>
-  createModal.style.display="none";
-
-btnNew.onclick = () => openCreateModal();
-
-function openCreateModal(hour=null){
-  cDateLabel.textContent =
-    baseDate.toLocaleDateString("es-ES");
-
-  cPatientPhone.value="";
-  cPatientName.value="";
-  cPatientName.disabled=false;
-  cModality.value="";
-  cService.value="Sesión de psicoterapia";
-
-  if(hour!==null){
-    cStart.value = `${String(hour).padStart(2,"0")}:00`;
-    cEnd.value   = `${String(hour+1).padStart(2,"0")}:00`;
-  }
-
-  createModal.style.display="block";
-}
-
-/* ===== AUTOCOMPLETE ===== */
-cPatientPhone.onblur = async () => {
-  const phone = cPatientPhone.value.trim();
-  if(!/^\d{9}$/.test(phone)) return;
-
-  let snap = await getDoc(doc(db,"patients",phone));
-  if(!snap.exists()){
-    snap = await getDoc(doc(db,"patients_normalized",phone));
-  }
-
-  if(snap.exists()){
-    const d = snap.data();
-    cPatientName.value =
-      d.fullName || `${d.nombre||""} ${d.apellidos||""}`.trim();
-    cPatientName.disabled = true;
-  } else {
-    cPatientName.disabled = false;
-  }
-};
-
-/* ===== GUARDAR CITA ===== */
-cSaveBtn.onclick = async () => {
-  const phone = cPatientPhone.value.trim();
-  if(!/^\d{9}$/.test(phone)) return alert("Teléfono obligatorio");
-
-  if(!cModality.value) return alert("Modalidad obligatoria");
-
-  const [sh,sm] = cStart.value.split(":");
-  const [eh,em] = cEnd.value.split(":");
-
-  const start = new Date(baseDate);
-  start.setHours(sh,sm,0,0);
-
-  const end = new Date(baseDate);
-  end.setHours(eh,em,0,0);
-
-  await addDoc(collection(db,"appointments"),{
-    therapistId,
-    patientId: phone,
-    patientName: cPatientName.value,
-    service: cService.value,
-    modality: cModality.value,
-    start: Timestamp.fromDate(start),
-    end: Timestamp.fromDate(end),
-    status: "scheduled",
-    createdAt: serverTimestamp()
-  });
-
-  location.reload();
-};
-
-/* ================= RENDER ================= */
+/* ================= CARGA CITAS ================= */
 const snap = await getDocs(query(
   collection(db,"appointments"),
   where("therapistId","==",therapistId),
   where("start",">=",Timestamp.fromDate(baseDate)),
-  where("start","<",
-    Timestamp.fromDate(new Date(baseDate.getTime()+86400000))
-  ),
+  where("start","<",Timestamp.fromDate(new Date(baseDate.getTime()+86400000))),
   orderBy("start")
 ));
 
@@ -312,27 +247,73 @@ snap.forEach(d=>{
 });
 
 for(let h=9; h<21; h++){
-  const slot = document.createElement("div");
+  const slot=document.createElement("div");
 
   if(byHour[h]){
-    const app = byHour[h];
+    const app=byHour[h];
     slot.className="slot slot-green";
     slot.innerHTML=`
       <div class="slot-time">${h}:00</div>
-      <div>
-        <strong>${app.patientName}</strong><br>
-        <span class="slot-status">${app.modality}</span>
-      </div>`;
+      <div><strong>${app.patientName}</strong><br>
+      <span class="slot-status">${app.modality}</span></div>`;
+    slot.onclick=()=>openAppointment(app);
   } else {
     slot.className="slot slot-grey";
-    slot.innerHTML=`
-      <div class="slot-time">${h}:00</div>
-      <div>Libre</div>`;
-    slot.onclick = () => openCreateModal(h);
+    slot.innerHTML=`<div class="slot-time">${h}:00</div><div>Libre</div>`;
   }
 
   agendaList.appendChild(slot);
 }
+
+/* ================= EDITAR ================= */
+async function openAppointment(app){
+  currentAppointment=app;
+  currentInvoice=null;
+
+  amTitle.textContent="Editar cita";
+  amDate.textContent=baseDate.toLocaleDateString("es-ES");
+  amPatientName.value=app.patientName||"";
+  amModality.value=app.modality||"";
+  amCompleted.checked=app.status==="completed";
+  amPaid.checked=false;
+  amIssued.checked=false;
+  amAmount.value=60;
+  amPayment.value="";
+
+  if(app.invoiceId){
+    const inv=await getDoc(doc(db,"invoices",app.invoiceId));
+    if(inv.exists()){
+      currentInvoice={id:inv.id,...inv.data()};
+      amIssued.checked=true;
+      amAmount.value=currentInvoice.amount||60;
+      amPaid.checked=!!currentInvoice.payment?.paid;
+      amPayment.value=currentInvoice.payment?.method||"";
+    }
+  }
+
+  appointmentModal.style.display="block";
+}
+
+amSave.onclick=async()=>{
+  if(amCompleted.checked && currentAppointment.status!=="completed"){
+    await markAppointmentCompleted(currentAppointment);
+  }
+  if(amPaid.checked && currentInvoice){
+    await markInvoicePaid(currentInvoice.id, amPayment.value);
+  }
+  location.reload();
+};
+
+amInvoice.onclick=async()=>{
+  if(!currentInvoice){
+    await invoiceAppointment(currentAppointment,{
+      amount:Number(amAmount.value),
+      paymentMethod:amPayment.value,
+      paid:amPaid.checked
+    });
+    location.reload();
+  }
+};
 
 function toISO(d){
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
