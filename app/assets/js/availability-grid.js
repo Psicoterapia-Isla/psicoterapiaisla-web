@@ -40,14 +40,13 @@ const HOURS = Array.from({ length: 12 }, (_, i) => i + 9); // 9–21
 const slotsState = {};
 
 /* =========================
-   SEMANA (LUNES REAL)
+   SEMANA (VIENE DEL HTML)
 ========================= */
-const today = new Date();
-const monday = new Date(today);
-monday.setDate(today.getDate() - ((today.getDay() + 6) % 7));
-monday.setHours(0,0,0,0);
+if (!window.__availabilityWeekStart) {
+  throw new Error("Semana no definida");
+}
 
-const weekKey = monday.toISOString().slice(0,10);
+const weekKey = window.__availabilityWeekStart;
 const docRef = doc(db, "availability", `${therapistId}_${weekKey}`);
 
 /* =========================
@@ -66,7 +65,7 @@ function normalizeSlot(key) {
 function renderGrid() {
   grid.innerHTML = "";
 
-  /* esquina */
+  /* esquina vacía */
   grid.appendChild(document.createElement("div"));
 
   /* cabeceras */
@@ -92,14 +91,15 @@ function renderGrid() {
       slot.className = "slot";
 
       const data = slotsState[key];
+
       if (data.online || data.viladecans || data.badalona) {
         slot.classList.add("available");
       }
 
       slot.innerHTML = `
-        <button class="mode ${data.online ? "on":""}" data-m="online">Online</button>
-        <button class="mode ${data.viladecans ? "on":""}" data-m="viladecans">Vila</button>
-        <button class="mode ${data.badalona ? "on":""}" data-m="badalona">Bada</button>
+        <button class="mode ${data.online ? "on" : ""}" data-m="online">Online</button>
+        <button class="mode ${data.viladecans ? "on" : ""}" data-m="viladecans">Vila</button>
+        <button class="mode ${data.badalona ? "on" : ""}" data-m="badalona">Bada</button>
       `;
 
       slot.querySelectorAll(".mode").forEach(btn => {
@@ -111,32 +111,24 @@ function renderGrid() {
 
           /* exclusividad presencial */
           if (mode === "viladecans") {
-            slotsState[key].viladecans = !slotsState[key].viladecans;
-            if (slotsState[key].viladecans) {
-              slotsState[key].badalona = false;
-            }
+            data.viladecans = !data.viladecans;
+            if (data.viladecans) data.badalona = false;
           }
           else if (mode === "badalona") {
-            slotsState[key].badalona = !slotsState[key].badalona;
-            if (slotsState[key].badalona) {
-              slotsState[key].viladecans = false;
-            }
+            data.badalona = !data.badalona;
+            if (data.badalona) data.viladecans = false;
           }
           else {
-            slotsState[key].online = !slotsState[key].online;
+            data.online = !data.online;
           }
 
           /* refresco visual */
           slot.querySelectorAll(".mode").forEach(b => {
             const m = b.dataset.m;
-            b.classList.toggle("on", slotsState[key][m]);
+            b.classList.toggle("on", data[m]);
           });
 
-          if (
-            slotsState[key].online ||
-            slotsState[key].viladecans ||
-            slotsState[key].badalona
-          ) {
+          if (data.online || data.viladecans || data.badalona) {
             slot.classList.add("available");
           } else {
             slot.classList.remove("available");
@@ -157,7 +149,7 @@ if (snap.exists()) {
   Object.assign(slotsState, snap.data().slots || {});
 }
 
-/* normaliza todo antes de pintar */
+/* normaliza todo */
 Object.keys(slotsState).forEach(normalizeSlot);
 
 renderGrid();
