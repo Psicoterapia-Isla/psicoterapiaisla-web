@@ -4,7 +4,6 @@
 <meta charset="UTF-8" />
 <title>Agenda diaria | Psicoterapia Isla</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
 <link rel="stylesheet" href="assets/css/app.css">
 
 <style>
@@ -17,15 +16,13 @@
   display:flex; align-items:center; justify-content:center;
   font-weight:600;
 }
-.day-title { font-size:1.1rem; font-weight:600; }
 .slot {
   display:flex; gap:.75rem; padding:.75rem;
   border-radius:12px; margin-bottom:.6rem; cursor:pointer;
 }
-.slot-time { width:52px; font-weight:600; }
-.slot-body { flex:1; }
 .slot-green { background:#e6f4d7; }
 .slot-grey { background:#e5e7eb; color:#555; }
+.slot-time { width:52px; font-weight:600; }
 .slot-status { font-size:.7rem; opacity:.7; }
 </style>
 </head>
@@ -34,12 +31,11 @@
 <header class="app-menu"></header>
 
 <main class="agenda-wrapper">
-
   <div class="day-header">
     <div class="day-left">
       <div class="day-circle" id="dayNumber"></div>
       <div>
-        <div class="day-title" id="dayName"></div>
+        <div id="dayName"></div>
         <div id="dayMonth"></div>
       </div>
     </div>
@@ -50,50 +46,40 @@
 </main>
 
 <!-- ================= MODAL GESTIÓN ================= -->
-<div id="appointmentModal"
-  style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:999;">
-  <div style="background:#fff; max-width:420px; margin:10vh auto;
-              padding:1rem; border-radius:14px;">
-
+<div id="appointmentModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:999;">
+  <div style="background:#fff; max-width:420px; margin:10vh auto; padding:1rem; border-radius:14px;">
     <h3 id="amPatient"></h3>
     <p id="amDateTime"></p>
     <p id="amModality"></p>
 
-    <label>
-      <input type="checkbox" id="amCompleted">
-      Sesión realizada
-    </label><br>
+    <label><input type="checkbox" id="amCompleted"> Sesión realizada</label><br>
+    <label><input type="checkbox" id="amIssued" disabled> Factura emitida</label><br>
+    <label><input type="checkbox" id="amPaid"> Factura pagada</label><br><br>
 
-    <label>
-      <input type="checkbox" id="amIssued" disabled>
-      Factura emitida
-    </label><br>
+    <label>Importe (€)</label>
+    <input id="amAmount" type="number" value="60" min="0"><br>
 
-    <label>
-      <input type="checkbox" id="amPaid" disabled>
-      Factura pagada
-    </label><br><br>
+    <label>Método de pago</label>
+    <select id="amPaymentMethod">
+      <option value="efectivo">Efectivo</option>
+      <option value="tarjeta">Tarjeta</option>
+      <option value="bizum">Bizum</option>
+      <option value="transferencia">Transferencia</option>
+    </select><br><br>
 
-    <button id="amInvoiceBtn" class="btn-primary">
-      Crear factura
-    </button>
-
-    <hr>
-
+    <button id="amInvoiceBtn" class="btn-primary">Crear factura</button>
     <button id="amSaveBtn" class="btn-primary">Guardar cambios</button>
     <button onclick="closeAppointmentModal()">Cerrar</button>
   </div>
 </div>
 
 <!-- ================= MODAL CREAR ================= -->
-<div id="createModal"
-  style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:1000;">
-  <div style="background:#fff; max-width:420px; margin:10vh auto;
-              padding:1rem; border-radius:14px;">
+<div id="createModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:1000;">
+  <div style="background:#fff; max-width:420px; margin:10vh auto; padding:1rem; border-radius:14px;">
     <h3>Nueva cita</h3>
     <p id="cDateLabel"></p>
 
-    <label>Teléfono paciente (9 dígitos)</label>
+    <label>Teléfono paciente</label>
     <input id="cPatientPhone" maxlength="9" required>
 
     <label>Nombre paciente</label>
@@ -102,11 +88,11 @@
     <label>Servicio</label>
     <input id="cService" value="Visita Psicología">
 
-    <label>Modalidad / ubicación</label>
+    <label>Modalidad</label>
     <select id="cModality" required>
-      <option value="">Selecciona una opción</option>
-      <option value="Viladecans">Presencial · Viladecans</option>
-      <option value="Badalona">Presencial · Badalona</option>
+      <option value="">Selecciona</option>
+      <option value="Viladecans">Viladecans</option>
+      <option value="Badalona">Badalona</option>
       <option value="Online">Online</option>
     </select>
 
@@ -114,9 +100,8 @@
     <input id="cStart" type="time">
 
     <label>Hora fin</label>
-    <input id="cEnd" type="time">
+    <input id="cEnd" type="time"><br><br>
 
-    <br><br>
     <button class="btn-primary" onclick="createAppointment()">Guardar</button>
     <button onclick="closeCreateModal()">Cancelar</button>
   </div>
@@ -130,21 +115,19 @@ import { auth, db } from "./assets/js/firebase.js";
 import {
   markAppointmentCompleted,
   invoiceAppointment,
-  markInvoiceIssued,
   markInvoicePaid
 } from "./assets/js/appointment-manager.js";
 
 import {
-  collection, getDocs, query, where, orderBy, Timestamp, doc, getDoc
+  collection, getDocs, query, where, orderBy, Timestamp
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 await requireAuth();
 await loadMenu();
 
-/* ===== FECHA ===== */
-const params = new URLSearchParams(location.search);
-const dateISO = params.get("date") || new Date().toISOString().split("T")[0];
-window.__selectedDateISO = dateISO;
+/* FECHA */
+const dateISO = new URLSearchParams(location.search).get("date")
+  || new Date().toISOString().split("T")[0];
 
 const baseDate = new Date(dateISO);
 baseDate.setHours(0,0,0,0);
@@ -156,35 +139,7 @@ dayMonth.textContent = baseDate.toLocaleDateString("es-ES",{month:"long",year:"n
 const therapistId = auth.currentUser.uid;
 const agendaList = document.getElementById("agendaList");
 
-/* ===== AUTOCOMPLETE PACIENTE ===== */
-cPatientPhone.onblur = async () => {
-  const phone = cPatientPhone.value.trim();
-  if (!/^\d{9}$/.test(phone)) return;
-
-  let snap = await getDoc(doc(db,"patients",phone));
-  if (!snap.exists()) snap = await getDoc(doc(db,"patients_normalized",phone));
-
-  if (snap.exists()) {
-    const d = snap.data();
-    cPatientName.value =
-      d.fullName || `${d.nombre || ""} ${d.apellidos || ""}`.trim();
-    cPatientName.disabled = true;
-  } else {
-    cPatientName.disabled = false;
-  }
-};
-
-/* ===== NUEVA CITA ===== */
-btnNew.onclick = () => {
-  cDateLabel.textContent = baseDate.toLocaleDateString("es-ES");
-  cPatientPhone.value="";
-  cPatientName.value="";
-  cPatientName.disabled=false;
-  cModality.value="";
-  createModal.style.display="block";
-};
-
-/* ===== QUERY ===== */
+/* DATOS */
 const snap = await getDocs(query(
   collection(db,"appointments"),
   where("therapistId","==",therapistId),
@@ -193,75 +148,65 @@ const snap = await getDocs(query(
   orderBy("start")
 ));
 
-/* ===== MODAL GESTIÓN ===== */
 let currentAppointment = null;
 
 window.closeAppointmentModal = () =>
   appointmentModal.style.display="none";
 
+/* ABRIR MODAL */
 function openAppointmentModal(app){
   currentAppointment = app;
-
   const s = app.start.toDate();
   const e = app.end.toDate();
 
   amPatient.textContent = app.patientName;
-  amDateTime.textContent =
-    `${s.getHours().toString().padStart(2,"0")}:00 – ${e.getHours().toString().padStart(2,"0")}:00`;
+  amDateTime.textContent = `${s.getHours()}:00 – ${e.getHours()}:00`;
   amModality.textContent = `Modalidad: ${app.modality}`;
 
   amCompleted.checked = app.status === "completed";
-  amIssued.checked = app.invoiceIssued === true;
-  amPaid.checked = app.invoicePaid === true;
+  amIssued.checked = !!app.invoiceId;
+  amPaid.checked = false;
 
-  amIssued.disabled = !app.invoiceId;
-  amPaid.disabled = !app.invoiceId;
+  amAmount.value = 60;
+  amPaymentMethod.value = "efectivo";
 
   appointmentModal.style.display = "block";
 }
 
-/* ===== GUARDAR CAMBIOS ===== */
+/* GUARDAR */
 amSaveBtn.onclick = async () => {
-  if (!currentAppointment) return;
-
-  if (amCompleted.checked && currentAppointment.status !== "completed") {
+  if (amCompleted.checked) {
     await markAppointmentCompleted(currentAppointment);
   }
 
-  if (amIssued.checked && !currentAppointment.invoiceIssued) {
-    await markInvoiceIssued(
-      currentAppointment.invoiceId,
-      currentAppointment.id
-    );
-  }
-
-  if (amPaid.checked && !currentAppointment.invoicePaid) {
+  if (amPaid.checked && currentAppointment.invoiceId) {
     await markInvoicePaid(
       currentAppointment.invoiceId,
-      currentAppointment.id
+      {
+        paymentMethod: amPaymentMethod.value,
+        amountPaid: amAmount.value
+      }
     );
   }
 
-  closeAppointmentModal();
   location.reload();
 };
 
-/* ===== FACTURA ===== */
+/* CREAR FACTURA */
 amInvoiceBtn.onclick = async () => {
   if (!currentAppointment.invoiceId) {
     await invoiceAppointment(
       currentAppointment,
-      60
+      amAmount.value
     );
     location.reload();
   }
 };
 
-/* ===== RENDER ===== */
+/* RENDER */
 const byHour = {};
 snap.forEach(d=>{
-  const a = d.data();
-  byHour[a.start.toDate().getHours()] = { ...a, id:d.id };
+  byHour[d.data().start.toDate().getHours()] = {...d.data(), id:d.id};
 });
 
 for(let h=9; h<21; h++){
@@ -269,26 +214,14 @@ for(let h=9; h<21; h++){
 
   if(byHour[h]){
     const app = byHour[h];
-    slot.className = "slot slot-green";
-    slot.innerHTML = `
-      <div class="slot-time">${h}:00</div>
-      <div class="slot-body">
-        <strong>${app.patientName}</strong><br>
-        ${app.service}<br>
-        <span class="slot-status">${app.modality}</span>
-      </div>`;
-    slot.onclick = () => openAppointmentModal(app);
+    slot.className="slot slot-green";
+    slot.innerHTML=`<div class="slot-time">${h}:00</div>
+      <div><strong>${app.patientName}</strong><br>
+      <span class="slot-status">${app.modality}</span></div>`;
+    slot.onclick=()=>openAppointmentModal(app);
   } else {
-    slot.className = "slot slot-grey";
-    slot.innerHTML = `
-      <div class="slot-time">${h}:00</div>
-      <div class="slot-body">Libre</div>`;
-    slot.onclick = () => {
-      cDateLabel.textContent = baseDate.toLocaleDateString("es-ES");
-      cStart.value = `${String(h).padStart(2,"0")}:00`;
-      cEnd.value = `${String(h+1).padStart(2,"0")}:00`;
-      createModal.style.display="block";
-    };
+    slot.className="slot slot-grey";
+    slot.innerHTML=`<div class="slot-time">${h}:00</div><div>Libre</div>`;
   }
 
   agendaList.appendChild(slot);
