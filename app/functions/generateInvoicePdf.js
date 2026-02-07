@@ -1,88 +1,137 @@
+/**
+ * Cloud Function
+ * Genera PDF legal de factura
+ *
+ * Requiere:
+ * - functions/
+ *   ├─ generateInvoicePdf.js   (ESTE ARCHIVO)
+ *   └─ factura.html            (plantilla HTML)
+ */
+
 import { onCall } from "firebase-functions/v2/https";
-import admin from "firebase-admin";
-import PDFDocument from "pdfkit";
+import { initializeApp } from "firebase-admin/app";
+import { getFirestore } from "firebase-admin/firestore";
 import { getStorage } from "firebase-admin/storage";
 
-admin.initializeApp();
+import fs from "fs";
+import path from "path";
+import puppeteer from "puppeteer";
 
-export const generateInvoicePdf = onCall(async (req) => {
-  const { invoiceId } = req.data;
-  const uid = req.auth?.uid;
+initializeApp();
 
-  if (!uid) {
-    throw new Error("No autenticado");
+const db = getFirestore();
+const storage = getStorage();
+
+/* ======================================================
+   FUNCIÓN PRINCIPAL
+====================================================== */
+export const generateInvoicePdf = onCall(
+  { region: "europe-west1" },
+  async (request) => {
+
+    const { invoiceId } = request.data;
+
+    if (!invoiceId) {
+      throw new Error("invoiceId requerido");
+    }
+
+    /* =========================
+       CARGAR FACTURA
+    ========================= */
+    const invoiceRef = db.collection("invoices").doc(invoiceId);
+    const snap = await invoiceRef.get();
+
+    if (!snap.exists) {
+      throw new Error("Factura no encontrada");
+    }
+
+    const invoice = snap.data();
+
+    /* =========================
+       CARGAR HTML
+    ========================= */
+    const templatePath = path.join(
+      process.cwd(),
+      "factura.html"
+    );
+
+    let html = fs.readFileSync(templatePath, "utf8");
+
+    /* =========================
+       INYECTAR DATOS
+    ========================= */
+    const replacements = {
+      "{{business.name}}": "Psicoterapia Isla",
+      "{{business.nif}}": "PENDIENTE",
+      "{{business.address}}": "España",
+      "{{business.email}}": "contacto@psicoterapiaisla.com",
+
+      "{{invoice.number}}": invoice.invoiceNumber,
+      "{{invoice.date}}": new Date(
+        invoice.issuedAt.toDate()
+      ).toLocaleDateString("es-ES"),
+
+      "{{client.name}}": invoice.patientName || "Paciente",
+      "{{client.phone}}": invoice.patientId,
+
+      "{{invoice.concept}}": invoice.concept,
+      "{{invoice.amount}}": invoice.amount.toFixed(2),
+
+      "{{payment.method}}":
+        invoice.payment?.method || "—",
+      "{{payment.status}}":
+        invoice.payment?.paid ? "Pagado" : "Pendiente"
+    };
+
+    for (const key in replacements) {
+      html = html.replaceAll(key, replacements[key]);
+    }
+
+    /* =========================
+       GENERAR PDF
+    ========================= */
+    const browser = await puppeteer.launch({
+      args: ["--no-sandbox", "--disable-setuid-sandbox"]
+    });
+
+    const page = await browser.newPage();
+    await page.setContent(html, { waitUntil: "networkidle0" });
+
+    const pdfBuffer = await page.pdf({
+      format: "A4",
+      printBackground: true
+    });
+
+    await browser.close();
+
+    /* =========================
+       GUARDAR EN STORAGE
+    ========================= */
+    const bucket = storage.bucket();
+    const filePath =
+      `facturas/${invoice.year}/${invoice.invoiceNumber}.pdf`;
+
+    const file = bucket.file(filePath);
+
+    await file.save(pdfBuffer, {
+      contentType: "application/pdf"
+    });
+
+    await file.makePublic();
+
+    const publicUrl = file.publicUrl();
+
+    /* =========================
+       ACTUALIZAR FACTURA
+    ========================= */
+    await invoiceRef.update({
+      "pdf.generated": true,
+      "pdf.url": publicUrl
+    });
+
+    return {
+      success: true,
+      url: publicUrl
+    };
   }
-
-  const db = admin.firestore();
-  const invoiceRef = db.collection("invoices").doc(invoiceId);
-  const invoiceSnap = await invoiceRef.get();
-
-  if (!invoiceSnap.exists) {
-    throw new Error("Factura no encontrada");
-  }
-
-  const invoice = invoiceSnap.data();
-
-  // Seguridad: solo terapeuta o admin
-  if (invoice.therapistId !== uid) {
-    throw new Error("No autorizado");
-  }
-
-  const doc = new PDFDocument({ size: "A4", margin: 50 });
-
-  const bucket = getStorage().bucket();
-  const filePath = `invoices/${invoiceId}.pdf`;
-  const file = bucket.file(filePath);
-  const stream = file.createWriteStream({
-    contentType: "application/pdf",
-  });
-
-  doc.pipe(stream);
-
-  /* =========================
-     CONTENIDO PDF
-  ========================= */
-  doc.fontSize(18).text("FACTURA", { align: "right" });
-  doc.moveDown();
-
-  doc.fontSize(12).text(`Factura Nº: ${invoiceId}`);
-  doc.text(`Fecha: ${new Date().toLocaleDateString("es-ES")}`);
-  doc.moveDown();
-
-  doc.text("Emitido por:");
-  doc.text("Psicoterapia Isla");
-  doc.text("NIF: XXXXXXXX");
-  doc.text("Dirección: Viladecans / Badalona");
-  doc.moveDown();
-
-  doc.text("Paciente:");
-  doc.text(invoice.patientId);
-  doc.moveDown();
-
-  doc.text(`Concepto: ${invoice.concept}`);
-  doc.text(`Importe: ${invoice.amount} €`);
-  doc.text(`Método de pago: ${invoice.paymentMethod || "—"}`);
-  doc.moveDown();
-
-  doc.text(
-    invoice.paid ? "Factura pagada" : "Factura pendiente",
-    { align: "right" }
-  );
-
-  doc.end();
-
-  await new Promise((res) => stream.on("finish", res));
-
-  const [url] = await file.getSignedUrl({
-    action: "read",
-    expires: "2035-01-01",
-  });
-
-  await invoiceRef.update({
-    pdfUrl: url,
-    issued: true,
-    issuedAt: admin.firestore.FieldValue.serverTimestamp(),
-  });
-
-  return { pdfUrl: url };
-});
+);
