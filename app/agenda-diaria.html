@@ -50,12 +50,33 @@
 <!-- MODAL GESTIÓN -->
 <div id="appointmentModal"
   style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:999;">
-  <div style="background:#fff; max-width:420px; margin:10vh auto; padding:1rem; border-radius:14px;">
-    <h3 id="modalPatient"></h3>
-    <p id="modalTime"></p>
-    <button id="btnDone" class="btn-primary">Marcar realizada</button>
+  <div style="background:#fff; max-width:420px; margin:10vh auto;
+              padding:1rem; border-radius:14px;">
+
+    <h3 id="amPatient"></h3>
+    <p id="amDateTime"></p>
+
+    <label>
+      <input type="checkbox" id="amCompleted">
+      Sesión realizada
+    </label><br>
+
+    <label>
+      <input type="checkbox" id="amIssued">
+      Factura emitida
+    </label><br>
+
+    <label>
+      <input type="checkbox" id="amPaid">
+      Factura pagada
+    </label><br><br>
+
+    <button id="amInvoiceBtn" class="btn-primary">
+      Crear factura
+    </button>
+
     <hr>
-    <button onclick="closeModal()">Cerrar</button>
+    <button onclick="closeAppointmentModal()">Cerrar</button>
   </div>
 </div>
 
@@ -211,7 +232,7 @@ for(let h=HOURS_START;h<HOURS_END;h++){
           ${data.service}<br>
           <span class="slot-status">${data.status}</span>
         </div>`;
-      slot.onclick=()=>openModal(id,data);
+      slot.onclick=()=>openAppointmentModal(id);
       agendaList.appendChild(slot);
     });
   } else {
@@ -239,5 +260,6 @@ for(let h=HOURS_START;h<HOURS_END;h++){
 </script>
 
 <script type="module" src="assets/js/create-appointment.js"></script>
+<script type="module" src="assets/js/appointments-manager.js"></script>
 </body>
 </html>
