@@ -1,7 +1,16 @@
 import { requireAuth } from "./auth.js";
 import { auth, db } from "./firebase.js";
 import {
-  collection, getDocs, query, where, Timestamp
+  markAppointmentCompleted,
+  invoiceAppointment
+} from "./appointment-manager.js";
+
+import {
+  collection,
+  getDocs,
+  query,
+  where,
+  Timestamp
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 /* =========================
@@ -28,17 +37,17 @@ const DAYS = 7;
 const today = new Date();
 const monday = new Date(today);
 monday.setDate(today.getDate() - ((today.getDay() + 6) % 7));
-monday.setHours(12, 0, 0, 0); // 🔒 CLAVE anti-bug
+monday.setHours(12, 0, 0, 0); // 🔒 anti-bug TZ
 
 /* =========================
    HEADERS
 ========================= */
-grid.appendChild(document.createElement("div")); // esquina vacía
+grid.appendChild(document.createElement("div"));
 
 for (let d = 0; d < DAYS; d++) {
   const day = new Date(monday);
   day.setDate(monday.getDate() + d);
-  day.setHours(12, 0, 0, 0); // 🔒
+  day.setHours(12, 0, 0, 0);
 
   const iso = toISODate(day);
 
@@ -79,7 +88,7 @@ for (let hour = START_HOUR; hour < END_HOUR; hour++) {
 }
 
 /* =========================
-   DATOS
+   DATA
 ========================= */
 const start = Timestamp.fromDate(monday);
 const end = Timestamp.fromDate(
@@ -109,13 +118,64 @@ snap.forEach(docSnap => {
   const cell = grid.children[index];
   if (!cell) return;
 
-cell.className =
-  `week-slot ${a.status === "completed" ? "done" : "reserved"}`;
+  const app = { ...a, id: docSnap.id };
 
-cell.textContent = a.patientName || "";
+  cell.className =
+    `week-slot ${a.status === "completed" ? "done" : "reserved"}`;
 
-cell.onclick = () => openAppointmentModal(docSnap.id);
+  cell.textContent = a.patientName || "";
+
+  cell.onclick = () => openAppointmentModal(app);
 });
+
+/* =========================
+   MODAL GESTIÓN
+========================= */
+let currentAppointment = null;
+
+window.closeAppointmentModal = () => {
+  document.getElementById("appointmentModal").style.display = "none";
+};
+
+function openAppointmentModal(app) {
+  currentAppointment = app;
+
+  const s = app.start.toDate();
+  const e = app.end.toDate();
+
+  document.getElementById("amPatient").textContent =
+    app.patientName || "Sin nombre";
+
+  document.getElementById("amDateTime").textContent =
+    `${s.getHours().toString().padStart(2, "0")}:00 – ${e.getHours().toString().padStart(2, "0")}:00`;
+
+  document.getElementById("amCompleted").checked =
+    app.status === "completed";
+
+  document.getElementById("appointmentModal").style.display = "block";
+}
+
+document.getElementById("amCompleted").onchange = async () => {
+  if (!currentAppointment) return;
+
+  await markAppointmentCompleted({
+    ...currentAppointment,
+    id: currentAppointment.id
+  });
+
+  location.reload();
+};
+
+document.getElementById("amInvoiceBtn").onclick = async () => {
+  if (!currentAppointment || currentAppointment.invoiceId) return;
+
+  await invoiceAppointment(
+    { ...currentAppointment, id: currentAppointment.id },
+    60
+  );
+
+  location.reload();
+};
 
 /* =========================
    HELPERS
@@ -133,21 +193,3 @@ function getDayISO(offset) {
   d.setHours(12, 0, 0, 0);
   return toISODate(d);
 }
-
-/* =========================
-   MODAL CREAR CITA
-========================= */
-window.openCreateModal = (dateISO, hour) => {
-  document.getElementById("createModal").style.display = "block";
-
-  document.getElementById("cDateLabel").textContent =
-    new Date(dateISO + "T12:00:00").toLocaleDateString("es-ES");
-
-  document.getElementById("cStart").value =
-    `${hour.toString().padStart(2, "0")}:00`;
-
-  document.getElementById("cEnd").value =
-    `${(hour + 1).toString().padStart(2, "0")}:00`;
-
-  window.__selectedDateISO = dateISO;
-};
