@@ -42,7 +42,6 @@
 .available { background:#e6f4d7; }
 .reserved  { background:#fff2cc; }
 .done      { background:#e6f0ff; }
-.blocked   { background:#e5e7eb; }
 </style>
 </head>
 
@@ -95,16 +94,6 @@
     <label>
       <input type="checkbox" id="amCompleted">
       Sesión realizada
-    </label><br>
-
-    <label>
-      <input type="checkbox" id="amIssued" disabled>
-      Factura emitida
-    </label><br>
-
-    <label>
-      <input type="checkbox" id="amPaid" disabled>
-      Factura pagada
     </label><br><br>
 
     <button id="amInvoiceBtn" class="btn-primary">
@@ -121,6 +110,7 @@
 import { requireAuth } from "./assets/js/auth.js";
 import { loadMenu } from "./assets/js/menu.js";
 import { auth, db } from "./assets/js/firebase.js";
+
 import {
   markAppointmentCompleted,
   invoiceAppointment
@@ -175,6 +165,17 @@ for(let hour=START_HOUR; hour<END_HOUR; hour++){
     cell.className="week-slot available";
     cell.dataset.day=d;
     cell.dataset.hour=hour;
+
+    cell.onclick=()=>{
+      const date=new Date(monday);
+      date.setDate(monday.getDate()+d);
+      cDateLabel.textContent=date.toLocaleDateString("es-ES");
+      cStart.value=`${String(hour).padStart(2,"0")}:00`;
+      cEnd.value=`${String(hour+1).padStart(2,"0")}:00`;
+      window.__selectedDateISO=toISO(date);
+      createModal.style.display="block";
+    };
+
     grid.appendChild(cell);
   }
 }
@@ -220,8 +221,6 @@ function openAppointmentModal(app){
     `${s.getHours().toString().padStart(2,"0")}:00 – ${e.getHours().toString().padStart(2,"0")}:00`;
 
   amCompleted.checked=app.status==="completed";
-  amIssued.checked=!!app.invoiceId;
-
   appointmentModal.style.display="block";
 }
 
