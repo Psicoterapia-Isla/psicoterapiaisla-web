@@ -11,7 +11,7 @@
 
 .week-grid {
   display:grid;
-  grid-template-columns:60px repeat(7,minmax(120px,1fr));
+  grid-template-columns:60px repeat(7,minmax(140px,1fr));
   gap:.4rem;
 }
 
@@ -28,13 +28,15 @@
 }
 
 .week-slot {
-  height:44px;
-  border-radius:8px;
+  min-height:48px;
+  border-radius:10px;
   font-size:.7rem;
+  padding:4px;
   display:flex;
   align-items:center;
   justify-content:center;
   text-align:center;
+  cursor:pointer;
 }
 
 .week-slot.disabled {
@@ -42,9 +44,23 @@
   cursor:not-allowed;
 }
 
-.available { background:#e6f4d7; cursor:pointer; }
-.reserved  { background:#fff2cc; cursor:pointer; }
-.done      { background:#e6f0ff; cursor:pointer; }
+.week-slot.available {
+  background:#e6f4d7;
+}
+
+.week-slot.reserved {
+  background:#fff2cc;
+}
+
+.week-slot.done {
+  background:#e6f0ff;
+}
+
+.week-slot small {
+  display:block;
+  font-size:.65rem;
+  opacity:.7;
+}
 </style>
 </head>
 
@@ -74,7 +90,9 @@ const START_HOUR = 9;
 const END_HOUR = 21;
 const DAYS = ["mon","tue","wed","thu","fri","sat","sun"];
 
-/* ===== LUNES DE LA SEMANA ===== */
+/* =========================
+   SEMANA ACTUAL (LUNES)
+========================= */
 const today = new Date();
 const monday = new Date(today);
 monday.setDate(today.getDate() - ((today.getDay() + 6) % 7));
@@ -82,16 +100,21 @@ monday.setHours(0,0,0,0);
 
 const weekKey = monday.toISOString().slice(0,10);
 
-/* ===== CARGAR DISPONIBILIDAD ===== */
+/* =========================
+   DISPONIBILIDAD
+========================= */
 const availabilitySnap = await getDoc(
   doc(db,"availability",`${therapistId}_${weekKey}`)
 );
+
 const availabilitySlots =
   availabilitySnap.exists()
     ? availabilitySnap.data().slots || {}
     : {};
 
-/* ===== CARGAR CITAS ===== */
+/* =========================
+   CITAS
+========================= */
 const start = Timestamp.fromDate(monday);
 const end = Timestamp.fromDate(
   new Date(monday.getTime()+7*86400000)
@@ -112,8 +135,11 @@ appointmentsSnap.forEach(d=>{
   appointmentsByKey[key] = { ...a, id:d.id };
 });
 
-/* ===== CABECERAS ===== */
+/* =========================
+   CABECERAS
+========================= */
 grid.appendChild(document.createElement("div"));
+
 for(let d=0; d<7; d++){
   const day = new Date(monday);
   day.setDate(monday.getDate()+d);
@@ -122,10 +148,13 @@ for(let d=0; d<7; d++){
   h.className="day-header";
   h.textContent =
     day.toLocaleDateString("es-ES",{weekday:"short",day:"numeric"});
+
   grid.appendChild(h);
 }
 
-/* ===== GRID REAL ===== */
+/* =========================
+   GRID PRINCIPAL
+========================= */
 for(let hour=START_HOUR; hour<END_HOUR; hour++){
   const hc=document.createElement("div");
   hc.className="week-hour";
@@ -134,20 +163,32 @@ for(let hour=START_HOUR; hour<END_HOUR; hour++){
 
   for(let d=0; d<7; d++){
     const key = `${DAYS[d]}_${hour}`;
-    const cell=document.createElement("div");
+    const cell = document.createElement("div");
 
-    if(appointmentsByKey[key]){
-      const app = appointmentsByKey[key];
+    const app = appointmentsByKey[key];
+    const avail = availabilitySlots[key];
+
+    if(app){
       cell.className =
         `week-slot ${app.status==="completed"?"done":"reserved"}`;
-      cell.textContent = app.patientName || "";
+      cell.innerHTML = `
+        <strong>${app.patientName || ""}</strong>
+        <small>${app.modality}</small>
+      `;
       cell.onclick = () =>
         location.href =
           `agenda-diaria.html?date=${toISO(app.start.toDate())}`;
     }
-    else if(availabilitySlots[key]){
-      cell.className="week-slot available";
-      cell.textContent="Disponible";
+    else if(avail){
+      const modes = Object.keys(avail)
+        .filter(m => avail[m]);
+
+      cell.className = "week-slot available";
+      cell.innerHTML = `
+        Disponible
+        <small>${modes.join(" · ")}</small>
+      `;
+
       cell.onclick = () =>
         location.href =
           `agenda-diaria.html?date=${toISO(
@@ -156,14 +197,16 @@ for(let hour=START_HOUR; hour<END_HOUR; hour++){
     }
     else{
       cell.className="week-slot disabled";
-      cell.textContent="";
+      cell.innerHTML="";
     }
 
     grid.appendChild(cell);
   }
 }
 
-/* ===== HELPERS ===== */
+/* =========================
+   HELPERS
+========================= */
 function toISO(d){
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
 }
