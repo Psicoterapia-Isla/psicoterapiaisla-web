@@ -79,10 +79,7 @@
   border-radius:14px;
 }
 
-.modal-row {
-  margin-bottom:.75rem;
-}
-
+.modal-row { margin-bottom:.75rem; }
 .modal-row.inline {
   display:flex;
   align-items:center;
@@ -116,34 +113,19 @@
       <button id="prevDay" class="btn-secondary">←</button>
       <button id="todayBtn" class="btn-secondary">Hoy</button>
       <button id="nextDay" class="btn-secondary">→</button>
-      <button id="btnNew" class="btn-primary">＋ Nueva cita</button>
     </div>
   </div>
 
   <div id="agendaList"></div>
 </main>
 
-<!-- ================= MODAL CREAR / EDITAR ================= -->
+<!-- ===== MODAL EDICIÓN CITA ===== -->
 <div id="appointmentModal" class="modal">
   <div class="modal-card">
 
-    <h3 id="amTitle"></h3>
-    <div class="modal-row" id="amDate"></div>
-
-    <div class="modal-row">
-      <label>Paciente</label>
-      <input id="amPatientName">
-    </div>
-
-    <div class="modal-row">
-      <label>Modalidad</label>
-      <select id="amModality">
-        <option value="">—</option>
-        <option value="viladecans">Viladecans</option>
-        <option value="badalona">Badalona</option>
-        <option value="online">Online</option>
-      </select>
-    </div>
+    <h3 id="amPatient"></h3>
+    <div class="modal-row" id="amDateTime"></div>
+    <div class="modal-row" id="amModality"></div>
 
     <div class="modal-row inline">
       <input type="checkbox" id="amCompleted">
@@ -152,12 +134,12 @@
 
     <div class="modal-row">
       <label>Importe (€)</label>
-      <input id="amAmount" type="number" value="60">
+      <input id="amAmount" type="number" min="0">
     </div>
 
     <div class="modal-row">
       <label>Método de pago</label>
-      <select id="amPayment">
+      <select id="amPaymentMethod">
         <option value="">—</option>
         <option value="efectivo">Efectivo</option>
         <option value="tarjeta">Tarjeta</option>
@@ -177,9 +159,9 @@
     </div>
 
     <div class="modal-actions">
-      <button id="amInvoice" class="btn-primary">Emitir factura</button>
-      <button id="amSave" class="btn-primary">Guardar</button>
-      <button onclick="closeModal()">Cerrar</button>
+      <button id="amInvoiceBtn" class="btn-primary">Emitir factura</button>
+      <button id="amSaveBtn" class="btn-primary">Guardar</button>
+      <button onclick="closeAppointmentModal()">Cerrar</button>
     </div>
 
   </div>
@@ -210,33 +192,45 @@ const agendaList = document.getElementById("agendaList");
 let currentAppointment = null;
 let currentInvoice = null;
 
-/* ================= FECHA ================= */
+/* ===== FECHA ===== */
 let currentDate =
   new URLSearchParams(location.search).get("date")
   || new Date().toISOString().split("T")[0];
 
 function go(date){ location.href = `agenda-diaria.html?date=${date}`; }
 
-prevDay.onclick = () => { const d=new Date(currentDate); d.setDate(d.getDate()-1); go(toISO(d)); };
-nextDay.onclick = () => { const d=new Date(currentDate); d.setDate(d.getDate()+1); go(toISO(d)); };
-todayBtn.onclick = () => go(new Date().toISOString().split("T")[0]);
+prevDay.onclick = () => {
+  const d=new Date(currentDate);
+  d.setDate(d.getDate()-1);
+  go(toISO(d));
+};
+
+nextDay.onclick = () => {
+  const d=new Date(currentDate);
+  d.setDate(d.getDate()+1);
+  go(toISO(d));
+};
+
+todayBtn.onclick = () =>
+  go(new Date().toISOString().split("T")[0]);
 
 const baseDate = new Date(currentDate);
 baseDate.setHours(0,0,0,0);
 
 dayNumber.textContent = baseDate.getDate();
-dayName.textContent = baseDate.toLocaleDateString("es-ES",{weekday:"long"});
-dayMonth.textContent = baseDate.toLocaleDateString("es-ES",{month:"long",year:"numeric"});
+dayName.textContent =
+  baseDate.toLocaleDateString("es-ES",{weekday:"long"});
+dayMonth.textContent =
+  baseDate.toLocaleDateString("es-ES",{month:"long",year:"numeric"});
 
-/* ================= MODAL ================= */
-window.closeModal = () => appointmentModal.style.display="none";
-
-/* ================= CARGA CITAS ================= */
+/* ===== CARGA CITAS ===== */
 const snap = await getDocs(query(
   collection(db,"appointments"),
   where("therapistId","==",therapistId),
   where("start",">=",Timestamp.fromDate(baseDate)),
-  where("start","<",Timestamp.fromDate(new Date(baseDate.getTime()+86400000))),
+  where("start","<",
+    Timestamp.fromDate(new Date(baseDate.getTime()+86400000))
+  ),
   orderBy("start")
 ));
 
@@ -246,6 +240,7 @@ snap.forEach(d=>{
     {...d.data(), id:d.id};
 });
 
+/* ===== RENDER ===== */
 for(let h=9; h<21; h++){
   const slot=document.createElement("div");
 
@@ -254,61 +249,79 @@ for(let h=9; h<21; h++){
     slot.className="slot slot-green";
     slot.innerHTML=`
       <div class="slot-time">${h}:00</div>
-      <div><strong>${app.patientName}</strong><br>
-      <span class="slot-status">${app.modality}</span></div>`;
-    slot.onclick=()=>openAppointment(app);
+      <div>
+        <strong>${app.patientName}</strong><br>
+        <span class="slot-status">${app.modality}</span>
+      </div>`;
+    slot.onclick=()=>openAppointmentModal(app);
   } else {
     slot.className="slot slot-grey";
-    slot.innerHTML=`<div class="slot-time">${h}:00</div><div>Libre</div>`;
+    slot.innerHTML=`
+      <div class="slot-time">${h}:00</div>
+      <div>Libre</div>`;
   }
 
   agendaList.appendChild(slot);
 }
 
-/* ================= EDITAR ================= */
-async function openAppointment(app){
-  currentAppointment=app;
-  currentInvoice=null;
+/* ===== MODAL ===== */
+window.closeAppointmentModal = () =>
+  appointmentModal.style.display="none";
 
-  amTitle.textContent="Editar cita";
-  amDate.textContent=baseDate.toLocaleDateString("es-ES");
-  amPatientName.value=app.patientName||"";
-  amModality.value=app.modality||"";
-  amCompleted.checked=app.status==="completed";
-  amPaid.checked=false;
-  amIssued.checked=false;
-  amAmount.value=60;
-  amPayment.value="";
+async function openAppointmentModal(app){
+  currentAppointment = app;
+  currentInvoice = null;
+
+  const s = app.start.toDate();
+  const e = app.end.toDate();
+
+  amPatient.textContent = app.patientName || "";
+  amDateTime.textContent =
+    `${s.toLocaleDateString()} ${s.getHours()}:00 – ${e.getHours()}:00`;
+  amModality.textContent =
+    `Modalidad: ${app.modality || "—"}`;
+
+  amCompleted.checked = app.status==="completed";
+  amPaid.checked = false;
+  amIssued.checked = false;
+  amAmount.value = 60;
+  amPaymentMethod.value = "";
 
   if(app.invoiceId){
     const inv=await getDoc(doc(db,"invoices",app.invoiceId));
     if(inv.exists()){
       currentInvoice={id:inv.id,...inv.data()};
       amIssued.checked=true;
-      amAmount.value=currentInvoice.amount||60;
       amPaid.checked=!!currentInvoice.payment?.paid;
-      amPayment.value=currentInvoice.payment?.method||"";
+      amAmount.value=currentInvoice.amount||60;
+      amPaymentMethod.value=
+        currentInvoice.payment?.method||"";
     }
   }
 
   appointmentModal.style.display="block";
 }
 
-amSave.onclick=async()=>{
+/* ===== GUARDAR ===== */
+amSaveBtn.onclick=async()=>{
   if(amCompleted.checked && currentAppointment.status!=="completed"){
     await markAppointmentCompleted(currentAppointment);
   }
   if(amPaid.checked && currentInvoice){
-    await markInvoicePaid(currentInvoice.id, amPayment.value);
+    await markInvoicePaid(
+      currentInvoice.id,
+      amPaymentMethod.value
+    );
   }
   location.reload();
 };
 
-amInvoice.onclick=async()=>{
+/* ===== FACTURA ===== */
+amInvoiceBtn.onclick=async()=>{
   if(!currentInvoice){
     await invoiceAppointment(currentAppointment,{
       amount:Number(amAmount.value),
-      paymentMethod:amPayment.value,
+      paymentMethod:amPaymentMethod.value,
       paid:amPaid.checked
     });
     location.reload();
