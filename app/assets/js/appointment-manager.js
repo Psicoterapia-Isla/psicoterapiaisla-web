@@ -12,8 +12,10 @@ import {
 ========================= */
 export async function markAppointmentCompleted(app) {
 
+  if (!app?.id) throw new Error("Appointment ID missing");
+
   await updateDoc(
-    doc(db,"appointments",app.id),
+    doc(db, "appointments", app.id),
     {
       status: "completed",
       completedAt: serverTimestamp()
@@ -22,19 +24,24 @@ export async function markAppointmentCompleted(app) {
 }
 
 /* =========================
-   CREAR FACTURA
+   CREAR FACTURA DESDE CITA
 ========================= */
 export async function invoiceAppointment(app, amount = 60) {
 
+  if (!app?.id || !app?.therapistId || !app?.patientId) {
+    throw new Error("Appointment data incomplete");
+  }
+
+  // 1️⃣ Crear factura
   const invoiceRef = await addDoc(
-    collection(db,"invoices"),
+    collection(db, "invoices"),
     {
       appointmentId: app.id,
       therapistId: app.therapistId,
       patientId: app.patientId,
 
-      amount,
       concept: app.service || "Sesión de terapia",
+      amount,
 
       issued: false,
       paid: false,
@@ -43,8 +50,9 @@ export async function invoiceAppointment(app, amount = 60) {
     }
   );
 
+  // 2️⃣ Vincular factura a la cita
   await updateDoc(
-    doc(db,"appointments",app.id),
+    doc(db, "appointments", app.id),
     {
       invoiceId: invoiceRef.id
     }
@@ -54,12 +62,33 @@ export async function invoiceAppointment(app, amount = 60) {
 }
 
 /* =========================
-   ACTUALIZAR ESTADO FACTURA
+   MARCAR FACTURA EMITIDA
 ========================= */
-export async function updateInvoiceStatus(invoiceId, data) {
+export async function markInvoiceIssued(invoiceId) {
+
+  if (!invoiceId) throw new Error("Invoice ID missing");
 
   await updateDoc(
-    doc(db,"invoices",invoiceId),
-    data
+    doc(db, "invoices", invoiceId),
+    {
+      issued: true,
+      issuedAt: serverTimestamp()
+    }
+  );
+}
+
+/* =========================
+   MARCAR FACTURA PAGADA
+========================= */
+export async function markInvoicePaid(invoiceId) {
+
+  if (!invoiceId) throw new Error("Invoice ID missing");
+
+  await updateDoc(
+    doc(db, "invoices", invoiceId),
+    {
+      paid: true,
+      paidAt: serverTimestamp()
+    }
   );
 }
