@@ -68,9 +68,9 @@
     <h1>Disponibilidad semanal</h1>
 
     <div class="availability-nav">
-      <button id="prevWeek" class="btn-secondary">←</button>
-      <button id="todayWeek" class="btn-secondary">Hoy</button>
-      <button id="nextWeek" class="btn-secondary">→</button>
+      <button id="prevWeek" class="btn-secondary" type="button">←</button>
+      <button id="todayWeek" class="btn-secondary" type="button">Hoy</button>
+      <button id="nextWeek" class="btn-secondary" type="button">→</button>
     </div>
   </div>
 
@@ -79,7 +79,7 @@
   <div id="availabilityGrid" class="availability-grid"></div>
 
   <br>
-  <button id="saveAvailability" class="btn-primary">
+  <button id="saveAvailability" class="btn-primary" type="button">
     Guardar disponibilidad
   </button>
 
@@ -97,7 +97,7 @@ await loadMenu();
 </script>
 
 <!-- =========================
-     SEMANA CONTROLADA
+     SEMANA CONTROLADA (ÚNICA FUENTE DE VERDAD)
 ========================= -->
 <script>
 (function () {
@@ -116,12 +116,14 @@ await loadMenu();
   const baseDate = paramWeek ? new Date(paramWeek) : new Date();
   const monday = mondayOf(baseDate);
 
+  // 🔒 CLAVE: usada por availability-grid.js
   window.__availabilityWeekStart = monday.toISOString().slice(0,10);
 
   function go(offsetWeeks) {
     const d = new Date(monday);
     d.setDate(d.getDate() + offsetWeeks * 7);
-    location.href = `disponibilidad.html?week=${d.toISOString().slice(0,10)}`;
+    location.href =
+      `disponibilidad.html?week=${d.toISOString().slice(0,10)}`;
   }
 
   document.getElementById("prevWeek").onclick = () => go(-1);
@@ -133,7 +135,7 @@ await loadMenu();
 </script>
 
 <!-- =========================
-     GRID
+     GRID (DEPENDE DE __availabilityWeekStart)
 ========================= -->
 <script type="module" src="assets/js/availability-grid.js"></script>
 
