@@ -1,7 +1,4 @@
 <!DOCTYPE html>
-if (window.innerWidth < 768) {
-  location.replace("disponibilidad-movil.html");
-}
 <html lang="es">
 <head>
 <meta charset="UTF-8" />
@@ -9,56 +6,6 @@ if (window.innerWidth < 768) {
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
 <link rel="stylesheet" href="assets/css/app.css">
-
-<style>
-.availability-wrapper {
-  padding: 1rem;
-  max-width: 980px;
-  margin: 0 auto;
-}
-
-.availability-grid {
-  display: grid;
-  grid-template-columns: 60px repeat(7, 1fr);
-  gap: 6px;
-  margin-top: 1rem;
-}
-
-.hour-label {
-  font-size: .75rem;
-  text-align: right;
-  padding-right: 6px;
-  color: #666;
-}
-
-.day-label {
-  text-align: center;
-  font-weight: 600;
-}
-
-.slot {
-  min-height: 54px;
-  border-radius: 8px;
-  background: #e5e7eb;
-  padding: 4px;
-  cursor: pointer;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  font-size: .65rem;
-}
-
-.slot.active {
-  background: #e6f4d7;
-}
-
-.slot label {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  cursor: pointer;
-}
-</style>
 </head>
 
 <body class="app-body">
@@ -72,7 +19,10 @@ if (window.innerWidth < 768) {
     <strong>online</strong> y/o <strong>presencial</strong>.
   </p>
 
-  <div id="availabilityGrid" class="availability-grid"></div>
+  <!-- CONTENEDOR CON SCROLL (CLAVE) -->
+  <div class="availability-scroll">
+    <div id="availabilityGrid" class="availability-grid"></div>
+  </div>
 
   <br>
   <button id="saveAvailability" class="btn-primary">
@@ -90,7 +40,7 @@ await requireAuth();
 await loadMenu();
 </script>
 
-<!-- GRID LOGIC -->
+<!-- LÓGICA ÚNICA -->
 <script type="module" src="assets/js/availability-grid.js"></script>
 
 </body>
