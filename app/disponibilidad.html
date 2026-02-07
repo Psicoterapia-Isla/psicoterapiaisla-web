@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8" />
-<title>Disponibilidad semanal | Psicoterapia Isla</title>
+<title>Disponibilidad | Psicoterapia Isla</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
 <link rel="stylesheet" href="assets/css/app.css">
@@ -10,21 +10,8 @@
 <style>
 .availability-wrapper {
   padding: 1rem;
-  max-width: 980px;
+  max-width: 900px;
   margin: 0 auto;
-}
-
-.week-nav {
-  display: flex;
-  gap: .5rem;
-  align-items: center;
-  margin-bottom: 1rem;
-  flex-wrap: wrap;
-}
-
-.week-label {
-  font-weight: 600;
-  opacity: .8;
 }
 
 .availability-grid {
@@ -35,7 +22,7 @@
 }
 
 .hour-label {
-  font-size: .75rem;
+  font-size: 0.75rem;
   text-align: right;
   padding-right: 6px;
   color: #666;
@@ -45,27 +32,28 @@
   text-align: center;
   font-weight: 600;
 }
+
+.slot {
+  height: 36px;
+  border-radius: 6px;
+  background: #e5e7eb; /* no disponible */
+  cursor: pointer;
+}
+
+.slot.available {
+  background: #e6f4d7; /* disponible */
+}
 </style>
 </head>
 
 <body class="app-body">
+
 <header class="app-menu"></header>
 
 <main class="availability-wrapper">
 
   <h1>Disponibilidad semanal</h1>
-  <p>
-    Marca por hora dónde puedes atender:
-    <strong>online</strong> y/o <strong>presencial</strong>.
-  </p>
-
-  <!-- NAVEGACIÓN SEMANAL -->
-  <div class="week-nav">
-    <button id="prevWeek" class="btn-secondary">← Semana anterior</button>
-    <button id="todayWeek" class="btn-secondary">Hoy</button>
-    <button id="nextWeek" class="btn-secondary">Semana siguiente →</button>
-    <span id="weekLabel" class="week-label"></span>
-  </div>
+  <p>Marca las horas en las que estarás disponible para citas.</p>
 
   <div id="availabilityGrid" class="availability-grid"></div>
 
@@ -85,52 +73,7 @@ await requireAuth();
 await loadMenu();
 </script>
 
-<!-- CONTROL DE SEMANA -->
-<script>
-function getMonday(d) {
-  const date = new Date(d);
-  const day = date.getDay();
-  const diff = (day === 0 ? -6 : 1) - day;
-  date.setDate(date.getDate() + diff);
-  date.setHours(0,0,0,0);
-  return date;
-}
-
-function toISO(d) {
-  return d.toISOString().slice(0,10);
-}
-
-const params = new URLSearchParams(location.search);
-let baseDate = params.get("week")
-  ? new Date(params.get("week"))
-  : new Date();
-
-const monday = getMonday(baseDate);
-
-document.getElementById("weekLabel").textContent =
-  `Semana del ${monday.toLocaleDateString("es-ES")}`;
-
-document.getElementById("prevWeek").onclick = () => {
-  const d = new Date(monday);
-  d.setDate(d.getDate() - 7);
-  location.href = `disponibilidad.html?week=${toISO(d)}`;
-};
-
-document.getElementById("nextWeek").onclick = () => {
-  const d = new Date(monday);
-  d.setDate(d.getDate() + 7);
-  location.href = `disponibilidad.html?week=${toISO(d)}`;
-};
-
-document.getElementById("todayWeek").onclick = () => {
-  location.href = `disponibilidad.html`;
-};
-
-/* 👉 VARIABLE GLOBAL QUE USA availability-grid.js */
-window.__availabilityWeekStart = toISO(monday);
-</script>
-
-<!-- GRID LOGIC -->
+<!-- GRID -->
 <script type="module" src="assets/js/availability-grid.js"></script>
 
 </body>
