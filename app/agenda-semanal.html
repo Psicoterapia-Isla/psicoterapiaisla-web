@@ -52,6 +52,29 @@
   <div id="weekGrid" class="week-grid"></div>
 </main>
 
+<!-- ================= MODAL CITA ================= -->
+<div id="appointmentModal"
+  style="display:none; position:fixed; inset:0;
+         background:rgba(0,0,0,.4); z-index:999;">
+  <div style="background:#fff; max-width:420px;
+              margin:10vh auto; padding:1rem;
+              border-radius:14px;">
+
+    <h3 id="amPatient"></h3>
+    <p id="amDateTime"></p>
+    <p id="amModality"></p>
+
+    <button id="downloadInvoiceBtn"
+            class="btn-primary"
+            style="display:none">
+      Descargar factura
+    </button>
+
+    <hr>
+    <button onclick="closeAppointmentModal()">Cerrar</button>
+  </div>
+</div>
+
 <script type="module">
 import { requireAuth } from "./assets/js/auth.js";
 import { loadMenu } from "./assets/js/menu.js";
@@ -71,14 +94,14 @@ const START_HOUR = 9;
 const END_HOUR = 21;
 const DAYS = 7;
 
-/* ===== LUNES DE LA SEMANA ===== */
+/* ===== LUNES ===== */
 const today = new Date();
 const monday = new Date(today);
 monday.setDate(today.getDate() - ((today.getDay() + 6) % 7));
 monday.setHours(12,0,0,0);
 
 /* ===== CABECERAS ===== */
-grid.appendChild(document.createElement("div")); // esquina vacía
+grid.appendChild(document.createElement("div"));
 
 for(let d=0; d<DAYS; d++){
   const day = new Date(monday);
@@ -108,9 +131,44 @@ for(let hour=START_HOUR; hour<END_HOUR; hour++){
   }
 }
 
-/* ===== CARGA CITAS ===== */
+/* ===== MODAL ===== */
+let currentAppointment=null;
+
+window.closeAppointmentModal = () =>
+  appointmentModal.style.display="none";
+
+function openAppointmentModal(app){
+  currentAppointment = app;
+
+  const s = app.start.toDate();
+  const e = app.end.toDate();
+
+  amPatient.textContent = app.patientName || "";
+  amDateTime.textContent =
+    `${s.getHours()}:00 – ${e.getHours()}:00`;
+  amModality.textContent =
+    `Modalidad: ${app.modality || ""}`;
+
+  if(app.invoiceId){
+    downloadInvoiceBtn.style.display="block";
+    downloadInvoiceBtn.onclick = () => {
+      window.open(
+        `factura.html?id=${app.invoiceId}`,
+        "_blank"
+      );
+    };
+  } else {
+    downloadInvoiceBtn.style.display="none";
+  }
+
+  appointmentModal.style.display="block";
+}
+
+/* ===== DATOS ===== */
 const start = Timestamp.fromDate(monday);
-const end = Timestamp.fromDate(new Date(monday.getTime()+7*86400000));
+const end = Timestamp.fromDate(
+  new Date(monday.getTime()+7*86400000)
+);
 
 const snap = await getDocs(query(
   collection(db,"appointments"),
@@ -123,13 +181,12 @@ snap.forEach(docSnap=>{
   const a = docSnap.data();
   const s = a.start.toDate();
 
-  const dayIndex = (s.getDay()+6)%7;
-  const hour = s.getHours();
-
-  if(hour<START_HOUR || hour>=END_HOUR) return;
+  const d = (s.getDay()+6)%7;
+  const h = s.getHours();
+  if(h<START_HOUR||h>=END_HOUR) return;
 
   const index =
-    1 + dayIndex + (hour-START_HOUR+1)*(DAYS+1);
+    1 + d + (h-START_HOUR+1)*(DAYS+1);
 
   const cell = grid.children[index];
   if(!cell) return;
@@ -140,7 +197,7 @@ snap.forEach(docSnap=>{
   cell.textContent = a.patientName || "";
 
   cell.onclick = () =>
-    location.href = `agenda-diaria.html?date=${toISO(s)}`;
+    openAppointmentModal({ ...a, id:docSnap.id });
 });
 
 /* ===== HELPERS ===== */
