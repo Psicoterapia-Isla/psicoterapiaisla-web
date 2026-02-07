@@ -145,13 +145,11 @@ const monday = new Date(today);
 monday.setDate(today.getDate() - ((today.getDay() + 6) % 7));
 monday.setHours(0,0,0,0);
 
-const weekKey = monday.toISOString().slice(0,10);
-
 /* ===== DISPONIBILIDAD ===== */
+const weekKey = monday.toISOString().slice(0,10);
 const availabilitySnap = await getDoc(
   doc(db,"availability",`${therapistId}_${weekKey}`)
 );
-
 const availabilitySlots =
   availabilitySnap.exists()
     ? availabilitySnap.data().slots || {}
@@ -159,9 +157,7 @@ const availabilitySlots =
 
 /* ===== CITAS ===== */
 const start = Timestamp.fromDate(monday);
-const end = Timestamp.fromDate(
-  new Date(monday.getTime()+7*86400000)
-);
+const end = Timestamp.fromDate(new Date(monday.getTime()+7*86400000));
 
 const appointmentsSnap = await getDocs(query(
   collection(db,"appointments"),
@@ -180,16 +176,13 @@ appointmentsSnap.forEach(d=>{
 
 /* ===== CABECERAS ===== */
 grid.appendChild(document.createElement("div"));
-
 for(let d=0; d<7; d++){
   const day = new Date(monday);
   day.setDate(monday.getDate()+d);
-
   const h = document.createElement("div");
   h.className="day-header";
   h.textContent =
     day.toLocaleDateString("es-ES",{weekday:"short",day:"numeric"});
-
   grid.appendChild(h);
 }
 
@@ -212,67 +205,81 @@ for(let hour=START_HOUR; hour<END_HOUR; hour++){
         `week-slot ${app.status==="completed"?"done":"reserved"}`;
       cell.innerHTML = `
         <strong>${app.patientName || ""}</strong>
-        <small>${app.modality}</small>
+        <small>${app.modality || ""}</small>
       `;
       cell.onclick = () => openAppointmentModal(app);
     }
     else if(avail){
       cell.className="week-slot available";
-      cell.innerHTML=`Disponible`;
-      cell.onclick = () =>
-        location.href =
-          `agenda-diaria.html?date=${toISO(
-            new Date(monday.getTime()+d*86400000)
-          )}`;
+      cell.textContent="Disponible";
     }
     else{
       cell.className="week-slot disabled";
     }
-
     grid.appendChild(cell);
   }
 }
 
 /* ===== MODAL ===== */
-let currentAppointment=null;
+let currentAppointment = null;
+let currentInvoice = null;
 
 window.closeAppointmentModal = () =>
   appointmentModal.style.display="none";
 
-function openAppointmentModal(app){
+async function openAppointmentModal(app){
   currentAppointment = app;
+  currentInvoice = null;
 
   const s = app.start.toDate();
   const e = app.end.toDate();
 
-  amPatient.textContent = app.patientName;
+  amPatient.textContent = app.patientName || "";
   amDateTime.textContent =
     `${s.toLocaleDateString()} ${s.getHours()}:00 – ${e.getHours()}:00`;
-  amModality.textContent = `Modalidad: ${app.modality}`;
+  amModality.textContent =
+    `Modalidad: ${app.modality || "—"}`;
 
-  amCompleted.checked = app.status==="completed";
-  amIssued.checked = !!app.invoiceId;
+  amCompleted.checked = app.status === "completed";
+  amPaid.checked = false;
+  amIssued.checked = false;
+  amAmount.value = 60;
+  amPaymentMethod.value = "";
+
+  if(app.invoiceId){
+    const invSnap = await getDoc(doc(db,"invoices",app.invoiceId));
+    if(invSnap.exists()){
+      currentInvoice = { id:invSnap.id, ...invSnap.data() };
+      amIssued.checked = true;
+      amPaid.checked = !!currentInvoice.payment?.paid;
+      amAmount.value = currentInvoice.amount || 60;
+      amPaymentMethod.value =
+        currentInvoice.payment?.method || "";
+    }
+  }
 
   appointmentModal.style.display="block";
 }
 
 /* ===== GUARDAR ===== */
 amSaveBtn.onclick = async () => {
-  if(amCompleted.checked){
+  if(amCompleted.checked && currentAppointment.status!=="completed"){
     await markAppointmentCompleted(currentAppointment);
   }
-  if(amPaid.checked && currentAppointment.invoiceId){
+
+  if(amPaid.checked && currentInvoice){
     await markInvoicePaid(
-      currentAppointment.invoiceId,
+      currentInvoice.id,
       amPaymentMethod.value
     );
   }
+
   location.reload();
 };
 
 /* ===== FACTURA ===== */
 amInvoiceBtn.onclick = async () => {
-  if(!currentAppointment.invoiceId){
+  if(!currentInvoice){
     await invoiceAppointment(
       currentAppointment,
       {
@@ -284,10 +291,6 @@ amInvoiceBtn.onclick = async () => {
     location.reload();
   }
 };
-
-function toISO(d){
-  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
-}
 </script>
 </body>
 </html>
