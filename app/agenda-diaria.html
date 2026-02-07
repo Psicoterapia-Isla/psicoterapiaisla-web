@@ -93,7 +93,8 @@ import { loadMenu } from "./assets/js/menu.js";
 import { auth, db } from "./assets/js/firebase.js";
 import { completeSessionAndInvoice } from "./assets/js/invoiceFromAppointment.js";
 import {
-  collection, getDocs, query, where, orderBy, Timestamp
+  collection, getDocs, query, where, orderBy, Timestamp,
+  doc, getDoc
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 await requireAuth();
@@ -123,7 +124,32 @@ const agendaList = document.getElementById("agendaList");
 btnNew.onclick = () => {
   window.__selectedDateISO = dateISO;
   cDateLabel.textContent = baseDate.toLocaleDateString("es-ES");
+  cPatientPhone.value = "";
+  cPatientName.value = "";
+  cPatientName.disabled = false;
   createModal.style.display = "block";
+};
+
+/* AUTOCOMPLETE PACIENTE */
+cPatientPhone.onblur = async () => {
+  const phone = cPatientPhone.value.trim();
+  if (!/^\d{9}$/.test(phone)) return;
+
+  let snap = await getDoc(doc(db,"patients",phone));
+  if (!snap.exists()) {
+    snap = await getDoc(doc(db,"patients_normalized",phone));
+  }
+
+  if (snap.exists()) {
+    const d = snap.data();
+    cPatientName.value =
+      d.nombre
+        ? `${d.nombre} ${d.apellidos || ""}`.trim()
+        : d.fullName || "";
+    cPatientName.disabled = true;
+  } else {
+    cPatientName.disabled = false;
+  }
 };
 
 /* QUERY */
@@ -162,7 +188,7 @@ btnDone.onclick=async()=>{
   location.reload();
 };
 
-/* RENDER HORAS (ARRAY POR HORA) */
+/* RENDER HORAS */
 const HOURS_START=9, HOURS_END=21;
 const byHour={};
 
@@ -200,6 +226,9 @@ for(let h=HOURS_START;h<HOURS_END;h++){
     slot.onclick=()=>{
       window.__selectedDateISO=dateISO;
       cDateLabel.textContent=baseDate.toLocaleDateString("es-ES");
+      cPatientPhone.value="";
+      cPatientName.value="";
+      cPatientName.disabled=false;
       cStart.value=`${String(h).padStart(2,"0")}:00`;
       cEnd.value=`${String(h+1).padStart(2,"0")}:00`;
       createModal.style.display="block";
