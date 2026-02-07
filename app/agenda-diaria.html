@@ -26,12 +26,10 @@
 .slot-body { flex:1; }
 .slot-green { background:#e6f4d7; }
 .slot-grey { background:#e5e7eb; color:#555; }
-.slot-status { font-size:.7rem; opacity:.7; }
 </style>
 </head>
 
 <body class="app-body">
-
 <header class="app-menu"></header>
 
 <main class="agenda-wrapper">
@@ -53,8 +51,7 @@
 <!-- ================= MODAL GESTIÓN CITA ================= -->
 <div id="appointmentModal"
   style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:999;">
-  <div style="background:#fff; max-width:420px; margin:10vh auto;
-              padding:1rem; border-radius:14px;">
+  <div style="background:#fff; max-width:420px; margin:10vh auto; padding:1rem; border-radius:14px;">
 
     <h3 id="amPatient"></h3>
     <p id="amDateTime"></p>
@@ -86,8 +83,7 @@
 <!-- ================= MODAL CREAR CITA ================= -->
 <div id="createModal"
   style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:1000;">
-  <div style="background:#fff; max-width:420px; margin:10vh auto;
-              padding:1rem; border-radius:14px;">
+  <div style="background:#fff; max-width:420px; margin:10vh auto; padding:1rem; border-radius:14px;">
     <h3>Nueva cita</h3>
     <p id="cDateLabel"></p>
 
@@ -117,9 +113,11 @@
 import { requireAuth } from "./assets/js/auth.js";
 import { loadMenu } from "./assets/js/menu.js";
 import { auth, db } from "./assets/js/firebase.js";
+
 import {
   markAppointmentCompleted,
-  invoiceAppointment
+  invoiceAppointment,
+  markInvoicePaid
 } from "./assets/js/appointment-manager.js";
 
 import {
@@ -138,10 +136,8 @@ const baseDate = new Date(dateISO);
 baseDate.setHours(0,0,0,0);
 
 dayNumber.textContent = baseDate.getDate();
-dayName.textContent =
-  baseDate.toLocaleDateString("es-ES",{weekday:"long"});
-dayMonth.textContent =
-  baseDate.toLocaleDateString("es-ES",{month:"long",year:"numeric"});
+dayName.textContent = baseDate.toLocaleDateString("es-ES",{weekday:"long"});
+dayMonth.textContent = baseDate.toLocaleDateString("es-ES",{month:"long",year:"numeric"});
 
 const therapistId = auth.currentUser.uid;
 const agendaList = document.getElementById("agendaList");
@@ -172,8 +168,8 @@ window.closeAppointmentModal = () =>
 
 function openAppointmentModal(app){
   currentAppointment = app;
-  const s=app.start.toDate(), e=app.end.toDate();
 
+  const s=app.start.toDate(), e=app.end.toDate();
   amPatient.textContent = app.patientName;
   amDateTime.textContent =
     `${s.getHours().toString().padStart(2,"0")}:00 – ${e.getHours().toString().padStart(2,"0")}:00`;
@@ -182,25 +178,27 @@ function openAppointmentModal(app){
   amIssued.checked = !!app.invoiceId;
   amPaid.checked = app.paid===true;
 
+  amPaid.disabled = !app.invoiceId;
   appointmentModal.style.display="block";
 }
 
 amCompleted.onchange = async () => {
   if(amCompleted.checked){
-    await markAppointmentCompleted({
-      ...currentAppointment,
-      id: currentAppointment.id
-    });
+    await markAppointmentCompleted({ ...currentAppointment, id: currentAppointment.id });
     location.reload();
   }
 };
 
 amInvoiceBtn.onclick = async () => {
   if(!currentAppointment.invoiceId){
-    await invoiceAppointment(
-      {...currentAppointment, id: currentAppointment.id},
-      60
-    );
+    await invoiceAppointment({ ...currentAppointment, id: currentAppointment.id }, 60);
+    location.reload();
+  }
+};
+
+amPaid.onchange = async () => {
+  if(amPaid.checked && currentAppointment.invoiceId){
+    await markInvoicePaid(currentAppointment.invoiceId);
     location.reload();
   }
 };
