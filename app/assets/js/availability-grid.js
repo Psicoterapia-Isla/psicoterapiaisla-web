@@ -31,11 +31,10 @@ const DAYS = ["mon","tue","wed","thu","fri","sat","sun"];
 const DAY_LABELS = ["L","M","X","J","V","S","D"];
 const HOURS = Array.from({ length: 12 }, (_, i) => i + 9); // 9–21
 
-/* 
+/*
   slotsState:
   {
-    "mon_9": { online:true, viladecans:false, badalona:false },
-    ...
+    "mon_9": { online:true, viladecans:false, badalona:false }
   }
 */
 const slotsState = {};
@@ -54,14 +53,11 @@ const docRef = doc(db, "availability", `${therapistId}_${weekKey}`);
 /* =========================
    HELPERS
 ========================= */
-function ensureSlot(key){
-  if (!slotsState[key]) {
-    slotsState[key] = {
-      online: false,
-      viladecans: false,
-      badalona: false
-    };
-  }
+function normalizeSlot(key) {
+  slotsState[key] ??= {};
+  slotsState[key].online = !!slotsState[key].online;
+  slotsState[key].viladecans = !!slotsState[key].viladecans;
+  slotsState[key].badalona = !!slotsState[key].badalona;
 }
 
 /* =========================
@@ -90,7 +86,7 @@ function renderGrid() {
 
     DAYS.forEach(day => {
       const key = `${day}_${hour}`;
-      ensureSlot(key);
+      normalizeSlot(key);
 
       const slot = document.createElement("div");
       slot.className = "slot";
@@ -100,7 +96,6 @@ function renderGrid() {
         slot.classList.add("available");
       }
 
-      /* BOTONES GRANDES (mobile friendly) */
       slot.innerHTML = `
         <button class="mode ${data.online ? "on":""}" data-m="online">Online</button>
         <button class="mode ${data.viladecans ? "on":""}" data-m="viladecans">Vila</button>
@@ -110,11 +105,32 @@ function renderGrid() {
       slot.querySelectorAll(".mode").forEach(btn => {
         btn.addEventListener("click", e => {
           e.preventDefault();
+          e.stopPropagation();
 
           const mode = btn.dataset.m;
-          slotsState[key][mode] = !slotsState[key][mode];
 
-          btn.classList.toggle("on", slotsState[key][mode]);
+          /* exclusividad presencial */
+          if (mode === "viladecans") {
+            slotsState[key].viladecans = !slotsState[key].viladecans;
+            if (slotsState[key].viladecans) {
+              slotsState[key].badalona = false;
+            }
+          }
+          else if (mode === "badalona") {
+            slotsState[key].badalona = !slotsState[key].badalona;
+            if (slotsState[key].badalona) {
+              slotsState[key].viladecans = false;
+            }
+          }
+          else {
+            slotsState[key].online = !slotsState[key].online;
+          }
+
+          /* refresco visual */
+          slot.querySelectorAll(".mode").forEach(b => {
+            const m = b.dataset.m;
+            b.classList.toggle("on", slotsState[key][m]);
+          });
 
           if (
             slotsState[key].online ||
@@ -140,6 +156,9 @@ const snap = await getDoc(docRef);
 if (snap.exists()) {
   Object.assign(slotsState, snap.data().slots || {});
 }
+
+/* normaliza todo antes de pintar */
+Object.keys(slotsState).forEach(normalizeSlot);
 
 renderGrid();
 
