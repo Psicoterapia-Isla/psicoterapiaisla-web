@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<title>Facturas | Psicoterapia Isla</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+<link rel="stylesheet" href="assets/css/app.css">
+
+<style>
+.facturas-wrapper {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+.facturas-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+  font-size: 0.9rem;
+}
+
+.facturas-table th,
+.facturas-table td {
+  padding: 0.6rem;
+  border-bottom: 1px solid #e5e7eb;
+  text-align: left;
+}
+
+.facturas-table th {
+  background: #f8fafc;
+  font-weight: 600;
+}
+
+.status {
+  font-size: 0.75rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 6px;
+  display: inline-block;
+}
+
+.status-issued {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+.status-paid {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.btn-link {
+  background: none;
+  border: none;
+  color: #1f6b4e;
+  cursor: pointer;
+  text-decoration: underline;
+  font-size: 0.85rem;
+}
+</style>
+</head>
+
+<body class="app-body">
+
+<header class="app-menu"></header>
+
+<main class="facturas-wrapper">
+
+  <h1>Facturas</h1>
+  <p>Listado de facturas emitidas</p>
+
+  <table class="facturas-table">
+    <thead>
+      <tr>
+        <th>Nº factura</th>
+        <th>Paciente</th>
+        <th>Fecha</th>
+        <th>Importe</th>
+        <th>Estado</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody id="facturasBody">
+      <tr>
+        <td colspan="6">Cargando facturas…</td>
+      </tr>
+    </tbody>
+  </table>
+
+</main>
+
+<script type="module">
+import { requireAuth } from "./assets/js/auth.js";
+import { loadMenu } from "./assets/js/menu.js";
+import { auth, db } from "./assets/js/firebase.js";
+
+import {
+  collection,
+  getDocs,
+  query,
+  where,
+  orderBy
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+import {
+  getFunctions,
+  httpsCallable
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-functions.js";
+
+await requireAuth();
+await loadMenu();
+
+const user = auth.currentUser;
+const tbody = document.getElementById("facturasBody");
+
+const functions = getFunctions();
+const generateInvoicePdf =
+  httpsCallable(functions, "generateInvoicePdf");
+
+/* ===== CARGAR FACTURAS ===== */
+const snap = await getDocs(query(
+  collection(db, "invoices"),
+  where("therapistId", "==", user.uid),
+  orderBy("createdAt", "desc")
+));
+
+tbody.innerHTML = "";
+
+if (snap.empty) {
+  tbody.innerHTML = `
+    <tr>
+      <td colspan="6">No hay facturas todavía.</td>
+    </tr>`;
+}
+
+/* ===== RENDER ===== */
+snap.forEach(docSnap => {
+  const f = docSnap.data();
+  const tr = document.createElement("tr");
+
+  const date =
+    f.issuedAt?.toDate
+      ? f.issuedAt.toDate().toLocaleDateString()
+      : "—";
+
+  tr.innerHTML = `
+    <td>${f.invoiceNumber || "—"}</td>
+    <td>${f.patientName || f.patientId}</td>
+    <td>${date}</td>
+    <td>${f.amount} €</td>
+    <td>
+      ${
+        f.payment?.paid
+          ? `<span class="status status-paid">Pagada</span>`
+          : `<span class="status status-issued">Emitida</span>`
+      }
+    </td>
+    <td>
+      <button class="btn-link"
+        data-id="${docSnap.id}">
+        Descargar PDF
+      </button>
+    </td>
+  `;
+
+  tr.querySelector("button").onclick = async () => {
+    const res = await generateInvoicePdf({
+      invoiceId: docSnap.id
+    });
+    if (res.data?.url) {
+      window.open(res.data.url, "_blank");
+    }
+  };
+
+  tbody.appendChild(tr);
+});
+</script>
+
+</body>
+</html>
