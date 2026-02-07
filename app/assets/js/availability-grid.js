@@ -47,10 +47,12 @@ const HOURS = Array.from({ length: 12 }, (_, i) => i + 9); // 9–21
 const slotsState = {};
 
 /* =========================
-   SEMANA (CONTROLADA)
+   SEMANA (CONTROLADA POR HTML)
 ========================= */
 if (!window.__availabilityWeekStart) {
-  throw new Error("availability-grid.js → semana no definida (__availabilityWeekStart)");
+  throw new Error(
+    "availability-grid.js → semana no definida (__availabilityWeekStart)"
+  );
 }
 
 const weekKey = window.__availabilityWeekStart;
@@ -110,9 +112,17 @@ function renderGrid() {
       }
 
       slot.innerHTML = `
-        <button type="button" class="mode ${data.online ? "on" : ""}" data-m="online">Online</button>
-        <button type="button" class="mode ${data.viladecans ? "on" : ""}" data-m="viladecans">Vila</button>
-        <button type="button" class="mode ${data.badalona ? "on" : ""}" data-m="badalona">Bada</button>
+        <button type="button"
+          class="mode ${data.online ? "on" : ""}"
+          data-m="online">Online</button>
+
+        <button type="button"
+          class="mode ${data.viladecans ? "on" : ""}"
+          data-m="viladecans">Vila</button>
+
+        <button type="button"
+          class="mode ${data.badalona ? "on" : ""}"
+          data-m="badalona">Bada</button>
       `;
 
       slot.querySelectorAll(".mode").forEach(btn => {
@@ -122,7 +132,7 @@ function renderGrid() {
 
           const mode = btn.dataset.m;
 
-          // exclusividad presencial
+          /* exclusividad presencial */
           if (mode === "viladecans") {
             data.viladecans = !data.viladecans;
             if (data.viladecans) data.badalona = false;
@@ -135,7 +145,7 @@ function renderGrid() {
             data.online = !data.online;
           }
 
-          // refresco visual
+          /* refresco visual */
           slot.querySelectorAll(".mode").forEach(b => {
             const m = b.dataset.m;
             b.classList.toggle("on", data[m]);
@@ -163,7 +173,7 @@ if (snap.exists()) {
   Object.assign(slotsState, savedSlots);
 }
 
-/* normalización completa */
+/* normalización total */
 Object.keys(slotsState).forEach(normalizeSlot);
 
 /* render inicial */
