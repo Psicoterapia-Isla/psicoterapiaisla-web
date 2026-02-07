@@ -31,6 +31,7 @@
 <header class="app-menu"></header>
 
 <main class="agenda-wrapper">
+
   <div class="day-header">
     <div class="day-left">
       <div class="day-circle" id="dayNumber"></div>
@@ -48,27 +49,40 @@
 <!-- ================= MODAL GESTIÓN ================= -->
 <div id="appointmentModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:999;">
   <div style="background:#fff; max-width:420px; margin:10vh auto; padding:1rem; border-radius:14px;">
+
     <h3 id="amPatient"></h3>
     <p id="amDateTime"></p>
     <p id="amModality"></p>
 
-    <label><input type="checkbox" id="amCompleted"> Sesión realizada</label><br>
-    <label><input type="checkbox" id="amIssued" disabled> Factura emitida</label><br>
-    <label><input type="checkbox" id="amPaid"> Factura pagada</label><br><br>
+    <label>
+      <input type="checkbox" id="amCompleted">
+      Sesión realizada
+    </label><br><br>
 
     <label>Importe (€)</label>
     <input id="amAmount" type="number" value="60" min="0"><br>
 
     <label>Método de pago</label>
     <select id="amPaymentMethod">
+      <option value="">—</option>
       <option value="efectivo">Efectivo</option>
       <option value="tarjeta">Tarjeta</option>
       <option value="bizum">Bizum</option>
       <option value="transferencia">Transferencia</option>
     </select><br><br>
 
-    <button id="amInvoiceBtn" class="btn-primary">Crear factura</button>
-    <button id="amSaveBtn" class="btn-primary">Guardar cambios</button>
+    <label>
+      <input type="checkbox" id="amPaid">
+      Pagada
+    </label><br>
+
+    <label>
+      <input type="checkbox" id="amIssued" disabled>
+      Factura emitida
+    </label><br><br>
+
+    <button id="amInvoiceBtn" class="btn-primary">Emitir factura</button>
+    <button id="amSaveBtn" class="btn-primary">Guardar</button>
     <button onclick="closeAppointmentModal()">Cerrar</button>
   </div>
 </div>
@@ -119,13 +133,13 @@ import {
 } from "./assets/js/appointment-manager.js";
 
 import {
-  collection, getDocs, query, where, orderBy, Timestamp
+  collection, getDocs, query, where, orderBy, Timestamp, doc, getDoc
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 await requireAuth();
 await loadMenu();
 
-/* FECHA */
+/* ===== FECHA ===== */
 const dateISO = new URLSearchParams(location.search).get("date")
   || new Date().toISOString().split("T")[0];
 
@@ -139,23 +153,26 @@ dayMonth.textContent = baseDate.toLocaleDateString("es-ES",{month:"long",year:"n
 const therapistId = auth.currentUser.uid;
 const agendaList = document.getElementById("agendaList");
 
-/* DATOS */
-const snap = await getDocs(query(
-  collection(db,"appointments"),
-  where("therapistId","==",therapistId),
-  where("start",">=",Timestamp.fromDate(baseDate)),
-  where("start","<",Timestamp.fromDate(new Date(baseDate.getTime()+86400000))),
-  orderBy("start")
-));
-
 let currentAppointment = null;
+let currentInvoice = null;
 
 window.closeAppointmentModal = () =>
   appointmentModal.style.display="none";
 
-/* ABRIR MODAL */
-function openAppointmentModal(app){
+/* ===== CARGAR FACTURA ===== */
+async function loadInvoice(appointmentId){
+  const snap = await getDocs(query(
+    collection(db,"invoices"),
+    where("appointmentId","==",appointmentId)
+  ));
+  return snap.empty ? null : { ...snap.docs[0].data(), id:snap.docs[0].id };
+}
+
+/* ===== MODAL ===== */
+async function openAppointmentModal(app){
   currentAppointment = app;
+  currentInvoice = await loadInvoice(app.id);
+
   const s = app.start.toDate();
   const e = app.end.toDate();
 
@@ -164,46 +181,53 @@ function openAppointmentModal(app){
   amModality.textContent = `Modalidad: ${app.modality}`;
 
   amCompleted.checked = app.status === "completed";
-  amIssued.checked = !!app.invoiceId;
-  amPaid.checked = false;
 
-  amAmount.value = 60;
-  amPaymentMethod.value = "efectivo";
+  if(currentInvoice){
+    amIssued.checked = currentInvoice.issued === true;
+    amPaid.checked = currentInvoice.paid === true;
+    amAmount.value = currentInvoice.amount;
+    amPaymentMethod.value = currentInvoice.payment?.method || "";
+  } else {
+    amIssued.checked = false;
+    amPaid.checked = false;
+    amAmount.value = 60;
+    amPaymentMethod.value = "";
+  }
 
-  appointmentModal.style.display = "block";
+  appointmentModal.style.display="block";
 }
 
-/* GUARDAR */
+/* ===== GUARDAR ===== */
 amSaveBtn.onclick = async () => {
-  if (amCompleted.checked) {
+
+  if(amCompleted.checked && currentAppointment.status!=="completed"){
     await markAppointmentCompleted(currentAppointment);
   }
 
-  if (amPaid.checked && currentAppointment.invoiceId) {
-    await markInvoicePaid(
-      currentAppointment.invoiceId,
-      {
-        paymentMethod: amPaymentMethod.value,
-        amountPaid: amAmount.value
-      }
-    );
+  if(amPaid.checked && currentInvoice){
+    await markInvoicePaid(currentInvoice.id, amPaymentMethod.value);
   }
 
   location.reload();
 };
 
-/* CREAR FACTURA */
+/* ===== FACTURA ===== */
 amInvoiceBtn.onclick = async () => {
-  if (!currentAppointment.invoiceId) {
-    await invoiceAppointment(
-      currentAppointment,
-      amAmount.value
-    );
+  if(!currentInvoice){
+    await invoiceAppointment(currentAppointment, Number(amAmount.value));
     location.reload();
   }
 };
 
-/* RENDER */
+/* ===== RENDER ===== */
+const snap = await getDocs(query(
+  collection(db,"appointments"),
+  where("therapistId","==",therapistId),
+  where("start",">=",Timestamp.fromDate(baseDate)),
+  where("start","<",Timestamp.fromDate(new Date(baseDate.getTime()+86400000))),
+  orderBy("start")
+));
+
 const byHour = {};
 snap.forEach(d=>{
   byHour[d.data().start.toDate().getHours()] = {...d.data(), id:d.id};
@@ -215,9 +239,12 @@ for(let h=9; h<21; h++){
   if(byHour[h]){
     const app = byHour[h];
     slot.className="slot slot-green";
-    slot.innerHTML=`<div class="slot-time">${h}:00</div>
-      <div><strong>${app.patientName}</strong><br>
-      <span class="slot-status">${app.modality}</span></div>`;
+    slot.innerHTML=`
+      <div class="slot-time">${h}:00</div>
+      <div>
+        <strong>${app.patientName}</strong><br>
+        <span class="slot-status">${app.modality}</span>
+      </div>`;
     slot.onclick=()=>openAppointmentModal(app);
   } else {
     slot.className="slot slot-grey";
