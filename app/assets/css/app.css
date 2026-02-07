@@ -503,7 +503,24 @@ textarea {
 .availability-slot.unavailable {
   background: #c56a7b; /* rojo */
 }
+.slot {
+  display:flex;
+  gap:4px;
+  justify-content:center;
+}
 
+.slot .mode {
+  flex:1;
+  padding:6px;
+  border-radius:6px;
+  border:none;
+  font-size:.7rem;
+}
+
+.slot .mode.on {
+  background:#1f6b4e;
+  color:#fff;
+}
 /* feedback táctil */
 .availability-slot:active {
   transform: scale(0.97);
