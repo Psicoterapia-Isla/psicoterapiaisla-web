@@ -1,4 +1,4 @@
-// assets/js/appointment-manager.js
+// app/assets/js/appointment-manager.js
 
 import { db } from "./firebase.js";
 import {
@@ -13,51 +13,56 @@ import {
    MARCAR SESIÓN REALIZADA
 ========================= */
 export async function markAppointmentCompleted(appointment) {
-  if (!appointment?.id) throw new Error("Cita inválida");
-
-  await updateDoc(doc(db, "appointments", appointment.id), {
-    status: "completed",
-    completedAt: serverTimestamp()
-  });
+  await updateDoc(
+    doc(db, "appointments", appointment.id),
+    {
+      status: "completed",
+      completedAt: serverTimestamp()
+    }
+  );
 }
 
 /* =========================
-   CREAR FACTURA DESDE CITA
+   CREAR FACTURA
 ========================= */
 export async function invoiceAppointment(appointment, amount = 60) {
-  if (!appointment?.id) throw new Error("Cita inválida");
 
+  // 1️⃣ crear factura
   const invoiceRef = await addDoc(collection(db, "invoices"), {
     appointmentId: appointment.id,
-    therapistId: appointment.therapistId,
     patientId: appointment.patientId,
+    therapistId: appointment.therapistId,
 
     concept: appointment.service || "Sesión de terapia",
     amount,
 
-    status: "draft",
-    issued: false,
+    status: "issued",   // issued | paid
+    issued: true,
     paid: false,
 
     createdAt: serverTimestamp()
   });
 
-  await updateDoc(doc(db, "appointments", appointment.id), {
-    invoiceId: invoiceRef.id,
-    invoicedAt: serverTimestamp()
-  });
-
-  return invoiceRef.id;
+  // 2️⃣ enlazar cita con factura
+  await updateDoc(
+    doc(db, "appointments", appointment.id),
+    {
+      invoiceId: invoiceRef.id,
+      invoiceIssued: true
+    }
+  );
 }
 
 /* =========================
    MARCAR FACTURA PAGADA
 ========================= */
 export async function markInvoicePaid(invoiceId) {
-  if (!invoiceId) throw new Error("Factura inválida");
-
-  await updateDoc(doc(db, "invoices", invoiceId), {
-    paid: true,
-    paidAt: serverTimestamp()
-  });
+  await updateDoc(
+    doc(db, "invoices", invoiceId),
+    {
+      paid: true,
+      status: "paid",
+      paidAt: serverTimestamp()
+    }
+  );
 }
