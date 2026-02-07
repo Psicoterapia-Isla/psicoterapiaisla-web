@@ -14,15 +14,22 @@ import {
 await requireAuth();
 
 const user = auth.currentUser;
-if (!user) throw new Error("Usuario no autenticado");
+if (!user) {
+  throw new Error("Usuario no autenticado");
+}
 
 const therapistId = user.uid;
 
 /* =========================
-   DOM
+   DOM (DEFENSIVO)
 ========================= */
 const grid = document.getElementById("availabilityGrid");
 const saveBtn = document.getElementById("saveAvailability");
+
+if (!grid || !saveBtn) {
+  console.warn("availability-grid.js → DOM incompleto");
+  return;
+}
 
 /* =========================
    CONFIG
@@ -40,10 +47,10 @@ const HOURS = Array.from({ length: 12 }, (_, i) => i + 9); // 9–21
 const slotsState = {};
 
 /* =========================
-   SEMANA (VIENE DEL HTML)
+   SEMANA (CONTROLADA)
 ========================= */
 if (!window.__availabilityWeekStart) {
-  throw new Error("Semana no definida");
+  throw new Error("availability-grid.js → semana no definida (__availabilityWeekStart)");
 }
 
 const weekKey = window.__availabilityWeekStart;
@@ -53,7 +60,14 @@ const docRef = doc(db, "availability", `${therapistId}_${weekKey}`);
    HELPERS
 ========================= */
 function normalizeSlot(key) {
-  slotsState[key] ??= {};
+  if (!slotsState[key]) {
+    slotsState[key] = {
+      online: false,
+      viladecans: false,
+      badalona: false
+    };
+  }
+
   slotsState[key].online = !!slotsState[key].online;
   slotsState[key].viladecans = !!slotsState[key].viladecans;
   slotsState[key].badalona = !!slotsState[key].badalona;
@@ -87,19 +101,18 @@ function renderGrid() {
       const key = `${day}_${hour}`;
       normalizeSlot(key);
 
+      const data = slotsState[key];
       const slot = document.createElement("div");
       slot.className = "slot";
-
-      const data = slotsState[key];
 
       if (data.online || data.viladecans || data.badalona) {
         slot.classList.add("available");
       }
 
       slot.innerHTML = `
-        <button class="mode ${data.online ? "on" : ""}" data-m="online">Online</button>
-        <button class="mode ${data.viladecans ? "on" : ""}" data-m="viladecans">Vila</button>
-        <button class="mode ${data.badalona ? "on" : ""}" data-m="badalona">Bada</button>
+        <button type="button" class="mode ${data.online ? "on" : ""}" data-m="online">Online</button>
+        <button type="button" class="mode ${data.viladecans ? "on" : ""}" data-m="viladecans">Vila</button>
+        <button type="button" class="mode ${data.badalona ? "on" : ""}" data-m="badalona">Bada</button>
       `;
 
       slot.querySelectorAll(".mode").forEach(btn => {
@@ -109,7 +122,7 @@ function renderGrid() {
 
           const mode = btn.dataset.m;
 
-          /* exclusividad presencial */
+          // exclusividad presencial
           if (mode === "viladecans") {
             data.viladecans = !data.viladecans;
             if (data.viladecans) data.badalona = false;
@@ -122,7 +135,7 @@ function renderGrid() {
             data.online = !data.online;
           }
 
-          /* refresco visual */
+          // refresco visual
           slot.querySelectorAll(".mode").forEach(b => {
             const m = b.dataset.m;
             b.classList.toggle("on", data[m]);
@@ -146,12 +159,14 @@ function renderGrid() {
 ========================= */
 const snap = await getDoc(docRef);
 if (snap.exists()) {
-  Object.assign(slotsState, snap.data().slots || {});
+  const savedSlots = snap.data().slots || {};
+  Object.assign(slotsState, savedSlots);
 }
 
-/* normaliza todo */
+/* normalización completa */
 Object.keys(slotsState).forEach(normalizeSlot);
 
+/* render inicial */
 renderGrid();
 
 /* =========================
