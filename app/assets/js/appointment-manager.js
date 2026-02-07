@@ -1,5 +1,3 @@
-// app/assets/js/appointment-manager.js
-
 import { db } from "./firebase.js";
 import {
   doc,
@@ -12,9 +10,10 @@ import {
 /* =========================
    MARCAR SESIÓN REALIZADA
 ========================= */
-export async function markAppointmentCompleted(appointment) {
+export async function markAppointmentCompleted(app) {
+
   await updateDoc(
-    doc(db, "appointments", appointment.id),
+    doc(db,"appointments",app.id),
     {
       status: "completed",
       completedAt: serverTimestamp()
@@ -25,44 +24,42 @@ export async function markAppointmentCompleted(appointment) {
 /* =========================
    CREAR FACTURA
 ========================= */
-export async function invoiceAppointment(appointment, amount = 60) {
+export async function invoiceAppointment(app, amount = 60) {
 
-  // 1️⃣ crear factura
-  const invoiceRef = await addDoc(collection(db, "invoices"), {
-    appointmentId: appointment.id,
-    patientId: appointment.patientId,
-    therapistId: appointment.therapistId,
-
-    concept: appointment.service || "Sesión de terapia",
-    amount,
-
-    status: "issued",   // issued | paid
-    issued: true,
-    paid: false,
-
-    createdAt: serverTimestamp()
-  });
-
-  // 2️⃣ enlazar cita con factura
-  await updateDoc(
-    doc(db, "appointments", appointment.id),
+  const invoiceRef = await addDoc(
+    collection(db,"invoices"),
     {
-      invoiceId: invoiceRef.id,
-      invoiceIssued: true
+      appointmentId: app.id,
+      therapistId: app.therapistId,
+      patientId: app.patientId,
+
+      amount,
+      concept: app.service || "Sesión de terapia",
+
+      issued: false,
+      paid: false,
+
+      createdAt: serverTimestamp()
     }
   );
+
+  await updateDoc(
+    doc(db,"appointments",app.id),
+    {
+      invoiceId: invoiceRef.id
+    }
+  );
+
+  return invoiceRef.id;
 }
 
 /* =========================
-   MARCAR FACTURA PAGADA
+   ACTUALIZAR ESTADO FACTURA
 ========================= */
-export async function markInvoicePaid(invoiceId) {
+export async function updateInvoiceStatus(invoiceId, data) {
+
   await updateDoc(
-    doc(db, "invoices", invoiceId),
-    {
-      paid: true,
-      status: "paid",
-      paidAt: serverTimestamp()
-    }
+    doc(db,"invoices",invoiceId),
+    data
   );
 }
