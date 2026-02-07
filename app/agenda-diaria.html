@@ -26,6 +26,7 @@
 .slot-body { flex:1; }
 .slot-green { background:#e6f4d7; }
 .slot-grey { background:#e5e7eb; color:#555; }
+.slot-status { font-size:.7rem; opacity:.7; }
 </style>
 </head>
 
@@ -48,13 +49,15 @@
   <div id="agendaList"></div>
 </main>
 
-<!-- ================= MODAL GESTIÓN CITA ================= -->
+<!-- ================= MODAL GESTIÓN ================= -->
 <div id="appointmentModal"
   style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:999;">
-  <div style="background:#fff; max-width:420px; margin:10vh auto; padding:1rem; border-radius:14px;">
+  <div style="background:#fff; max-width:420px; margin:10vh auto;
+              padding:1rem; border-radius:14px;">
 
     <h3 id="amPatient"></h3>
     <p id="amDateTime"></p>
+    <p id="amModality"></p>
 
     <label>
       <input type="checkbox" id="amCompleted">
@@ -80,10 +83,11 @@
   </div>
 </div>
 
-<!-- ================= MODAL CREAR CITA ================= -->
+<!-- ================= MODAL CREAR ================= -->
 <div id="createModal"
   style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:1000;">
-  <div style="background:#fff; max-width:420px; margin:10vh auto; padding:1rem; border-radius:14px;">
+  <div style="background:#fff; max-width:420px; margin:10vh auto;
+              padding:1rem; border-radius:14px;">
     <h3>Nueva cita</h3>
     <p id="cDateLabel"></p>
 
@@ -95,6 +99,14 @@
 
     <label>Servicio</label>
     <input id="cService" value="Visita Psicología">
+
+    <label>Modalidad / ubicación</label>
+    <select id="cModality" required>
+      <option value="">Selecciona una opción</option>
+      <option value="viladecans">Presencial · Viladecans</option>
+      <option value="badalona">Presencial · Badalona</option>
+      <option value="online">Online</option>
+    </select>
 
     <label>Hora inicio</label>
     <input id="cStart" type="time">
@@ -113,7 +125,6 @@
 import { requireAuth } from "./assets/js/auth.js";
 import { loadMenu } from "./assets/js/menu.js";
 import { auth, db } from "./assets/js/firebase.js";
-
 import {
   markAppointmentCompleted,
   invoiceAppointment,
@@ -121,7 +132,7 @@ import {
 } from "./assets/js/appointment-manager.js";
 
 import {
-  collection, getDocs, query, where, orderBy, Timestamp
+  collection, getDocs, query, where, orderBy, Timestamp, doc, getDoc
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 await requireAuth();
@@ -142,12 +153,33 @@ dayMonth.textContent = baseDate.toLocaleDateString("es-ES",{month:"long",year:"n
 const therapistId = auth.currentUser.uid;
 const agendaList = document.getElementById("agendaList");
 
+/* ===== AUTOCOMPLETE PACIENTE ===== */
+cPatientPhone.onblur = async () => {
+  const phone = cPatientPhone.value.trim();
+  if (!/^\d{9}$/.test(phone)) return;
+
+  let snap = await getDoc(doc(db,"patients",phone));
+  if (!snap.exists()) {
+    snap = await getDoc(doc(db,"patients_normalized",phone));
+  }
+
+  if (snap.exists()) {
+    const d = snap.data();
+    cPatientName.value =
+      d.fullName || `${d.nombre || ""} ${d.apellidos || ""}`.trim();
+    cPatientName.disabled = true;
+  } else {
+    cPatientName.disabled = false;
+  }
+};
+
 /* ===== NUEVA CITA ===== */
 btnNew.onclick = () => {
   cDateLabel.textContent = baseDate.toLocaleDateString("es-ES");
   cPatientPhone.value="";
   cPatientName.value="";
   cPatientName.disabled=false;
+  cModality.value="";
   createModal.style.display="block";
 };
 
@@ -168,11 +200,12 @@ window.closeAppointmentModal = () =>
 
 function openAppointmentModal(app){
   currentAppointment = app;
-
   const s=app.start.toDate(), e=app.end.toDate();
+
   amPatient.textContent = app.patientName;
   amDateTime.textContent =
     `${s.getHours().toString().padStart(2,"0")}:00 – ${e.getHours().toString().padStart(2,"0")}:00`;
+  amModality.textContent = `Modalidad: ${app.modality}`;
 
   amCompleted.checked = app.status==="completed";
   amIssued.checked = !!app.invoiceId;
@@ -220,7 +253,8 @@ for(let h=9;h<21;h++){
       <div class="slot-time">${h}:00</div>
       <div class="slot-body">
         <strong>${app.patientName}</strong><br>
-        ${app.service}
+        ${app.service}<br>
+        <span class="slot-status">${app.modality}</span>
       </div>`;
     slot.onclick=()=>openAppointmentModal(app);
   } else {
