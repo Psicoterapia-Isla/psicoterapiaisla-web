@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<title>Factura | Psicoterapia Isla</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+<link rel="stylesheet" href="assets/css/app.css">
+
+<style>
+.invoice-wrapper {
+  max-width: 800px;
+  margin: 2rem auto;
+  padding: 2rem;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0,0,0,.05);
+}
+
+.invoice-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 2rem;
+}
+
+.invoice-header h1 {
+  margin: 0;
+}
+
+.invoice-meta {
+  text-align: right;
+  font-size: 0.9rem;
+  color: #555;
+}
+
+.invoice-section {
+  margin-bottom: 1.5rem;
+}
+
+.invoice-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+}
+
+.invoice-table th,
+.invoice-table td {
+  border-bottom: 1px solid #e5e7eb;
+  padding: 0.75rem;
+  text-align: left;
+}
+
+.invoice-table th {
+  background: #f9fafb;
+  font-size: 0.85rem;
+}
+
+.invoice-total {
+  text-align: right;
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-top: 1rem;
+}
+
+.invoice-footer {
+  margin-top: 2rem;
+  font-size: 0.8rem;
+  color: #555;
+}
+.badge {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+}
+.badge-green { background:#e6f4d7; }
+.badge-blue  { background:#e6f0ff; }
+.badge-grey  { background:#e5e7eb; }
+</style>
+</head>
+
+<body class="app-body">
+
+<header class="app-menu"></header>
+
+<main class="invoice-wrapper">
+
+  <div class="invoice-header">
+    <div>
+      <h1>Factura</h1>
+      <div id="invoiceNumber"></div>
+    </div>
+    <div class="invoice-meta">
+      <div><strong>Fecha emisión</strong></div>
+      <div id="invoiceDate"></div>
+    </div>
+  </div>
+
+  <div class="invoice-section">
+    <strong>Emisor</strong><br>
+    Psicoterapia Isla<br>
+    Psicóloga General Sanitaria<br>
+    CIF/NIF: ___________<br>
+  </div>
+
+  <div class="invoice-section">
+    <strong>Paciente</strong><br>
+    <span id="patientName"></span>
+  </div>
+
+  <div class="invoice-section">
+    <table class="invoice-table">
+      <thead>
+        <tr>
+          <th>Concepto</th>
+          <th>Importe</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td id="invoiceConcept"></td>
+          <td id="invoiceAmount"></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="invoice-total">
+      Total: <span id="invoiceTotal"></span> €
+    </div>
+  </div>
+
+  <div class="invoice-section">
+    <strong>Estado</strong><br>
+    <span id="invoiceStatus"></span>
+  </div>
+
+  <div class="invoice-footer">
+    <p>
+      Operación exenta de IVA conforme al Art. 20.1.3 de la Ley 37/1992 del IVA.
+    </p>
+  </div>
+
+</main>
+
+<script type="module">
+import { requireAuth } from "./assets/js/auth.js";
+import { loadMenu } from "./assets/js/menu.js";
+import { db } from "./assets/js/firebase.js";
+
+import {
+  doc,
+  getDoc
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+await requireAuth();
+await loadMenu();
+
+/* ======================
+   LOAD FACTURA
+====================== */
+const params = new URLSearchParams(location.search);
+const invoiceId = params.get("id");
+
+if (!invoiceId) {
+  alert("Factura no encontrada");
+  throw new Error("Missing invoice id");
+}
+
+const snap = await getDoc(doc(db, "invoices", invoiceId));
+if (!snap.exists()) {
+  alert("Factura no encontrada");
+  throw new Error("Invoice not found");
+}
+
+const invoice = snap.data();
+
+/* ======================
+   RENDER
+====================== */
+invoiceNumber.textContent =
+  `Factura ${invoice.invoiceNumber}`;
+
+invoiceDate.textContent =
+  invoice.issuedAt?.toDate().toLocaleDateString("es-ES") || "—";
+
+patientName.textContent =
+  invoice.patientName || invoice.patientId;
+
+invoiceConcept.textContent =
+  invoice.concept;
+
+invoiceAmount.textContent =
+  `${Number(invoice.amount).toFixed(2)} €`;
+
+invoiceTotal.textContent =
+  Number(invoice.amount).toFixed(2);
+
+let statusHTML = `<span class="badge badge-blue">Emitida</span>`;
+
+if (invoice.payment?.paid) {
+  statusHTML +=
+    ` <span class="badge badge-green">Pagada (${invoice.payment.method})</span>`;
+} else {
+  statusHTML +=
+    ` <span class="badge badge-grey">Pendiente de pago</span>`;
+}
+
+invoiceStatus.innerHTML = statusHTML;
+</script>
+
+</body>
+</html>
