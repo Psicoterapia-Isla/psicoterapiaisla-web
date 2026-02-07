@@ -31,18 +31,38 @@ const DAYS = ["mon","tue","wed","thu","fri","sat","sun"];
 const DAY_LABELS = ["L","M","X","J","V","S","D"];
 const HOURS = Array.from({ length: 12 }, (_, i) => i + 9); // 9–21
 
+/* 
+  slotsState:
+  {
+    "mon_9": { online:true, viladecans:false, badalona:false },
+    ...
+  }
+*/
 const slotsState = {};
 
 /* =========================
-   SEMANA (LUNES)
+   SEMANA (LUNES REAL)
 ========================= */
-const now = new Date();
-const monday = new Date(now);
-monday.setDate(now.getDate() - ((now.getDay() + 6) % 7));
-monday.setHours(12, 0, 0, 0);
+const today = new Date();
+const monday = new Date(today);
+monday.setDate(today.getDate() - ((today.getDay() + 6) % 7));
+monday.setHours(0,0,0,0);
 
-const weekKey = monday.toISOString().slice(0, 10);
+const weekKey = monday.toISOString().slice(0,10);
 const docRef = doc(db, "availability", `${therapistId}_${weekKey}`);
+
+/* =========================
+   HELPERS
+========================= */
+function ensureSlot(key){
+  if (!slotsState[key]) {
+    slotsState[key] = {
+      online: false,
+      viladecans: false,
+      badalona: false
+    };
+  }
+}
 
 /* =========================
    RENDER GRID
@@ -50,8 +70,10 @@ const docRef = doc(db, "availability", `${therapistId}_${weekKey}`);
 function renderGrid() {
   grid.innerHTML = "";
 
+  /* esquina */
   grid.appendChild(document.createElement("div"));
 
+  /* cabeceras */
   DAY_LABELS.forEach(label => {
     const el = document.createElement("div");
     el.className = "day-label";
@@ -59,66 +81,49 @@ function renderGrid() {
     grid.appendChild(el);
   });
 
+  /* horas */
   HOURS.forEach(hour => {
-    const label = document.createElement("div");
-    label.className = "hour-label";
-    label.textContent = `${hour}:00`;
-    grid.appendChild(label);
+    const hourLabel = document.createElement("div");
+    hourLabel.className = "hour-label";
+    hourLabel.textContent = `${hour}:00`;
+    grid.appendChild(hourLabel);
 
     DAYS.forEach(day => {
       const key = `${day}_${hour}`;
-      const slotData = slotsState[key] || {
-        online: false,
-        viladecans: false,
-        badalona: false
-      };
+      ensureSlot(key);
 
       const slot = document.createElement("div");
       slot.className = "slot";
 
-      if (slotData.online || slotData.viladecans || slotData.badalona) {
-        slot.classList.add("active");
+      const data = slotsState[key];
+      if (data.online || data.viladecans || data.badalona) {
+        slot.classList.add("available");
       }
 
+      /* BOTONES GRANDES (mobile friendly) */
       slot.innerHTML = `
-        <label>
-          <input type="checkbox" data-k="${key}" data-m="online"
-            ${slotData.online ? "checked" : ""}>
-          Online
-        </label>
-        <label>
-          <input type="checkbox" data-k="${key}" data-m="viladecans"
-            ${slotData.viladecans ? "checked" : ""}>
-          Viladecans
-        </label>
-        <label>
-          <input type="checkbox" data-k="${key}" data-m="badalona"
-            ${slotData.badalona ? "checked" : ""}>
-          Badalona
-        </label>
+        <button class="mode ${data.online ? "on":""}" data-m="online">Online</button>
+        <button class="mode ${data.viladecans ? "on":""}" data-m="viladecans">Vila</button>
+        <button class="mode ${data.badalona ? "on":""}" data-m="badalona">Bada</button>
       `;
 
-      slot.querySelectorAll("input").forEach(input => {
-        input.addEventListener("change", e => {
-          const k = e.target.dataset.k;
-          const m = e.target.dataset.m;
+      slot.querySelectorAll(".mode").forEach(btn => {
+        btn.addEventListener("click", e => {
+          e.preventDefault();
 
-          slotsState[k] ??= {
-            online: false,
-            viladecans: false,
-            badalona: false
-          };
+          const mode = btn.dataset.m;
+          slotsState[key][mode] = !slotsState[key][mode];
 
-          slotsState[k][m] = e.target.checked;
+          btn.classList.toggle("on", slotsState[key][mode]);
 
           if (
-            slotsState[k].online ||
-            slotsState[k].viladecans ||
-            slotsState[k].badalona
+            slotsState[key].online ||
+            slotsState[key].viladecans ||
+            slotsState[key].badalona
           ) {
-            slot.classList.add("active");
+            slot.classList.add("available");
           } else {
-            slot.classList.remove("active");
+            slot.classList.remove("available");
           }
         });
       });
