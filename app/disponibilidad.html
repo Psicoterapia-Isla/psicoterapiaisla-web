@@ -9,51 +9,60 @@
 
 <style>
 .availability-wrapper {
-  padding: 1rem;
-  max-width: 900px;
-  margin: 0 auto;
+  padding:1rem;
+  max-width:900px;
+  margin:0 auto;
 }
 
 .availability-grid {
-  display: grid;
-  grid-template-columns: 60px repeat(7, 1fr);
-  gap: 6px;
-  margin-top: 1rem;
+  display:grid;
+  grid-template-columns:60px repeat(7,1fr);
+  gap:6px;
+  margin-top:1rem;
 }
 
 .hour-label {
-  font-size: 0.75rem;
-  text-align: right;
-  padding-right: 6px;
-  color: #666;
+  font-size:.75rem;
+  text-align:right;
+  padding-right:6px;
+  color:#666;
 }
 
 .day-label {
-  text-align: center;
-  font-weight: 600;
+  text-align:center;
+  font-weight:600;
 }
 
 .slot {
-  height: 36px;
-  border-radius: 6px;
-  background: #e5e7eb; /* no disponible */
-  cursor: pointer;
+  height:38px;
+  border-radius:6px;
+  background:#e5e7eb;
+  cursor:pointer;
+  position:relative;
 }
 
-.slot.available {
-  background: #e6f4d7; /* disponible */
+.slot.presential { background:#c7f0d8; }
+.slot.online { background:#dbeafe; }
+.slot.both {
+  background:linear-gradient(135deg,#c7f0d8 50%,#dbeafe 50%);
+}
+
+.slot small {
+  position:absolute;
+  bottom:2px;
+  right:4px;
+  font-size:9px;
+  opacity:.6;
 }
 </style>
 </head>
 
 <body class="app-body">
-
 <header class="app-menu"></header>
 
 <main class="availability-wrapper">
-
   <h1>Disponibilidad semanal</h1>
-  <p>Marca las horas en las que estarás disponible para citas.</p>
+  <p>Define dónde trabajas y qué modalidades ofreces en cada franja.</p>
 
   <div id="availabilityGrid" class="availability-grid"></div>
 
@@ -61,10 +70,8 @@
   <button id="saveAvailability" class="btn-primary">
     Guardar disponibilidad
   </button>
-
 </main>
 
-<!-- AUTH + MENU -->
 <script type="module">
 import { requireAuth } from "./assets/js/auth.js";
 import { loadMenu } from "./assets/js/menu.js";
@@ -73,8 +80,6 @@ await requireAuth();
 await loadMenu();
 </script>
 
-<!-- GRID -->
 <script type="module" src="assets/js/availability-grid.js"></script>
-
 </body>
 </html>
