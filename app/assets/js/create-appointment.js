@@ -21,7 +21,7 @@ window.closeCreateModal = () => {
 const phoneInput = document.getElementById("cPatientPhone");
 const nameInput  = document.getElementById("cPatientName");
 
-if (phoneInput) {
+if (phoneInput && nameInput) {
   phoneInput.addEventListener("blur", async () => {
     const phone = phoneInput.value.trim();
     if (!/^\d{9}$/.test(phone)) return;
@@ -34,11 +34,11 @@ if (phoneInput) {
     if (snap.exists()) {
       const d = snap.data();
       nameInput.value =
-        d.nombre
-          ? `${d.nombre} ${d.apellidos || ""}`.trim()
-          : d.fullName || "";
+        d.fullName ||
+        `${d.nombre || ""} ${d.apellidos || ""}`.trim();
       nameInput.disabled = true;
     } else {
+      nameInput.value = "";
       nameInput.disabled = false;
     }
   });
@@ -48,25 +48,37 @@ if (phoneInput) {
    CREAR CITA
 ========================= */
 window.createAppointment = async () => {
-  const phone   = phoneInput.value.trim();
-  const name    = nameInput.value.trim();
-  const service = document.getElementById("cService").value.trim();
-  const startH  = document.getElementById("cStart").value;
-  const endH    = document.getElementById("cEnd").value;
 
+  const phone    = phoneInput.value.trim();
+  const name     = nameInput.value.trim();
+  const service  = document.getElementById("cService").value.trim();
+  const modality = document.getElementById("cModality")?.value;
+  const startH   = document.getElementById("cStart").value;
+  const endH     = document.getElementById("cEnd").value;
+
+  /* ===== VALIDACIONES ===== */
   if (!/^\d{9}$/.test(phone)) {
     alert("Teléfono obligatorio (9 dígitos)");
     return;
   }
 
+  if (!modality) {
+    alert("Debes seleccionar modalidad / ubicación");
+    return;
+  }
+
   if (!startH || !endH) {
-    alert("Horas obligatorias");
+    alert("Hora de inicio y fin obligatorias");
     return;
   }
 
   const user = auth.currentUser;
-  if (!user) return;
+  if (!user) {
+    alert("Usuario no autenticado");
+    return;
+  }
 
+  /* ===== FECHA ===== */
   const baseDate = new Date(window.__selectedDateISO);
   baseDate.setHours(0,0,0,0);
 
@@ -79,15 +91,17 @@ window.createAppointment = async () => {
   const end = new Date(baseDate);
   end.setHours(eh, em, 0, 0);
 
+  /* ===== GUARDAR ===== */
   await addDoc(collection(db, "appointments"), {
     therapistId: user.uid,
-    patientId: phone,
-    patientName: name,
-    service,
-    modality: document.getElementById("cModality")?.value || "presencial",
+    patientId: phone,                 // UID paciente = teléfono
+    patientName: name || "Sin nombre",
+    service: service || "Sesión",
+    modality,                          // viladecans | badalona | online
     start: Timestamp.fromDate(start),
     end: Timestamp.fromDate(end),
     status: "scheduled",
+    createdBy: user.uid,
     createdAt: serverTimestamp()
   });
 
