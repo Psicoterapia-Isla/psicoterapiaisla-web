@@ -37,6 +37,8 @@
   cursor:pointer;
   display:flex;
   align-items:center;
+  justify-content:center;
+  text-align:center;
 }
 
 .available { background:#e6f4d7; }
@@ -57,6 +59,7 @@
   style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:1000;">
   <div style="background:#fff; max-width:420px; margin:10vh auto;
               padding:1rem; border-radius:14px;">
+
     <h3>Nueva cita</h3>
     <p id="cDateLabel"></p>
 
@@ -131,14 +134,15 @@ import { loadMenu } from "./assets/js/menu.js";
 import { auth, db } from "./assets/js/firebase.js";
 
 import {
-  doc, updateDoc,
-  collection, getDocs, query, where, Timestamp, getDoc
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+  markAppointmentCompleted,
+  invoiceAppointment,
+  markInvoiceIssued,
+  markInvoicePaid
+} from "./assets/js/appointment-manager.js";
 
 import {
-  invoiceAppointment,
-  updateInvoiceStatus
-} from "./assets/js/appointment-manager.js";
+  collection, getDocs, query, where, Timestamp, doc, getDoc
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 await requireAuth();
 await loadMenu();
@@ -204,7 +208,7 @@ for(let hour=START_HOUR; hour<END_HOUR; hour++){
   }
 }
 
-/* ===== AUTOCOMPLETE ===== */
+/* ===== AUTOCOMPLETE PACIENTE ===== */
 cPatientPhone.onblur = async () => {
   const phone = cPatientPhone.value.trim();
   if (!/^\d{9}$/.test(phone)) return;
@@ -245,7 +249,7 @@ snap.forEach(docSnap=>{
   if(!cell)return;
 
   cell.className=`week-slot ${a.status==="completed"?"done":"reserved"}`;
-  cell.textContent=a.patientName||"";
+  cell.textContent=a.patientName || "";
   cell.onclick=()=>openAppointmentModal({...a,id:docSnap.id});
 });
 
@@ -256,7 +260,9 @@ window.closeAppointmentModal=()=>appointmentModal.style.display="none";
 
 function openAppointmentModal(app){
   currentAppointment=app;
-  const s=app.start.toDate(), e=app.end.toDate();
+
+  const s=app.start.toDate();
+  const e=app.end.toDate();
 
   amPatient.textContent=app.patientName;
   amDateTime.textContent=
@@ -264,8 +270,10 @@ function openAppointmentModal(app){
   amModality.textContent=`Modalidad: ${app.modality}`;
 
   amCompleted.checked=app.status==="completed";
-  amIssued.checked=!!app.invoiceId;
-  amPaid.checked=app.paid===true;
+  amIssued.checked=app.invoiceIssued===true;
+  amPaid.checked=app.invoicePaid===true;
+
+  amIssued.disabled=!app.invoiceId;
   amPaid.disabled=!app.invoiceId;
 
   appointmentModal.style.display="block";
@@ -273,28 +281,35 @@ function openAppointmentModal(app){
 
 /* ===== GUARDAR ===== */
 amSaveBtn.onclick=async()=>{
-  await updateDoc(
-    doc(db,"appointments",currentAppointment.id),
-    {
-      status: amCompleted.checked ? "completed" : "scheduled",
-      paid: amPaid.checked===true
-    }
-  );
-  appointmentModal.style.display="none";
+  if(!currentAppointment) return;
+
+  if(amCompleted.checked && currentAppointment.status!=="completed"){
+    await markAppointmentCompleted(currentAppointment);
+  }
+
+  if(amIssued.checked && !currentAppointment.invoiceIssued){
+    await markInvoiceIssued(
+      currentAppointment.invoiceId,
+      currentAppointment.id
+    );
+  }
+
+  if(amPaid.checked && !currentAppointment.invoicePaid){
+    await markInvoicePaid(
+      currentAppointment.invoiceId,
+      currentAppointment.id
+    );
+  }
+
+  closeAppointmentModal();
   location.reload();
 };
 
 /* ===== FACTURA ===== */
 amInvoiceBtn.onclick=async()=>{
   if(!currentAppointment.invoiceId){
-    await invoiceAppointment({...currentAppointment,id:currentAppointment.id},60);
+    await invoiceAppointment(currentAppointment,60);
     location.reload();
-  }
-};
-
-amPaid.onchange=async()=>{
-  if(amPaid.checked && currentAppointment.invoiceId){
-    await updateInvoiceStatus(currentAppointment.invoiceId,{paid:true});
   }
 };
 
