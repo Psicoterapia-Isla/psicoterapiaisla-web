@@ -4,8 +4,9 @@ import {
   collection,
   serverTimestamp,
   Timestamp,
-  doc,
-  getDoc
+  query,
+  where,
+  getDocs
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 /* =========================
@@ -16,26 +17,45 @@ window.closeCreateModal = () => {
 };
 
 /* =========================
-   AUTOCOMPLETE PACIENTE
+   AUTOCOMPLETE PACIENTE (REAL)
 ========================= */
 const phoneInput = document.getElementById("cPatientPhone");
 const nameInput  = document.getElementById("cPatientName");
 
-if (phoneInput && nameInput) {
-  phoneInput.addEventListener("blur", async () => {
-    const phone = phoneInput.value.trim();
-    if (!/^\d{9}$/.test(phone)) return;
+let resolvedPatient = null;
 
-    let snap = await getDoc(doc(db, "patients", phone));
-    if (!snap.exists()) {
-      snap = await getDoc(doc(db, "patients_normalized", phone));
+if (phoneInput && nameInput) {
+
+  phoneInput.addEventListener("input", async () => {
+    const phone = phoneInput.value.trim();
+    resolvedPatient = null;
+
+    if (!/^\d{9}$/.test(phone)) {
+      nameInput.value = "";
+      nameInput.disabled = false;
+      return;
     }
 
-    if (snap.exists()) {
-      const d = snap.data();
-      nameInput.value =
-        d.fullName ||
-        `${d.nombre || ""} ${d.apellidos || ""}`.trim();
+    const q = query(
+      collection(db, "patients_normalized"),
+      where("phone", "==", phone)
+    );
+
+    const snap = await getDocs(q);
+
+    if (!snap.empty) {
+      const docSnap = snap.docs[0];
+      const data = docSnap.data();
+
+      resolvedPatient = {
+        id: docSnap.id,
+        phone,
+        name:
+          data.fullName ||
+          `${data.nombre || ""} ${data.apellidos || ""}`.trim()
+      };
+
+      nameInput.value = resolvedPatient.name;
       nameInput.disabled = true;
     } else {
       nameInput.value = "";
@@ -78,6 +98,11 @@ window.createAppointment = async () => {
     return;
   }
 
+  if (!window.__selectedDateISO) {
+    alert("Fecha no definida");
+    return;
+  }
+
   /* ===== FECHA ===== */
   const baseDate = new Date(window.__selectedDateISO);
   baseDate.setHours(0,0,0,0);
@@ -94,10 +119,10 @@ window.createAppointment = async () => {
   /* ===== GUARDAR ===== */
   await addDoc(collection(db, "appointments"), {
     therapistId: user.uid,
-    patientId: phone,                 // UID paciente = teléfono
-    patientName: name || "Sin nombre",
+    patientId: phone,              // coherente con reglas actuales
+    patientName: resolvedPatient?.name || name || "Sin nombre",
     service: service || "Sesión",
-    modality,                          // viladecans | badalona | online
+    modality,
     start: Timestamp.fromDate(start),
     end: Timestamp.fromDate(end),
     status: "scheduled",
