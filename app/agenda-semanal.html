@@ -25,7 +25,6 @@
 .day-header {
   text-align:center;
   font-weight:600;
-  cursor:pointer;
 }
 
 .week-slot {
@@ -42,6 +41,36 @@
 .available { background:#e6f4d7; }
 .reserved  { background:#fff2cc; }
 .done      { background:#e6f0ff; }
+
+/* reutilizamos estilo modal de diaria */
+.modal {
+  display:none;
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.4);
+  z-index:999;
+}
+
+.modal-card {
+  background:#fff;
+  max-width:420px;
+  margin:8vh auto;
+  padding:1rem;
+  border-radius:14px;
+}
+
+.modal-row { margin-bottom:.75rem; }
+.modal-row.inline {
+  display:flex;
+  align-items:center;
+  gap:.5rem;
+}
+
+.modal-actions {
+  display:flex;
+  gap:.5rem;
+  justify-content:flex-end;
+}
 </style>
 </head>
 
@@ -52,26 +81,51 @@
   <div id="weekGrid" class="week-grid"></div>
 </main>
 
-<!-- ================= MODAL CITA ================= -->
-<div id="appointmentModal"
-  style="display:none; position:fixed; inset:0;
-         background:rgba(0,0,0,.4); z-index:999;">
-  <div style="background:#fff; max-width:420px;
-              margin:10vh auto; padding:1rem;
-              border-radius:14px;">
+<!-- ================= MODAL CITA (MISMO QUE DIARIA) ================= -->
+<div id="appointmentModal" class="modal">
+  <div class="modal-card">
 
     <h3 id="amPatient"></h3>
-    <p id="amDateTime"></p>
-    <p id="amModality"></p>
+    <div class="modal-row" id="amDateTime"></div>
+    <div class="modal-row" id="amModality"></div>
 
-    <button id="downloadInvoiceBtn"
-            class="btn-primary"
-            style="display:none">
-      Descargar factura
-    </button>
+    <div class="modal-row inline">
+      <input type="checkbox" id="amCompleted">
+      <label>Sesión realizada</label>
+    </div>
 
-    <hr>
-    <button onclick="closeAppointmentModal()">Cerrar</button>
+    <div class="modal-row">
+      <label>Importe (€)</label>
+      <input id="amAmount" type="number" value="60">
+    </div>
+
+    <div class="modal-row">
+      <label>Método de pago</label>
+      <select id="amPaymentMethod">
+        <option value="">—</option>
+        <option value="efectivo">Efectivo</option>
+        <option value="tarjeta">Tarjeta</option>
+        <option value="bizum">Bizum</option>
+        <option value="transferencia">Transferencia</option>
+      </select>
+    </div>
+
+    <div class="modal-row inline">
+      <input type="checkbox" id="amPaid">
+      <label>Pagada</label>
+    </div>
+
+    <div class="modal-row inline">
+      <input type="checkbox" id="amIssued" disabled>
+      <label>Factura emitida</label>
+    </div>
+
+    <div class="modal-actions">
+      <button id="amInvoiceBtn" class="btn-primary">Emitir factura</button>
+      <button id="amSaveBtn" class="btn-primary">Guardar</button>
+      <button onclick="closeAppointmentModal()">Cerrar</button>
+    </div>
+
   </div>
 </div>
 
@@ -79,6 +133,12 @@
 import { requireAuth } from "./assets/js/auth.js";
 import { loadMenu } from "./assets/js/menu.js";
 import { auth, db } from "./assets/js/firebase.js";
+
+import {
+  markAppointmentCompleted,
+  invoiceAppointment,
+  markInvoicePaid
+} from "./assets/js/appointment-manager.js";
 
 import {
   collection, getDocs, query, where, Timestamp
@@ -94,7 +154,7 @@ const START_HOUR = 9;
 const END_HOUR = 21;
 const DAYS = 7;
 
-/* ===== LUNES ===== */
+/* ===== LUNES DE LA SEMANA ===== */
 const today = new Date();
 const monday = new Date(today);
 monday.setDate(today.getDate() - ((today.getDay() + 6) % 7));
@@ -106,20 +166,18 @@ grid.appendChild(document.createElement("div"));
 for(let d=0; d<DAYS; d++){
   const day = new Date(monday);
   day.setDate(monday.getDate()+d);
-  day.setHours(12,0,0,0);
 
   const h = document.createElement("div");
   h.className="day-header";
-  h.textContent = day.toLocaleDateString("es-ES",{weekday:"short",day:"numeric"});
-  h.onclick = () =>
-    location.href = `agenda-diaria.html?date=${toISO(day)}`;
+  h.textContent =
+    day.toLocaleDateString("es-ES",{weekday:"short",day:"numeric"});
 
   grid.appendChild(h);
 }
 
 /* ===== GRID BASE ===== */
 for(let hour=START_HOUR; hour<END_HOUR; hour++){
-  const hc = document.createElement("div");
+  const hc=document.createElement("div");
   hc.className="week-hour";
   hc.textContent=`${hour}:00`;
   grid.appendChild(hc);
@@ -127,6 +185,17 @@ for(let hour=START_HOUR; hour<END_HOUR; hour++){
   for(let d=0; d<DAYS; d++){
     const cell=document.createElement("div");
     cell.className="week-slot available";
+
+    const slotDate = new Date(monday);
+    slotDate.setDate(monday.getDate()+d);
+    slotDate.setHours(hour,0,0,0);
+
+    cell.onclick = () => {
+      // crear cita desde semanal
+      window.location.href =
+        `agenda-diaria.html?date=${toISO(slotDate)}`;
+    };
+
     grid.appendChild(cell);
   }
 }
@@ -145,21 +214,11 @@ function openAppointmentModal(app){
 
   amPatient.textContent = app.patientName || "";
   amDateTime.textContent =
-    `${s.getHours()}:00 – ${e.getHours()}:00`;
-  amModality.textContent =
-    `Modalidad: ${app.modality || ""}`;
+    `${s.toLocaleDateString()} ${s.getHours()}:00 – ${e.getHours()}:00`;
+  amModality.textContent = `Modalidad: ${app.modality || ""}`;
 
-  if(app.invoiceId){
-    downloadInvoiceBtn.style.display="block";
-    downloadInvoiceBtn.onclick = () => {
-      window.open(
-        `factura.html?id=${app.invoiceId}`,
-        "_blank"
-      );
-    };
-  } else {
-    downloadInvoiceBtn.style.display="none";
-  }
+  amCompleted.checked = app.status==="completed";
+  amIssued.checked = !!app.invoiceId;
 
   appointmentModal.style.display="block";
 }
@@ -193,7 +252,6 @@ snap.forEach(docSnap=>{
 
   cell.className =
     `week-slot ${a.status==="completed"?"done":"reserved"}`;
-
   cell.textContent = a.patientName || "";
 
   cell.onclick = () =>
