@@ -28,26 +28,35 @@
 }
 
 .week-slot {
-  min-height:56px;
+  min-height:64px;
   border-radius:10px;
-  font-size:.7rem;
+  font-size:.75rem;
   padding:6px;
   display:flex;
   flex-direction:column;
   align-items:center;
   justify-content:center;
   text-align:center;
-  cursor:pointer;
 }
 
 .week-slot.disabled {
   background:#e5e7eb;
-  cursor:not-allowed;
 }
 
-.week-slot.available { background:#e6f4d7; }
-.week-slot.reserved  { background:#fff2cc; }
-.week-slot.done      { background:#e6f0ff; }
+.week-slot.available {
+  background:#e6f4d7;
+  cursor:pointer;
+}
+
+.week-slot.reserved {
+  background:#fff2cc;
+  cursor:pointer;
+}
+
+.week-slot.done {
+  background:#e6f0ff;
+  cursor:pointer;
+}
 
 .week-slot small {
   font-size:.65rem;
@@ -63,7 +72,7 @@
   <div id="weekGrid" class="week-grid"></div>
 </main>
 
-<!-- ================= MODAL CITA ================= -->
+<!-- ============ MODAL EDICIÓN CITA ============ -->
 <div id="appointmentModal"
   style="display:none; position:fixed; inset:0;
          background:rgba(0,0,0,.4); z-index:999;">
@@ -102,14 +111,8 @@
       Factura emitida
     </label><br><br>
 
-    <button id="amInvoiceBtn" class="btn-primary">
-      Emitir factura
-    </button>
-
-    <button id="amSaveBtn" class="btn-primary">
-      Guardar
-    </button>
-
+    <button id="amInvoiceBtn" class="btn-primary">Emitir factura</button>
+    <button id="amSaveBtn" class="btn-primary">Guardar</button>
     <button onclick="closeAppointmentModal()">Cerrar</button>
   </div>
 </div>
@@ -126,7 +129,8 @@ import {
 } from "./assets/js/appointment-manager.js";
 
 import {
-  collection, getDocs, query, where, Timestamp, doc, getDoc
+  collection, getDocs, query, where,
+  Timestamp, doc, getDoc
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 await requireAuth();
@@ -145,8 +149,9 @@ const monday = new Date(today);
 monday.setDate(today.getDate() - ((today.getDay() + 6) % 7));
 monday.setHours(0,0,0,0);
 
-/* ===== DISPONIBILIDAD ===== */
 const weekKey = monday.toISOString().slice(0,10);
+
+/* ===== DISPONIBILIDAD ===== */
 const availabilitySnap = await getDoc(
   doc(db,"availability",`${therapistId}_${weekKey}`)
 );
@@ -212,6 +217,11 @@ for(let hour=START_HOUR; hour<END_HOUR; hour++){
     else if(avail){
       cell.className="week-slot available";
       cell.textContent="Disponible";
+      cell.onclick = () =>
+        location.href =
+          `agenda-diaria.html?date=${toISO(
+            new Date(monday.getTime()+d*86400000)
+          )}`;
     }
     else{
       cell.className="week-slot disabled";
@@ -221,8 +231,8 @@ for(let hour=START_HOUR; hour<END_HOUR; hour++){
 }
 
 /* ===== MODAL ===== */
-let currentAppointment = null;
-let currentInvoice = null;
+let currentAppointment=null;
+let currentInvoice=null;
 
 window.closeAppointmentModal = () =>
   appointmentModal.style.display="none";
@@ -237,12 +247,11 @@ async function openAppointmentModal(app){
   amPatient.textContent = app.patientName || "";
   amDateTime.textContent =
     `${s.toLocaleDateString()} ${s.getHours()}:00 – ${e.getHours()}:00`;
-  amModality.textContent =
-    `Modalidad: ${app.modality || "—"}`;
+  amModality.textContent = `Modalidad: ${app.modality || "—"}`;
 
-  amCompleted.checked = app.status === "completed";
-  amPaid.checked = false;
+  amCompleted.checked = app.status==="completed";
   amIssued.checked = false;
+  amPaid.checked = false;
   amAmount.value = 60;
   amPaymentMethod.value = "";
 
@@ -266,14 +275,12 @@ amSaveBtn.onclick = async () => {
   if(amCompleted.checked && currentAppointment.status!=="completed"){
     await markAppointmentCompleted(currentAppointment);
   }
-
   if(amPaid.checked && currentInvoice){
     await markInvoicePaid(
       currentInvoice.id,
       amPaymentMethod.value
     );
   }
-
   location.reload();
 };
 
@@ -291,6 +298,10 @@ amInvoiceBtn.onclick = async () => {
     location.reload();
   }
 };
+
+function toISO(d){
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+}
 </script>
 </body>
 </html>
