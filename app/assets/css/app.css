@@ -521,6 +521,42 @@ textarea {
   background:#1f6b4e;
   color:#fff;
 }
+
+/* =========================
+   DISPONIBILIDAD (MOBILE FRIENDLY)
+========================= */
+
+.slot {
+  display: flex;
+  gap: 4px;
+  justify-content: center;
+  align-items: stretch;
+}
+
+.slot.available {
+  background: #e6f4d7;
+}
+
+.slot .mode {
+  flex: 1;
+  padding: 8px 4px;
+  border-radius: 6px;
+  border: none;
+  font-size: .7rem;
+  background: #e5e7eb;
+  color: #333;
+  cursor: pointer;
+}
+
+.slot .mode.on {
+  background: #1f6b4e;
+  color: #fff;
+}
+
+/* mejora interacción táctil */
+.slot .mode:active {
+  transform: scale(0.97);
+}
 /* feedback táctil */
 .availability-slot:active {
   transform: scale(0.97);
