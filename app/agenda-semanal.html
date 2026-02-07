@@ -8,32 +8,37 @@
 
 <style>
 .week-wrapper { padding:1rem; overflow-x:auto; }
+
 .week-grid {
   display:grid;
   grid-template-columns:60px repeat(7,minmax(120px,1fr));
   gap:.4rem;
 }
+
 .week-hour {
   font-size:.75rem;
   text-align:right;
   padding-right:6px;
   color:#666;
 }
+
 .day-header {
   text-align:center;
   font-weight:600;
   cursor:pointer;
 }
+
 .week-slot {
   height:44px;
   border-radius:8px;
   font-size:.7rem;
-  cursor:pointer;
   display:flex;
   align-items:center;
   justify-content:center;
   text-align:center;
+  cursor:pointer;
 }
+
 .available { background:#e6f4d7; }
 .reserved  { background:#fff2cc; }
 .done      { background:#e6f0ff; }
@@ -47,45 +52,10 @@
   <div id="weekGrid" class="week-grid"></div>
 </main>
 
-<!-- ================= MODAL GESTIÓN ================= -->
-<div id="appointmentModal"
-  style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:999;">
-  <div style="background:#fff; max-width:420px; margin:10vh auto; padding:1rem; border-radius:14px;">
-
-    <h3 id="amPatient"></h3>
-    <p id="amDateTime"></p>
-    <p id="amModality"></p>
-
-    <label><input type="checkbox" id="amCompleted"> Sesión realizada</label><br>
-    <label><input type="checkbox" id="amPaid"> Pagada</label><br><br>
-
-    <label>Importe (€)</label>
-    <input id="amAmount" type="number" value="60" min="0"><br>
-
-    <label>Método de pago</label>
-    <select id="amPaymentMethod">
-      <option value="efectivo">Efectivo</option>
-      <option value="tarjeta">Tarjeta</option>
-      <option value="bizum">Bizum</option>
-      <option value="transferencia">Transferencia</option>
-    </select><br><br>
-
-    <button id="amInvoiceBtn" class="btn-primary">Crear factura</button>
-    <button id="amSaveBtn" class="btn-primary">Guardar cambios</button>
-    <button onclick="closeAppointmentModal()">Cerrar</button>
-  </div>
-</div>
-
 <script type="module">
 import { requireAuth } from "./assets/js/auth.js";
 import { loadMenu } from "./assets/js/menu.js";
 import { auth, db } from "./assets/js/firebase.js";
-
-import {
-  markAppointmentCompleted,
-  invoiceAppointment,
-  markInvoicePaid
-} from "./assets/js/appointment-manager.js";
 
 import {
   collection, getDocs, query, where, Timestamp
@@ -101,27 +71,32 @@ const START_HOUR = 9;
 const END_HOUR = 21;
 const DAYS = 7;
 
-/* ===== LUNES ===== */
+/* ===== LUNES DE LA SEMANA ===== */
 const today = new Date();
 const monday = new Date(today);
 monday.setDate(today.getDate() - ((today.getDay() + 6) % 7));
 monday.setHours(12,0,0,0);
 
 /* ===== CABECERAS ===== */
-grid.appendChild(document.createElement("div"));
+grid.appendChild(document.createElement("div")); // esquina vacía
+
 for(let d=0; d<DAYS; d++){
   const day = new Date(monday);
   day.setDate(monday.getDate()+d);
+  day.setHours(12,0,0,0);
+
   const h = document.createElement("div");
   h.className="day-header";
-  h.textContent=day.toLocaleDateString("es-ES",{weekday:"short",day:"numeric"});
-  h.onclick=()=>location.href=`agenda-diaria.html?date=${toISO(day)}`;
+  h.textContent = day.toLocaleDateString("es-ES",{weekday:"short",day:"numeric"});
+  h.onclick = () =>
+    location.href = `agenda-diaria.html?date=${toISO(day)}`;
+
   grid.appendChild(h);
 }
 
-/* ===== GRID ===== */
+/* ===== GRID BASE ===== */
 for(let hour=START_HOUR; hour<END_HOUR; hour++){
-  const hc=document.createElement("div");
+  const hc = document.createElement("div");
   hc.className="week-hour";
   hc.textContent=`${hour}:00`;
   grid.appendChild(hc);
@@ -133,69 +108,42 @@ for(let hour=START_HOUR; hour<END_HOUR; hour++){
   }
 }
 
-/* ===== DATOS ===== */
-const start=Timestamp.fromDate(monday);
-const end=Timestamp.fromDate(new Date(monday.getTime()+7*86400000));
+/* ===== CARGA CITAS ===== */
+const start = Timestamp.fromDate(monday);
+const end = Timestamp.fromDate(new Date(monday.getTime()+7*86400000));
 
-const snap=await getDocs(query(
+const snap = await getDocs(query(
   collection(db,"appointments"),
   where("therapistId","==",therapistId),
   where("start",">=",start),
   where("start","<",end)
 ));
 
-let currentAppointment=null;
-
-window.closeAppointmentModal=()=>appointmentModal.style.display="none";
-
 snap.forEach(docSnap=>{
-  const a=docSnap.data();
-  const s=a.start.toDate();
-  const d=(s.getDay()+6)%7;
-  const h=s.getHours();
-  if(h<START_HOUR||h>=END_HOUR)return;
+  const a = docSnap.data();
+  const s = a.start.toDate();
 
-  const index=1+d+(h-START_HOUR+1)*(DAYS+1);
-  const cell=grid.children[index];
+  const dayIndex = (s.getDay()+6)%7;
+  const hour = s.getHours();
 
-  cell.className=`week-slot ${a.status==="completed"?"done":"reserved"}`;
-  cell.textContent=a.patientName||"";
+  if(hour<START_HOUR || hour>=END_HOUR) return;
 
-  cell.onclick=()=>{
-    currentAppointment={...a,id:docSnap.id};
-    amPatient.textContent=a.patientName;
-    amDateTime.textContent=`${h}:00`;
-    amModality.textContent=`Modalidad: ${a.modality}`;
-    amCompleted.checked=a.status==="completed";
-    amPaid.checked=false;
-    amAmount.value=60;
-    amPaymentMethod.value="efectivo";
-    appointmentModal.style.display="block";
-  };
+  const index =
+    1 + dayIndex + (hour-START_HOUR+1)*(DAYS+1);
+
+  const cell = grid.children[index];
+  if(!cell) return;
+
+  cell.className =
+    `week-slot ${a.status==="completed"?"done":"reserved"}`;
+
+  cell.textContent = a.patientName || "";
+
+  cell.onclick = () =>
+    location.href = `agenda-diaria.html?date=${toISO(s)}`;
 });
 
-/* ===== GUARDAR ===== */
-amSaveBtn.onclick=async()=>{
-  if(amCompleted.checked){
-    await markAppointmentCompleted(currentAppointment);
-  }
-  if(amPaid.checked && currentAppointment.invoiceId){
-    await markInvoicePaid(currentAppointment.invoiceId,{
-      amount:amAmount.value,
-      method:amPaymentMethod.value
-    });
-  }
-  location.reload();
-};
-
-/* ===== FACTURA ===== */
-amInvoiceBtn.onclick=async()=>{
-  if(!currentAppointment.invoiceId){
-    await invoiceAppointment(currentAppointment,amAmount.value);
-    location.reload();
-  }
-};
-
+/* ===== HELPERS ===== */
 function toISO(d){
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
 }
