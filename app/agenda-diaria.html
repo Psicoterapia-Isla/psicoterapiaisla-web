@@ -5,85 +5,6 @@
 <title>Agenda diaria | Psicoterapia Isla</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <link rel="stylesheet" href="assets/css/app.css">
-
-<style>
-.wrapper {
-  max-width:720px;
-  margin:0 auto;
-  padding:1.5rem;
-}
-
-.header {
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  margin-bottom:1rem;
-}
-
-.date-info {
-  display:flex;
-  gap:.75rem;
-  align-items:center;
-}
-
-.circle {
-  width:44px;
-  height:44px;
-  border-radius:50%;
-  background:#1f6b4e;
-  color:#fff;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-weight:600;
-}
-
-.nav {
-  display:flex;
-  gap:.5rem;
-}
-
-.slot {
-  display:flex;
-  align-items:center;
-  gap:1rem;
-  padding:.75rem;
-  border-radius:12px;
-  margin-bottom:.5rem;
-  cursor:pointer;
-}
-
-.slot.free { background:#e5e7eb; }
-.slot.busy { background:#e6f4d7; }
-
-.time {
-  width:60px;
-  font-weight:600;
-}
-
-.modal {
-  display:none;
-  position:fixed;
-  inset:0;
-  background:rgba(0,0,0,.4);
-  z-index:999;
-}
-
-.modal-card {
-  background:#fff;
-  max-width:420px;
-  margin:10vh auto;
-  padding:1rem;
-  border-radius:16px;
-}
-
-.actions {
-  display:flex;
-  justify-content:flex-end;
-  gap:.5rem;
-  margin-top:1rem;
-}
-</style>
 </head>
 
 <body class="app-body">
@@ -92,14 +13,7 @@
 <main class="wrapper">
 
   <div class="header">
-    <div class="date-info">
-      <div class="circle" id="dayNum"></div>
-      <div>
-        <div id="dayName"></div>
-        <div id="dayMonth"></div>
-      </div>
-    </div>
-
+    <h1>Agenda diaria</h1>
     <div class="nav">
       <button id="prev" class="btn-secondary">←</button>
       <button id="today" class="btn-secondary">Hoy</button>
@@ -110,20 +24,34 @@
   <div id="list"></div>
 </main>
 
-<!-- MODAL -->
-<div id="modal" class="modal">
+<!-- MODAL CREAR CITA -->
+<div id="createModal" class="modal">
   <div class="modal-card">
-    <h3 id="mPatient"></h3>
-    <p id="mTime"></p>
+    <h3>Nueva cita</h3>
 
-    <label>
-      <input type="checkbox" id="mDone">
-      Sesión realizada
-    </label>
+    <label>Teléfono</label>
+    <input id="cPatientPhone" type="text">
+
+    <label>Nombre</label>
+    <input id="cPatientName" type="text">
+
+    <label>Modalidad</label>
+    <select id="cModality">
+      <option value="">—</option>
+      <option value="online">Online</option>
+      <option value="viladecans">Viladecans</option>
+      <option value="badalona">Badalona</option>
+    </select>
+
+    <label>Hora inicio</label>
+    <input id="cStart" type="time">
+
+    <label>Hora fin</label>
+    <input id="cEnd" type="time">
 
     <div class="actions">
-      <button id="mSave" class="btn-primary">Guardar</button>
-      <button onclick="closeModal()">Cerrar</button>
+      <button onclick="createAppointment()" class="btn-primary">Crear</button>
+      <button onclick="closeCreateModal()">Cancelar</button>
     </div>
   </div>
 </div>
@@ -136,5 +64,6 @@ await loadMenu();
 </script>
 
 <script type="module" src="assets/js/agenda-diaria.js"></script>
+<script type="module" src="assets/js/crear-cita.js"></script>
 </body>
 </html>
