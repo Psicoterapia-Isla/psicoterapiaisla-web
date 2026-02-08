@@ -8,19 +8,25 @@
 
 <style>
 .week-wrapper{padding:1rem;overflow-x:auto}
-.week-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem}
+.week-header{
+  display:flex;justify-content:space-between;align-items:center;
+  gap:.5rem;margin-bottom:1rem
+}
 .week-nav{display:flex;gap:.5rem}
 .week-grid{
   display:grid;
-  grid-template-columns:60px repeat(7,minmax(130px,1fr));
-  gap:.4rem;
+  grid-template-columns:60px repeat(7,minmax(140px,1fr));
+  gap:.4rem
 }
-.week-hour{font-size:.75rem;text-align:right;padding-right:6px;color:#666}
+.week-hour{
+  font-size:.75rem;text-align:right;padding-right:6px;color:#666
+}
 .day-header{text-align:center;font-weight:600}
 .week-slot{
-  height:48px;border-radius:10px;font-size:.75rem;
+  height:56px;border-radius:14px;
+  font-size:.75rem;
   display:flex;align-items:center;justify-content:center;
-  cursor:pointer;text-align:center;padding:.25rem
+  text-align:center;cursor:pointer
 }
 .week-slot.disabled{background:#e5e7eb;cursor:not-allowed}
 .week-slot.available{background:#e6f4d7}
@@ -46,44 +52,40 @@
   <div id="weekGrid" class="week-grid"></div>
 </main>
 
-<!-- AUTH + MENU -->
 <script type="module">
 import { requireAuth } from "./assets/js/auth.js";
 import { loadMenu } from "./assets/js/menu.js";
-await requireAuth(); await loadMenu();
-</script>
-
-<!-- LÓGICA -->
-<script type="module">
 import { auth, db } from "./assets/js/firebase.js";
+
 import {
-  collection, getDocs, query, where,
-  Timestamp, doc, getDoc
+  collection,getDocs,query,where,
+  Timestamp,doc,getDoc
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-const grid=document.getElementById("weekGrid");
+await requireAuth();
+await loadMenu();
+
 const therapistId=auth.currentUser.uid;
+const grid=document.getElementById("weekGrid");
 
 const START_HOUR=9;
 const END_HOUR=21;
 const DAYS=["mon","tue","wed","thu","fri","sat","sun"];
 
-function mondayOf(d){
-  const x=new Date(d);
-  const day=(x.getDay()+6)%7;
-  x.setDate(x.getDate()-day);
-  x.setHours(0,0,0,0);
-  return x;
+/* ===== SEMANA CONTROLADA ===== */
+function mondayOf(date){
+  const d=new Date(date);
+  const day=(d.getDay()+6)%7;
+  d.setDate(d.getDate()-day);
+  d.setHours(0,0,0,0);
+  return d;
 }
 
 const params=new URLSearchParams(location.search);
-const baseDate=params.get("week")?new Date(params.get("week")):new Date();
+const paramWeek=params.get("week");
+const baseDate=paramWeek?new Date(paramWeek):new Date();
 const monday=mondayOf(baseDate);
 const weekKey=monday.toISOString().slice(0,10);
-
-document.getElementById("prevWeek").onclick=()=>go(-1);
-document.getElementById("nextWeek").onclick=()=>go(1);
-document.getElementById("todayWeek").onclick=()=>location.href="agenda-semanal.html";
 
 function go(offset){
   const d=new Date(monday);
@@ -91,29 +93,36 @@ function go(offset){
   location.href=`agenda-semanal.html?week=${d.toISOString().slice(0,10)}`;
 }
 
+prevWeek.onclick=()=>go(-1);
+nextWeek.onclick=()=>go(1);
+todayWeek.onclick=()=>location.href="agenda-semanal.html";
+
 /* ===== DISPONIBILIDAD ===== */
-const availSnap=await getDoc(
+const availabilitySnap=await getDoc(
   doc(db,"availability",`${therapistId}_${weekKey}`)
 );
-const availability=availSnap.exists()?availSnap.data().slots||{}:{};
+const availabilitySlots=
+  availabilitySnap.exists()?availabilitySnap.data().slots||{}:{};
 
 /* ===== CITAS ===== */
 const start=Timestamp.fromDate(monday);
-const end=Timestamp.fromDate(new Date(monday.getTime()+7*86400000));
+const end=Timestamp.fromDate(
+  new Date(monday.getTime()+7*86400000)
+);
 
-const appSnap=await getDocs(query(
+const appointmentsSnap=await getDocs(query(
   collection(db,"appointments"),
   where("therapistId","==",therapistId),
   where("start",">=",start),
   where("start","<",end)
 ));
 
-const apps={};
-appSnap.forEach(d=>{
+const appointmentsByKey={};
+appointmentsSnap.forEach(d=>{
   const a=d.data();
   const s=a.start.toDate();
   const key=`${DAYS[(s.getDay()+6)%7]}_${s.getHours()}`;
-  apps[key]={...a,id:d.id};
+  appointmentsByKey[key]={...a,id:d.id};
 });
 
 /* ===== CABECERAS ===== */
@@ -123,37 +132,39 @@ for(let d=0;d<7;d++){
   day.setDate(monday.getDate()+d);
   const h=document.createElement("div");
   h.className="day-header";
-  h.textContent=day.toLocaleDateString("es-ES",{weekday:"short",day:"numeric"});
+  h.textContent=
+    day.toLocaleDateString("es-ES",{weekday:"short",day:"numeric"});
   grid.appendChild(h);
 }
 
 /* ===== GRID ===== */
-for(let h=START_HOUR;h<END_HOUR;h++){
-  const hl=document.createElement("div");
-  hl.className="week-hour";
-  hl.textContent=`${h}:00`;
-  grid.appendChild(hl);
+for(let hour=START_HOUR;hour<END_HOUR;hour++){
+  const hc=document.createElement("div");
+  hc.className="week-hour";
+  hc.textContent=`${hour}:00`;
+  grid.appendChild(hc);
 
   for(let d=0;d<7;d++){
-    const key=`${DAYS[d]}_${h}`;
+    const key=`${DAYS[d]}_${hour}`;
     const cell=document.createElement("div");
 
-    if(apps[key]){
-      const a=apps[key];
-      cell.className=`week-slot ${a.status==="completed"?"done":"reserved"}`;
-      cell.textContent=a.patientName||"";
-      cell.onclick=()=>location.href=
-        `agenda-diaria.html?date=${toISO(a.start.toDate())}`;
+    if(appointmentsByKey[key]){
+      const app=appointmentsByKey[key];
+      cell.className=
+        `week-slot ${app.status==="completed"?"done":"reserved"}`;
+      cell.innerHTML=`<strong>${app.patientName}</strong>`;
+      cell.onclick=()=>
+        location.href=
+          `agenda-diaria.html?date=${toISO(app.start.toDate())}`;
     }
-    else if(availability[key]){
+    else if(availabilitySlots[key]){
       cell.className="week-slot available";
       cell.textContent="Disponible";
-      cell.onclick=()=>{
-        const day=new Date(monday);
-        day.setDate(monday.getDate()+d);
+      cell.onclick=()=>
         location.href=
-          `crear-cita.html?date=${toISO(day)}&hour=${h}`;
-      };
+          `agenda-diaria.html?date=${toISO(
+            new Date(monday.getTime()+d*86400000)
+          )}`;
     }
     else{
       cell.className="week-slot disabled";
