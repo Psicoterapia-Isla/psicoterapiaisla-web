@@ -2,7 +2,11 @@ import { db } from "./firebase.js";
 import {
   doc,
   setDoc,
-  getDoc
+  getDoc,
+  collection,
+  query,
+  where,
+  getDocs
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 /* =========================
@@ -34,12 +38,14 @@ function bindDayNavigation() {
     currentDate.setDate(currentDate.getDate() - 1);
     renderDate();
     await loadAgendaPaciente();
+    await loadAppointmentForDay();
   });
 
   document.getElementById("next-day")?.addEventListener("click", async () => {
     currentDate.setDate(currentDate.getDate() + 1);
     renderDate();
     await loadAgendaPaciente();
+    await loadAppointmentForDay();
   });
 }
 
@@ -59,6 +65,46 @@ function renderDate() {
 }
 
 /* =========================
+   CITA DEL DÍA
+========================= */
+async function loadAppointmentForDay() {
+  const box = document.getElementById("appointment-today");
+  const content = document.getElementById("appointment-content");
+  if (!box || !content) return;
+
+  box.style.display = "none";
+  content.innerHTML = "";
+
+  const dateKey = formatDate(currentDate);
+
+  const q = query(
+    collection(db, "appointments"),
+    where("patientId", "==", currentUser.uid),
+    where("date", "==", dateKey)
+  );
+
+  const snap = await getDocs(q);
+  if (snap.empty) return;
+
+  const a = snap.docs[0].data();
+
+  content.innerHTML = `
+    <p><strong>${a.service || "Sesión terapéutica"}</strong></p>
+    <p>${a.start} – ${a.end}</p>
+    <p>${a.modality === "online" ? "Online" : "Presencial"}</p>
+    <p>
+      ${
+        a.completed
+          ? "✅ Sesión realizada"
+          : "🕒 Sesión pendiente"
+      }
+    </p>
+  `;
+
+  box.style.display = "block";
+}
+
+/* =========================
    CARGAR AGENDA PACIENTE
 ========================= */
 export async function loadAgendaPaciente() {
@@ -68,17 +114,19 @@ export async function loadAgendaPaciente() {
   const ref = doc(db, "agendaPaciente", `${currentUser.uid}_${dateKey}`);
   const snap = await getDoc(ref);
 
-  // limpiar siempre
+  // limpiar
   document.querySelectorAll("[data-hour]").forEach(t => t.value = "");
   document.getElementById("reto-diario").value = "";
   document.getElementById("notas-contactos").value = "";
   document.getElementById("tiempo-fuera").value = "";
-
   document
     .querySelectorAll('input[name="emocion"]')
     .forEach(r => r.checked = false);
 
-  if (!snap.exists()) return;
+  if (!snap.exists()) {
+    await loadAppointmentForDay();
+    return;
+  }
 
   const data = snap.data();
 
@@ -97,6 +145,8 @@ export async function loadAgendaPaciente() {
   document.getElementById("reto-diario").value = data.reto || "";
   document.getElementById("notas-contactos").value = data.notas || "";
   document.getElementById("tiempo-fuera").value = data.tiempoFuera || "";
+
+  await loadAppointmentForDay();
 }
 
 /* =========================
@@ -106,8 +156,8 @@ export async function saveAgendaPaciente() {
   if (!currentUser) return;
 
   const dateKey = formatDate(currentDate);
-
   const plan = {};
+
   document.querySelectorAll("[data-hour]").forEach(t => {
     plan[t.dataset.hour] = t.value || "";
   });
@@ -115,20 +165,18 @@ export async function saveAgendaPaciente() {
   const emocion =
     document.querySelector('input[name="emocion"]:checked')?.value || null;
 
-  const data = {
-    uid: currentUser.uid,
-    date: dateKey,
-    plan,
-    emocion,
-    reto: document.getElementById("reto-diario").value || "",
-    notas: document.getElementById("notas-contactos").value || "",
-    tiempoFuera: document.getElementById("tiempo-fuera").value || "",
-    updatedAt: new Date()
-  };
-
   await setDoc(
     doc(db, "agendaPaciente", `${currentUser.uid}_${dateKey}`),
-    data
+    {
+      uid: currentUser.uid,
+      date: dateKey,
+      plan,
+      emocion,
+      reto: document.getElementById("reto-diario").value || "",
+      notas: document.getElementById("notas-contactos").value || "",
+      tiempoFuera: document.getElementById("tiempo-fuera").value || "",
+      updatedAt: new Date()
+    }
   );
 
   alert("Planificador guardado");
