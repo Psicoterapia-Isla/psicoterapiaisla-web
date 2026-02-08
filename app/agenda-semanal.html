@@ -7,33 +7,85 @@
 <link rel="stylesheet" href="assets/css/app.css">
 
 <style>
-.week-wrapper { max-width:600px; margin:0 auto; padding:1rem; }
+/* ======================
+   LAYOUT
+====================== */
+.week-wrapper {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 1rem;
+}
 
 .week-header {
-  display:flex;justify-content:space-between;align-items:center;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
   margin-bottom:1rem;
 }
 
-.week-nav { display:flex; gap:.5rem; }
-
-.week-day { margin-bottom:1.5rem; }
-
-.week-day h3 { margin:.5rem 0; }
-
-.week-card {
-  background:#e6f4d7;
-  border-radius:14px;
-  padding:.75rem 1rem;
+.week-nav {
   display:flex;
-  justify-content:space-between;
-  margin-bottom:.5rem;
+  gap:.4rem;
 }
 
-.week-card.done { opacity:.7; }
+/* ======================
+   GRID
+====================== */
+.week-grid {
+  display:grid;
+  grid-template-columns:60px repeat(7,1fr);
+  gap:.5rem;
+}
 
-.week-left { display:flex; gap:.75rem; }
+.hour-label {
+  text-align:right;
+  font-size:.7rem;
+  color:#666;
+  padding-top:.6rem;
+}
 
-.week-hour { font-weight:600; }
+.day-header {
+  text-align:center;
+  font-weight:600;
+  font-size:.8rem;
+  padding:.4rem 0;
+}
+
+/* ======================
+   CELDAS
+====================== */
+.week-slot {
+  min-height:48px;
+  border-radius:12px;
+  padding:.35rem .4rem;
+  font-size:.65rem;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  cursor:pointer;
+}
+
+.week-slot.disabled {
+  background:#e5e7eb;
+  cursor:default;
+}
+
+.week-slot.available {
+  background:#e6f4d7;
+}
+
+.week-slot.reserved {
+  background:#fff2cc;
+}
+
+.week-slot.done {
+  background:#e6f0ff;
+}
+
+.week-slot span {
+  line-height:1.2;
+}
 </style>
 </head>
 
@@ -42,6 +94,7 @@
 
 <main class="week-wrapper">
 
+  <!-- HEADER -->
   <div class="week-header">
     <h1>Agenda semanal</h1>
     <div class="week-nav">
@@ -51,88 +104,154 @@
     </div>
   </div>
 
-  <div id="weekGrid"></div>
+  <div id="weekGrid" class="week-grid"></div>
+
 </main>
 
 <script type="module">
 import { requireAuth } from "./assets/js/auth.js";
 import { loadMenu } from "./assets/js/menu.js";
 import { auth, db } from "./assets/js/firebase.js";
+
 import {
-  collection, getDocs, query, where, Timestamp
+  collection, getDocs, query, where,
+  Timestamp, doc, getDoc
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 await requireAuth();
 await loadMenu();
 
-const therapistId=auth.currentUser.uid;
-const grid=document.getElementById("weekGrid");
+const therapistId = auth.currentUser.uid;
+const grid = document.getElementById("weekGrid");
 
-function mondayOf(date){
-  const d=new Date(date);
-  const day=(d.getDay()+6)%7;
-  d.setDate(d.getDate()-day);
+const START_HOUR = 9;
+const END_HOUR = 21;
+const DAYS = ["mon","tue","wed","thu","fri","sat","sun"];
+
+/* ======================
+   SEMANA CONTROLADA
+====================== */
+function mondayOf(date) {
+  const d = new Date(date);
+  const day = (d.getDay() + 6) % 7;
+  d.setDate(d.getDate() - day);
   d.setHours(0,0,0,0);
   return d;
 }
 
-const params=new URLSearchParams(location.search);
-const baseDate=params.get("week")?new Date(params.get("week")):new Date();
-const monday=mondayOf(baseDate);
+const params = new URLSearchParams(location.search);
+const paramWeek = params.get("week");
 
-function go(w){
-  const d=new Date(monday); d.setDate(d.getDate()+w*7);
-  location.href=`agenda-semanal.html?week=${d.toISOString().slice(0,10)}`;
+const baseDate = paramWeek ? new Date(paramWeek) : new Date();
+const monday = mondayOf(baseDate);
+const weekKey = monday.toISOString().slice(0,10);
+
+function go(offset) {
+  const d = new Date(monday);
+  d.setDate(d.getDate() + offset * 7);
+  location.href = `agenda-semanal.html?week=${d.toISOString().slice(0,10)}`;
 }
 
-prevWeek.onclick=()=>go(-1);
-nextWeek.onclick=()=>go(1);
-todayWeek.onclick=()=>location.href="agenda-semanal.html";
+prevWeek.onclick = () => go(-1);
+nextWeek.onclick = () => go(1);
+todayWeek.onclick = () => location.href = "agenda-semanal.html";
 
-const start=Timestamp.fromDate(monday);
-const end=Timestamp.fromDate(new Date(monday.getTime()+7*86400000));
+/* ======================
+   DISPONIBILIDAD
+====================== */
+const availabilitySnap = await getDoc(
+  doc(db,"availability",`${therapistId}_${weekKey}`)
+);
 
-const snap=await getDocs(query(
+const availabilitySlots =
+  availabilitySnap.exists()
+    ? availabilitySnap.data().slots || {}
+    : {};
+
+/* ======================
+   CITAS
+====================== */
+const start = Timestamp.fromDate(monday);
+const end = Timestamp.fromDate(
+  new Date(monday.getTime() + 7 * 86400000)
+);
+
+const appointmentsSnap = await getDocs(query(
   collection(db,"appointments"),
   where("therapistId","==",therapistId),
   where("start",">=",start),
   where("start","<",end)
 ));
 
-const byDay={};
-snap.forEach(d=>{
-  const a={...d.data(),id:d.id};
-  const s=a.start.toDate();
-  const key=s.toISOString().slice(0,10);
-  (byDay[key]??=[]).push(a);
+const appointmentsByKey = {};
+appointmentsSnap.forEach(d=>{
+  const a = d.data();
+  const s = a.start.toDate();
+  const key = `${DAYS[(s.getDay()+6)%7]}_${s.getHours()}`;
+  appointmentsByKey[key] = { ...a, id:d.id };
 });
 
-Object.keys(byDay).sort().forEach(date=>{
-  const day=new Date(date);
-  const block=document.createElement("div");
-  block.className="week-day";
-  block.innerHTML=`<h3>${day.toLocaleDateString("es-ES",{weekday:"long",day:"numeric"})}</h3>`;
+/* ======================
+   CABECERAS
+====================== */
+grid.appendChild(document.createElement("div"));
+for(let d=0; d<7; d++){
+  const day = new Date(monday);
+  day.setDate(monday.getDate()+d);
 
-  byDay[date].sort((a,b)=>a.start.seconds-b.start.seconds).forEach(app=>{
-    const h=app.start.toDate().getHours();
-    const card=document.createElement("div");
-    card.className=`week-card ${app.status==="completed"?"done":""}`;
-    card.innerHTML=`
-      <div class="week-left">
-        <div class="week-hour">${h}:00</div>
-        <div>
-          <strong>${app.patientName}</strong><br>
-          <small>${app.service||"Visita Psicología"}</small>
-        </div>
-      </div>
-      <div>${app.status==="completed"?"✔️":""}</div>
-    `;
-    card.onclick=()=>location.href=`agenda-diaria.html?date=${date}`;
-    block.appendChild(card);
-  });
+  const h = document.createElement("div");
+  h.className="day-header";
+  h.textContent =
+    day.toLocaleDateString("es-ES",{weekday:"short",day:"numeric"});
+  grid.appendChild(h);
+}
 
-  grid.appendChild(block);
-});
+/* ======================
+   GRID
+====================== */
+for(let hour=START_HOUR; hour<END_HOUR; hour++){
+  const hourCell = document.createElement("div");
+  hourCell.className="hour-label";
+  hourCell.textContent=`${hour}:00`;
+  grid.appendChild(hourCell);
+
+  for(let d=0; d<7; d++){
+    const key = `${DAYS[d]}_${hour}`;
+    const cell = document.createElement("div");
+
+    if (appointmentsByKey[key]) {
+      const app = appointmentsByKey[key];
+      cell.className =
+        `week-slot ${app.status==="completed"?"done":"reserved"}`;
+      cell.innerHTML = `<span>${app.patientName}</span>`;
+      cell.onclick = () =>
+        location.href =
+          `agenda-diaria.html?date=${toISO(app.start.toDate())}`;
+    }
+    else if (availabilitySlots[key]) {
+      cell.className = "week-slot available";
+      cell.innerHTML = `<span>Disponible</span>`;
+      cell.onclick = () =>
+        location.href =
+          `agenda-diaria.html?date=${toISO(
+            new Date(monday.getTime() + d * 86400000)
+          )}`;
+    }
+    else {
+      cell.className = "week-slot disabled";
+    }
+
+    grid.appendChild(cell);
+  }
+}
+
+/* ======================
+   HELPERS
+====================== */
+function toISO(d){
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+}
 </script>
+
 </body>
 </html>
