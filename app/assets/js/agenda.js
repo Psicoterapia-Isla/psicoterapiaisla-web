@@ -366,7 +366,42 @@ async function renderWeek() {
 prevWeek.onclick = () => { baseDate.setDate(baseDate.getDate() - 7); renderWeek(); };
 nextWeek.onclick = () => { baseDate.setDate(baseDate.getDate() + 7); renderWeek(); };
 today.onclick = () => { baseDate = new Date(); renderWeek(); };
+function openWhatsAppNotification({ phone, name, date, start, end, modality }) {
+  if (!phone) return;
 
+  // Normalizar teléfono (España por defecto)
+  let cleanPhone = phone.replace(/\s+/g, "");
+  if (!cleanPhone.startsWith("+")) {
+    if (cleanPhone.startsWith("6") || cleanPhone.startsWith("7")) {
+      cleanPhone = "34" + cleanPhone;
+    }
+  }
+
+  const modalityText =
+    modality === "online"
+      ? "online"
+      : "presencial";
+
+  const message = `
+Hola ${name || ""} 😊
+
+Te confirmo tu cita en *Psicoterapia Isla*:
+
+📅 ${date}
+⏰ ${start} – ${end}
+📍 Modalidad: ${modalityText}
+
+Cualquier cosa me dices.
+`.trim();
+
+  const url =
+    "https://wa.me/" +
+    cleanPhone +
+    "?text=" +
+    encodeURIComponent(message);
+
+  window.open(url, "_blank");
+}
 /* =========================
    START
 ========================= */
