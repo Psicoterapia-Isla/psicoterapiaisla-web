@@ -1,103 +1,130 @@
 import { auth, db } from "./firebase.js";
 import {
   collection,
-  getDocs,
   query,
   where,
+  getDocs,
   orderBy
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
+/* =========================
+   DOM
+========================= */
 const list = document.getElementById("list");
-const monthFilter = document.getElementById("monthFilter");
-const patientFilter = document.getElementById("patientFilter");
 
-let invoices = [];
+const filters = document.createElement("div");
+filters.className = "card";
+filters.innerHTML = `
+  <label>Paciente</label>
+  <input id="patientFilter" placeholder="Nombre del paciente">
+
+  <label>Mes</label>
+  <input id="monthFilter" type="month">
+
+  <button id="applyFilters" class="btn-primary">Filtrar</button>
+`;
+list.before(filters);
+
+const patientFilter = document.getElementById("patientFilter");
+const monthFilter = document.getElementById("monthFilter");
+const applyFilters = document.getElementById("applyFilters");
 
 /* =========================
-   LOAD
+   LOAD INVOICES
 ========================= */
 async function loadInvoices() {
-  const q = query(
-    collection(db, "invoices"),
-    where("therapistId", "==", auth.currentUser.uid),
-    orderBy("createdAt", "desc")
-  );
-
-  const snap = await getDocs(q);
-  invoices = snap.docs.map(d => ({
-    id: d.id,
-    ...d.data()
-  }));
-
-  render();
-}
-
-/* =========================
-   FILTER + RENDER
-========================= */
-function render() {
   list.innerHTML = "";
 
-  const month = monthFilter.value;
-  const patient = patientFilter.value.toLowerCase();
+  const user = auth.currentUser;
+  if (!user) return;
 
-  let filtered = invoices;
+  const snap = await getDocs(
+    query(
+      collection(db, "invoices"),
+      where("therapistId", "==", user.uid),
+      orderBy("issueDate", "desc")
+    )
+  );
 
-  if (month) {
-    filtered = filtered.filter(i => {
-      if (!i.createdAt?.toDate) return false;
-      const d = i.createdAt.toDate();
-      return (
-        d.getFullYear() === Number(month.split("-")[0]) &&
-        d.getMonth() + 1 === Number(month.split("-")[1])
-      );
-    });
-  }
-
-  if (patient) {
-    filtered = filtered.filter(i =>
-      (i.patientName || "").toLowerCase().includes(patient)
-    );
-  }
-
-  if (!filtered.length) {
-    list.innerHTML = `<p>No hay facturas</p>`;
+  if (snap.empty) {
+    list.innerHTML = `<div class="card">No hay facturas registradas.</div>`;
     return;
   }
 
-  let total = 0;
+  const patientTerm = patientFilter.value.toLowerCase().trim();
+  const monthTerm = monthFilter.value;
 
-  filtered.forEach(i => {
-    total += Number(i.amount || 0);
+  let total = 0;
+  let shown = 0;
+
+  snap.forEach(d => {
+    const i = d.data();
+
+    /* ===== FILTROS ===== */
+    if (patientTerm && !i.patientName?.toLowerCase().includes(patientTerm)) {
+      return;
+    }
+
+    if (monthTerm) {
+      const date = i.issueDate?.toDate?.();
+      if (!date) return;
+
+      const ym = `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,"0")}`;
+      if (ym !== monthTerm) return;
+    }
+
+    total += i.totalAmount || 0;
+    shown++;
 
     const div = document.createElement("div");
     div.className = "card";
-
     div.innerHTML = `
-      <strong>${i.patientName || "—"}</strong><br>
-      ${i.amount} €<br>
-      ${i.createdAt?.toDate
-        ? i.createdAt.toDate().toLocaleDateString("es-ES")
-        : ""}<br>
-      <span class="status ${i.status}">
-        ${i.status === "paid" ? "Pagada" : "Pendiente"}
-      </span>
+      <strong>${i.invoiceNumber}</strong><br>
+      ${i.patientName || "—"}<br>
+      ${i.concept || ""}<br><br>
+
+      <strong>${i.totalAmount} €</strong><br>
+      <small>
+        ${i.issueDate?.toDate
+          ? i.issueDate.toDate().toLocaleDateString("es-ES")
+          : ""}
+        · ${translateStatus(i.status)}
+      </small>
     `;
 
     list.appendChild(div);
   });
 
+  if (!shown) {
+    list.innerHTML = `<div class="card">No hay facturas con esos filtros.</div>`;
+    return;
+  }
+
   const summary = document.createElement("div");
   summary.className = "card";
-  summary.innerHTML = `<strong>Total: ${total} €</strong>`;
+  summary.innerHTML = `
+    <strong>Total facturado:</strong><br>
+    ${total.toFixed(2)} €
+  `;
   list.appendChild(summary);
+}
+
+/* =========================
+   HELPERS
+========================= */
+function translateStatus(status) {
+  switch (status) {
+    case "draft": return "Borrador";
+    case "issued": return "Emitida";
+    case "paid": return "Pagada";
+    default: return "—";
+  }
 }
 
 /* =========================
    EVENTS
 ========================= */
-monthFilter?.addEventListener("change", render);
-patientFilter?.addEventListener("input", render);
+applyFilters.onclick = loadInvoices;
 
 /* =========================
    INIT
