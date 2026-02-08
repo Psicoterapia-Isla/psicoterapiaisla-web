@@ -1,65 +1,47 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <title>Facturación por paciente | Psicoterapia Isla</title>
-
-  <!-- CSS EXISTENTE (RUTAS CORRECTAS) -->
-  <link rel="stylesheet" href="/app/assets/css/app.css">
-  <link rel="stylesheet" href="/app/assets/css/isla-base.css">
-  <link rel="stylesheet" href="/app/assets/css/isla-theme.css">
-
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta charset="UTF-8">
+<title>Facturación</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="assets/css/app.css">
 </head>
 
-<body class="app-layout">
+<body class="app-body">
+<header class="app-menu"></header>
 
-  <!-- MENÚ -->
-  <aside class="app-menu"></aside>
+<main class="wrapper">
+<h1>Facturación</h1>
+<div id="list"></div>
+</main>
 
-  <!-- CONTENIDO -->
-  <main class="app-content">
+<script type="module">
+import { requireAuth } from "./assets/js/auth.js";
+import { loadMenu } from "./assets/js/menu.js";
+import { auth, db } from "./assets/js/firebase.js";
+import { collection, getDocs, query, where }
+from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-    <header class="page-header">
-      <h1>Facturación por paciente</h1>
-      <p class="page-subtitle">
-        Consulta de facturas y estado de pagos
-      </p>
-    </header>
+await requireAuth();await loadMenu();
 
-    <!-- BUSCADOR / SELECTOR DE PACIENTE -->
-    <section class="filters">
-      <label for="patient-selector">Seleccionar paciente</label>
-      <select id="patient-selector">
-        <option value="">— Selecciona un paciente —</option>
-      </select>
-    </section>
+const snap=await getDocs(query(
+  collection(db,"invoices"),
+  where("therapistId","==",auth.currentUser.uid)
+));
 
-    <!-- FACTURAS -->
-    <section class="table-wrapper">
-      <table class="data-table">
-        <thead>
-          <tr>
-            <th>Concepto</th>
-            <th>Fecha</th>
-            <th>Importe</th>
-            <th>Estado</th>
-            <th>Acciones</th>
-          </tr>
-        </thead>
-        <tbody id="invoices-table-body">
-          <tr>
-            <td colspan="5">Selecciona un paciente para ver sus facturas</td>
-          </tr>
-        </tbody>
-      </table>
-    </section>
+const list=document.getElementById("list");
 
-  </main>
-
-  <!-- JS (RUTAS CORRECTAS) -->
-  <script type="module" src="/app/assets/js/menu.js"></script>
-  <script type="module" src="/app/assets/js/patient-invoices.js"></script>
-
+snap.forEach(d=>{
+  const i=d.data();
+  const div=document.createElement("div");
+  div.className="card";
+  div.innerHTML=`
+    <strong>${i.invoiceNumber}</strong><br>
+    ${i.patientName || ""}<br>
+    ${i.amount} € — ${i.payment?.paid?"Pagada":"Pendiente"}
+  `;
+  list.appendChild(div);
+});
+</script>
 </body>
 </html>
