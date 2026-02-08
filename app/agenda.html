@@ -11,17 +11,41 @@
 .header{display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem}
 .nav{display:flex;gap:.5rem}
 .day-info{margin-bottom:1rem;color:#555}
-.slot{display:flex;gap:1rem;align-items:center;padding:.75rem;border-radius:12px;margin-bottom:.5rem;cursor:pointer}
+
+.slot{
+  display:flex;gap:1rem;align-items:center;
+  padding:.75rem;border-radius:12px;margin-bottom:.5rem;
+  cursor:pointer
+}
 .slot.free{background:#e5e7eb}
 .slot.busy{background:#e6f4d7}
+.slot.done{background:#e6f0ff}
+
 .time{width:60px;font-weight:600}
 .meta{flex:1}
-.badge{font-size:.65rem;padding:.2rem .5rem;border-radius:6px}
-.done{background:#dbeafe}
-.modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:999}
-.modal-card{background:#fff;max-width:420px;margin:8vh auto;padding:1rem;border-radius:16px}
+.badges{display:flex;gap:.4rem;flex-wrap:wrap}
+.badge{
+  font-size:.65rem;padding:.2rem .45rem;
+  border-radius:6px;background:#ddd
+}
+.badge.done{background:#bfdbfe}
+.badge.paid{background:#bbf7d0}
+.badge.invoice{background:#fde68a}
+
+.modal{
+  display:none;position:fixed;inset:0;
+  background:rgba(0,0,0,.4);z-index:999
+}
+.modal-card{
+  background:#fff;max-width:460px;
+  margin:8vh auto;padding:1rem;border-radius:16px
+}
 .row{margin-bottom:.75rem}
-.modal-actions{display:flex;justify-content:flex-end;gap:.5rem}
+.row.inline{display:flex;gap:.5rem;align-items:center}
+.modal-actions{
+  display:flex;justify-content:flex-end;gap:.5rem
+}
+hr{border:none;border-top:1px solid #eee;margin:.75rem 0}
 </style>
 </head>
 
@@ -70,11 +94,41 @@
       </select>
     </div>
 
+    <div class="row inline">
+      <input type="checkbox" id="mDone">
+      <label>Sesión realizada</label>
+    </div>
+
+    <hr>
+
     <div class="row">
-      <label><input type="checkbox" id="mDone"> Sesión realizada</label>
+      <label>Importe (€)</label>
+      <input id="mAmount" type="number" value="60" min="0">
+    </div>
+
+    <div class="row">
+      <label>Método de pago</label>
+      <select id="mPayment">
+        <option value="">—</option>
+        <option value="efectivo">Efectivo</option>
+        <option value="tarjeta">Tarjeta</option>
+        <option value="bizum">Bizum</option>
+        <option value="transferencia">Transferencia</option>
+      </select>
+    </div>
+
+    <div class="row inline">
+      <input type="checkbox" id="mPaid">
+      <label>Pagada</label>
+    </div>
+
+    <div class="row inline">
+      <input type="checkbox" id="mInvoiced" disabled>
+      <label>Factura emitida</label>
     </div>
 
     <div class="modal-actions">
+      <button id="invoice" class="btn-primary">Emitir factura</button>
       <button id="save" class="btn-primary">Guardar</button>
       <button onclick="closeModal()">Cerrar</button>
     </div>
@@ -97,7 +151,9 @@ import {
   Timestamp, serverTimestamp, getDoc
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-/* ===== FECHA ===== */
+/* =========================
+   FECHA
+========================= */
 let currentDate =
   new URLSearchParams(location.search).get("date")
   || new Date().toISOString().split("T")[0];
@@ -114,8 +170,11 @@ const base=new Date(currentDate);
 base.setHours(0,0,0,0);
 dayInfo.textContent=base.toLocaleDateString("es-ES",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
 
-/* ===== CARGA CITAS ===== */
+/* =========================
+   CARGA CITAS
+========================= */
 const therapistId=auth.currentUser.uid;
+
 const snap=await getDocs(query(
   collection(db,"appointments"),
   where("therapistId","==",therapistId),
@@ -129,38 +188,60 @@ snap.forEach(d=>byHour[d.data().start.toDate().getHours()]={...d.data(),id:d.id}
 
 const list=document.getElementById("list");
 
-/* ===== RENDER ===== */
+/* =========================
+   RENDER
+========================= */
 for(let h=9;h<21;h++){
   const s=document.createElement("div");
+
   if(byHour[h]){
     const a=byHour[h];
-    s.className="slot busy";
-    s.innerHTML=`<div class="time">${h}:00</div><div class="meta"><strong>${a.patientName}</strong></div>`;
-    s.onclick=()=>openModal(a);
+    const badges=[];
+
+    if(a.status==="completed") badges.push(`<span class="badge done">Realizada</span>`);
+    if(a.paid) badges.push(`<span class="badge paid">Pagada</span>`);
+    if(a.invoiceId) badges.push(`<span class="badge invoice">Facturada</span>`);
+
+    s.className=`slot ${a.status==="completed"?"done":"busy"}`;
+    s.innerHTML=`
+      <div class="time">${h}:00</div>
+      <div class="meta">
+        <strong>${a.patientName}</strong>
+        <div class="badges">${badges.join("")}</div>
+      </div>`;
+    s.onclick=()=>openModal(a,h);
   }else{
     s.className="slot free";
     s.innerHTML=`<div class="time">${h}:00</div><div class="meta">Libre</div>`;
-    s.onclick=()=>openModal({hour:h});
+    s.onclick=()=>openModal({hour:h},h);
   }
+
   list.appendChild(s);
 }
 
-/* ===== MODAL ===== */
+/* =========================
+   MODAL
+========================= */
 let current=null;
 window.closeModal=()=>modal.style.display="none";
 
-function openModal(a){
+function openModal(a,hour){
   current=a;
   modal.style.display="block";
+
   mTitle.textContent=a.patientName||"Nueva cita";
   mPhone.value=a.patientId||"";
   mName.value=a.patientName||"";
   mName.disabled=false;
   mModality.value=a.modality||"";
   mDone.checked=a.status==="completed";
+  mPaid.checked=!!a.paid;
+  mInvoiced.checked=!!a.invoiceId;
 }
 
-/* ===== AUTOCOMPLETE (CLAVE) ===== */
+/* =========================
+   AUTOCOMPLETE
+========================= */
 mPhone.addEventListener("input", async ()=>{
   const phone=mPhone.value.trim();
   mName.disabled=false;
@@ -170,15 +251,16 @@ mPhone.addEventListener("input", async ()=>{
   if(!snap.exists()){
     snap=await getDoc(doc(db,"patients_normalized",phone));
   }
-
   if(snap.exists()){
     const d=snap.data();
-    mName.value=d.fullName || [d.nombre,d.apellidos].filter(Boolean).join(" ");
+    mName.value=d.fullName||[d.nombre,d.apellidos].filter(Boolean).join(" ");
     mName.disabled=true;
   }
 });
 
-/* ===== SAVE ===== */
+/* =========================
+   GUARDAR
+========================= */
 save.onclick=async()=>{
   const user=auth.currentUser;
   if(!user) return;
@@ -186,7 +268,8 @@ save.onclick=async()=>{
   if(current.id){
     await updateDoc(doc(db,"appointments",current.id),{
       status:mDone.checked?"completed":"scheduled",
-      completedAt:mDone.checked?Timestamp.now():null
+      completedAt:mDone.checked?Timestamp.now():null,
+      paid:mPaid.checked
     });
   }else{
     const start=new Date(base);start.setHours(current.hour,0,0,0);
@@ -200,9 +283,38 @@ save.onclick=async()=>{
       start:Timestamp.fromDate(start),
       end:Timestamp.fromDate(end),
       status:"scheduled",
+      paid:false,
       createdAt:serverTimestamp()
     });
   }
+
+  location.reload();
+};
+
+/* =========================
+   FACTURA
+========================= */
+invoice.onclick=async()=>{
+  if(!current.id || current.invoiceId) return;
+
+  const ref=await addDoc(collection(db,"invoices"),{
+    therapistId:therapistId,
+    appointmentId:current.id,
+    patientId:mPhone.value,
+    patientName:mName.value,
+    amount:Number(mAmount.value),
+    payment:{
+      method:mPayment.value||null,
+      paid:mPaid.checked
+    },
+    issued:true,
+    issuedAt:serverTimestamp(),
+    createdAt:serverTimestamp()
+  });
+
+  await updateDoc(doc(db,"appointments",current.id),{
+    invoiceId:ref.id
+  });
 
   location.reload();
 };
