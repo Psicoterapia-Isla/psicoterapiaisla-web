@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<title>Agenda | Psicoterapia Isla</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link rel="stylesheet" href="assets/css/app.css">
+
+<style>
+.wrapper {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+
+.header {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:1rem;
+}
+
+.date {
+  font-size:1.25rem;
+  font-weight:600;
+}
+
+.nav {
+  display:flex;
+  gap:.5rem;
+}
+
+.slot {
+  display:flex;
+  align-items:center;
+  gap:1rem;
+  padding:.75rem;
+  border-radius:12px;
+  margin-bottom:.5rem;
+  cursor:pointer;
+}
+
+.slot.free { background:#e5e7eb; }
+.slot.scheduled { background:#e6f4d7; }
+.slot.completed { background:#e6f0ff; }
+.slot.paid { background:#d1fae5; }
+.slot.invoiced { background:#bbf7d0; }
+
+.time {
+  width:60px;
+  font-weight:600;
+}
+
+.modal {
+  display:none;
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.4);
+  z-index:999;
+}
+
+.modal-card {
+  background:#fff;
+  max-width:420px;
+  margin:10vh auto;
+  padding:1rem;
+  border-radius:16px;
+}
+
+.actions {
+  display:flex;
+  justify-content:flex-end;
+  gap:.5rem;
+  margin-top:1rem;
+}
+
+.fab {
+  position:fixed;
+  bottom:20px;
+  right:20px;
+  width:56px;
+  height:56px;
+  border-radius:50%;
+  background:#1f6b4e;
+  color:#fff;
+  font-size:32px;
+  border:none;
+}
+</style>
+</head>
+
+<body class="app-body">
+
+<header class="app-menu"></header>
+
+<main class="wrapper">
+
+  <div class="header">
+    <div class="date" id="dateLabel"></div>
+    <div class="nav">
+      <button id="prev" class="btn-secondary">←</button>
+      <button id="today" class="btn-secondary">Hoy</button>
+      <button id="next" class="btn-secondary">→</button>
+    </div>
+  </div>
+
+  <div id="slots"></div>
+</main>
+
+<button class="fab" onclick="openCreate()">+</button>
+
+<!-- MODAL -->
+<div id="modal" class="modal">
+  <div class="modal-card">
+    <h3 id="modalTitle">Cita</h3>
+
+    <label>Teléfono</label>
+    <input id="mPhone" />
+
+    <label>Nombre</label>
+    <input id="mName" />
+
+    <label>Inicio</label>
+    <input type="time" id="mStart" />
+
+    <label>Fin</label>
+    <input type="time" id="mEnd" />
+
+    <label>Modalidad</label>
+    <select id="mModality">
+      <option value="">--</option>
+      <option value="viladecans">Viladecans</option>
+      <option value="badalona">Badalona</option>
+      <option value="online">Online</option>
+    </select>
+
+    <label>Estado</label>
+    <select id="mStatus">
+      <option value="scheduled">Programada</option>
+      <option value="completed">Realizada</option>
+      <option value="paid">Pagada</option>
+      <option value="invoiced">Facturada</option>
+    </select>
+
+    <label>Importe (€)</label>
+    <input type="number" id="mAmount" />
+
+    <div class="actions">
+      <button onclick="save()" class="btn-primary">Guardar</button>
+      <button onclick="closeModal()">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { requireAuth } from "./assets/js/auth.js";
+import { loadMenu } from "./assets/js/menu.js";
+await requireAuth();
+await loadMenu();
+</script>
+
+<script type="module" src="assets/js/agenda.js"></script>
+</body>
+</html>
