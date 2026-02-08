@@ -62,7 +62,10 @@ function norm(k){
 ========================= */
 function render(hasAvailability=true){
   grid.innerHTML = "";
-  weekLabelEl.textContent = formatWeekLabel(currentMonday);
+  const label = getWeekLabelEl();
+if (label) {
+  label.textContent = formatWeekLabel(currentMonday);
+}
 
   if(!hasAvailability){
     const hint = document.createElement("div");
