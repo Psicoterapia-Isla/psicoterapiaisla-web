@@ -10,7 +10,8 @@ import {
   addDoc,
   updateDoc,
   doc,
-  Timestamp
+  Timestamp,
+  runTransaction
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 /* =========================
@@ -27,7 +28,7 @@ let editingId = null;
 let selectedPatientId = null;
 let currentSlot = null;
 
-const HOURS = Array.from({ length: 12 }, (_, i) => i + 9); // 9–20
+const HOURS = Array.from({ length: 12 }, (_, i) => i + 9);
 const DAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
 
 /* =========================
@@ -84,7 +85,7 @@ function resetModal() {
 
   phone.value = "";
   name.value = "";
-  service.value = "Visita Psicología";
+  service.value = "Sesión de psicología sanitaria";
   modality.value = "viladecans";
   start.value = "";
   end.value = "";
@@ -125,7 +126,7 @@ document.getElementById("close").onclick = () =>
   modal.classList.remove("show");
 
 /* =========================
-   AUTOCOMPLETE (ROBUSTO)
+   AUTOCOMPLETE
 ========================= */
 async function searchPatients(term) {
   if (!term || term.length < 2) {
@@ -165,24 +166,64 @@ name.oninput = e => {
 };
 
 /* =========================
-   FACTURACIÓN AUTOMÁTICA
+   INVOICE NUMBER
+========================= */
+async function getNextInvoiceNumber(therapistId) {
+  const year = new Date().getFullYear();
+  const ref = doc(db, "invoice_counters", `${therapistId}_${year}`);
+
+  return await runTransaction(db, async (tx) => {
+    const snap = await tx.get(ref);
+    let next = 1;
+
+    if (snap.exists()) {
+      next = snap.data().lastNumber + 1;
+      tx.update(ref, { lastNumber: next, updatedAt: Timestamp.now() });
+    } else {
+      tx.set(ref, {
+        therapistId,
+        year,
+        lastNumber: 1,
+        createdAt: Timestamp.now()
+      });
+    }
+
+    return `PI-${year}-${String(next).padStart(4,"0")}`;
+  });
+}
+
+/* =========================
+   FACTURA AUTOMÁTICA LEGAL
 ========================= */
 async function maybeCreateInvoice(appointmentId, data) {
   if (!data.completed || !data.paid) return;
   if (!data.amount || data.amount <= 0) return;
   if (data.invoiceId) return;
 
-  const ref = await addDoc(collection(db, "invoices"), {
-    appointmentId,
-    patientId: data.patientId || null,
+  const invoiceNumber = await getNextInvoiceNumber(data.therapistId);
+
+  const invoiceRef = await addDoc(collection(db, "invoices"), {
     therapistId: data.therapistId,
-    amount: data.amount,
+    appointmentId,
+
+    invoiceNumber,
+    issueDate: Timestamp.now(),
+
+    patientId: data.patientId || null,
+    patientName: data.name || null,
+
+    concept: data.service,
+    baseAmount: data.amount,
+    vatRate: 0,
+    vatExemptReason: "Exento IVA – Art. 20.3 Ley 37/1992",
+    totalAmount: data.amount,
+
     status: "paid",
     createdAt: Timestamp.now()
   });
 
   await updateDoc(doc(db, "appointments", appointmentId), {
-    invoiceId: ref.id
+    invoiceId: invoiceRef.id
   });
 }
 
@@ -240,7 +281,7 @@ async function renderWeek() {
   const user = auth.currentUser;
   if (!user) return;
 
-  /* ===== AVAILABILITY ===== */
+  /* AVAILABILITY */
   const availSnap = await getDocs(
     query(
       collection(db, "availability"),
@@ -252,7 +293,7 @@ async function renderWeek() {
   const availability = {};
   availSnap.forEach(d => Object.assign(availability, d.data().slots || {}));
 
-  /* ===== APPOINTMENTS ===== */
+  /* APPOINTMENTS */
   const from = formatDate(monday);
   const to = formatDate(new Date(monday.getTime() + 6 * 86400000));
 
@@ -271,7 +312,7 @@ async function renderWeek() {
     bySlot[`${a.date}_${a.start}`] = a;
   });
 
-  /* ===== HEADER ===== */
+  /* HEADER */
   grid.appendChild(document.createElement("div"));
   DAYS.forEach((_, i) => {
     const d = new Date(monday);
@@ -282,7 +323,7 @@ async function renderWeek() {
     grid.appendChild(h);
   });
 
-  /* ===== GRID ===== */
+  /* GRID */
   HOURS.forEach(hour => {
     const hl = document.createElement("div");
     hl.className = "hour-label";
