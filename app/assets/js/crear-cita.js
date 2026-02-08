@@ -1,144 +1,68 @@
 import { auth, db } from "./firebase.js";
 import {
-  addDoc,
-  collection,
-  serverTimestamp,
-  Timestamp,
-  doc,
-  getDoc
+  addDoc, collection, serverTimestamp, Timestamp, doc, getDoc
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { onAuthStateChanged } from
+  "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-/* =========================
-   MODAL CONTROL
-========================= */
-window.openCreateModal = (dateISO, hour) => {
-  window.__selectedDateISO = dateISO;
-  document.getElementById("cStart").value = `${String(hour).padStart(2,"0")}:00`;
-  document.getElementById("cEnd").value   = `${String(hour+1).padStart(2,"0")}:00`;
-  document.getElementById("createModal").style.display = "block";
+let user=null;
+
+onAuthStateChanged(auth,u=>user=u);
+
+/* MODAL */
+window.openCreateModal=(dateISO,hour)=>{
+  window.__selectedDateISO=dateISO;
+  cStart.value=`${String(hour).padStart(2,"0")}:00`;
+  cEnd.value=`${String(hour+1).padStart(2,"0")}:00`;
+  createModal.style.display="block";
+};
+window.closeCreateModal=()=>{
+  createModal.style.display="none";
 };
 
-window.closeCreateModal = () => {
-  document.getElementById("createModal").style.display = "none";
+/* AUTOCOMPLETE */
+cPatientPhone.oninput=async()=>{
+  const phone=cPatientPhone.value.trim();
+  if(!/^\d{9}$/.test(phone)) return;
+
+  let snap=await getDoc(doc(db,"patients",phone));
+  if(!snap.exists())
+    snap=await getDoc(doc(db,"patients_normalized",phone));
+
+  if(snap.exists()){
+    const d=snap.data();
+    cPatientName.value=d.fullName||
+      [d.nombre,d.apellidos].filter(Boolean).join(" ");
+    cPatientName.disabled=true;
+  } else {
+    cPatientName.disabled=false;
+  }
 };
 
-/* =========================
-   AUTOCOMPLETE PACIENTE
-========================= */
-const phoneInput = document.getElementById("cPatientPhone");
-const nameInput  = document.getElementById("cPatientName");
+/* CREATE */
+window.createAppointment=async()=>{
+  if(!user){alert("Auth no lista");return;}
 
-let patientFound = false;
+  const base=new Date(window.__selectedDateISO);
+  base.setHours(0,0,0,0);
 
-if (phoneInput && nameInput) {
-  phoneInput.addEventListener("input", async () => {
-    const phone = phoneInput.value.trim();
+  const [sh]=cStart.value.split(":");
+  const [eh]=cEnd.value.split(":");
 
-    patientFound = false;
-    nameInput.disabled = false;
+  const start=new Date(base); start.setHours(sh,0,0,0);
+  const end=new Date(base);   end.setHours(eh,0,0,0);
 
-    if (!/^\d{9}$/.test(phone)) {
-      nameInput.value = "";
-      return;
-    }
-
-    // patients
-    let snap = await getDoc(doc(db, "patients", phone));
-
-    // fallback normalized
-    if (!snap.exists()) {
-      snap = await getDoc(doc(db, "patients_normalized", phone));
-    }
-
-    if (snap.exists()) {
-      const d = snap.data();
-      nameInput.value =
-        d.fullName ||
-        [d.nombre, d.apellidos].filter(Boolean).join(" ");
-
-      nameInput.disabled = true;
-      patientFound = true;
-    } else {
-      nameInput.value = "";
-      nameInput.disabled = false;
-    }
-  });
-}
-
-/* =========================
-   CREAR CITA
-========================= */
-window.createAppointment = async () => {
-
-  const phone    = phoneInput.value.trim();
-  const name     = nameInput.value.trim();
-  const service  = document.getElementById("cService").value.trim();
-  const modality = document.getElementById("cModality").value;
-  const startH   = document.getElementById("cStart").value;
-  const endH     = document.getElementById("cEnd").value;
-
-  /* VALIDACIONES */
-  if (!/^\d{9}$/.test(phone)) {
-    alert("Teléfono inválido");
-    return;
-  }
-
-  if (!name) {
-    alert("Nombre obligatorio");
-    return;
-  }
-
-  if (!modality) {
-    alert("Selecciona modalidad");
-    return;
-  }
-
-  if (!startH || !endH) {
-    alert("Hora inicio/fin obligatoria");
-    return;
-  }
-
-  const user = auth.currentUser;
-  if (!user) {
-    alert("No autenticado");
-    return;
-  }
-
-  /* FECHA */
-  const baseDate = new Date(window.__selectedDateISO);
-  baseDate.setHours(0,0,0,0);
-
-  const [sh, sm] = startH.split(":");
-  const [eh, em] = endH.split(":");
-
-  const start = new Date(baseDate);
-  start.setHours(sh, sm, 0, 0);
-
-  const end = new Date(baseDate);
-  end.setHours(eh, em, 0, 0);
-
-  if (end <= start) {
-    alert("La hora de fin debe ser posterior");
-    return;
-  }
-
-  /* CREACIÓN */
-  await addDoc(collection(db, "appointments"), {
-    therapistId: user.uid,
-
-    patientId: phone,
-    patientName: name,
-
-    service: service || "Sesión de psicoterapia",
-    modality,
-
-    start: Timestamp.fromDate(start),
-    end: Timestamp.fromDate(end),
-
-    status: "scheduled",
-
-    createdAt: serverTimestamp(),
-    createdBy: user.uid
+  await addDoc(collection(db,"appointments"),{
+    therapistId:user.uid,
+    patientId:cPatientPhone.value.trim(),
+    patientName:cPatientName.value.trim(),
+    service:cService.value||"Sesión de psicoterapia",
+    modality:cModality.value,
+    start:Timestamp.fromDate(start),
+    end:Timestamp.fromDate(end),
+    status:"scheduled",
+    createdAt:serverTimestamp(),
+    createdBy:user.uid
   });
 
   closeCreateModal();
