@@ -10,10 +10,14 @@ import {
 await requireAuth();
 await loadMenu();
 
+/* =========================
+   STATE
+========================= */
+
 let currentDate = new Date();
 let editingId = null;
 
-const hoursEl = document.getElementById("hours");
+const agendaEl = document.getElementById("agenda");
 const dateLabel = document.getElementById("dateLabel");
 
 const modal = document.getElementById("modal");
@@ -29,41 +33,145 @@ const completed = document.getElementById("completed");
 const paid = document.getElementById("paid");
 const amount = document.getElementById("amount");
 
+/* =========================
+   HELPERS
+========================= */
+
 function formatDate(d) {
   return d.toISOString().slice(0, 10);
 }
 
-function renderDay() {
-  hoursEl.innerHTML = "";
-  dateLabel.textContent = currentDate.toLocaleDateString("es-ES", {
-    weekday: "long", year: "numeric", month: "long", day: "numeric"
+function formatHeaderDate(d) {
+  return d.toLocaleDateString("es-ES", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric"
   });
-
-  for (let h = 9; h <= 20; h++) {
-    const div = document.createElement("div");
-    div.className = "hour-row";
-    div.textContent = `${h}:00`;
-    div.addEventListener("click", () => openModal(`${h}:00`, `${h + 1}:00`));
-    hoursEl.appendChild(div);
-  }
 }
 
-function openModal(s, e) {
+function resetModal() {
   editingId = null;
-  modal.classList.remove("hidden");
   phone.value = "";
   name.value = "";
-  start.value = s;
-  end.value = e;
-  amount.value = "";
+  service.value = "Visita Psicología";
+  modality.value = "viladecans";
+  start.value = "";
+  end.value = "";
   completed.checked = false;
   paid.checked = false;
+  amount.value = "";
   suggestions.innerHTML = "";
+}
+
+/* =========================
+   RENDER AGENDA
+========================= */
+
+async function renderDay() {
+  agendaEl.innerHTML = "";
+  dateLabel.textContent = formatHeaderDate(currentDate);
+
+  const user = auth.currentUser;
+  if (!user) return;
+
+  const q = query(
+    collection(db, "appointments"),
+    where("therapistId", "==", user.uid),
+    where("date", "==", formatDate(currentDate))
+  );
+
+  const snap = await getDocs(q);
+  const appointments = [];
+
+  snap.forEach(d => {
+    appointments.push({ id: d.id, ...d.data() });
+  });
+
+  appointments.sort((a, b) => a.start.localeCompare(b.start));
+
+  const groups = {
+    viladecans: [],
+    badalona: [],
+    online: []
+  };
+
+  appointments.forEach(a => {
+    if (groups[a.modality]) groups[a.modality].push(a);
+  });
+
+  Object.entries(groups).forEach(([key, items]) => {
+    if (!items.length) return;
+
+    const section = document.createElement("div");
+    section.className = "agenda-section";
+
+    const title = document.createElement("h4");
+    title.textContent =
+      key === "viladecans" ? "Psicoterapia Isla · Viladecans"
+      : key === "badalona" ? "Psicoterapia Isla · Badalona"
+      : "Online";
+
+    section.appendChild(title);
+
+    items.forEach(a => {
+      const block = document.createElement("div");
+      block.className = "appointment";
+
+      const isBlock =
+        a.service?.toLowerCase().includes("pràctiques") ||
+        a.service?.toLowerCase().includes("bloqueo");
+
+      if (isBlock) block.classList.add("blocked");
+
+      block.innerHTML = `
+        <div class="time">${a.start} – ${a.end}</div>
+        <div class="main">
+          <strong>${a.name || "—"}</strong>
+          <div class="service">${a.service}</div>
+        </div>
+      `;
+
+      block.addEventListener("click", () => openEdit(a));
+      section.appendChild(block);
+    });
+
+    agendaEl.appendChild(section);
+  });
+}
+
+/* =========================
+   MODAL
+========================= */
+
+function openNew(startTime = "09:00", endTime = "10:00") {
+  resetModal();
+  start.value = startTime;
+  end.value = endTime;
+  modal.classList.remove("hidden");
+}
+
+function openEdit(a) {
+  editingId = a.id;
+  phone.value = a.phone || "";
+  name.value = a.name || "";
+  service.value = a.service || "";
+  modality.value = a.modality || "viladecans";
+  start.value = a.start;
+  end.value = a.end;
+  completed.checked = !!a.completed;
+  paid.checked = !!a.paid;
+  amount.value = a.amount || "";
+  modal.classList.remove("hidden");
 }
 
 function closeModal() {
   modal.classList.add("hidden");
 }
+
+/* =========================
+   AUTOCOMPLETE
+========================= */
 
 async function searchPatients(term) {
   if (!term || term.length < 1) {
@@ -95,8 +203,13 @@ async function searchPatients(term) {
 phone.addEventListener("input", e => searchPatients(e.target.value));
 name.addEventListener("input", e => searchPatients(e.target.value));
 
+/* =========================
+   SAVE
+========================= */
+
 document.getElementById("save").addEventListener("click", async () => {
   const user = auth.currentUser;
+  if (!user) return;
 
   const data = {
     therapistId: user.uid,
@@ -123,26 +236,34 @@ document.getElementById("save").addEventListener("click", async () => {
   }
 
   closeModal();
+  renderDay();
 });
 
 document.getElementById("close").addEventListener("click", closeModal);
 
-document.getElementById("prevDay").addEventListener("click", () => {
+/* =========================
+   NAV
+========================= */
+
+document.getElementById("prevDay").onclick = () => {
   currentDate.setDate(currentDate.getDate() - 1);
   renderDay();
-});
+};
 
-document.getElementById("nextDay").addEventListener("click", () => {
+document.getElementById("nextDay").onclick = () => {
   currentDate.setDate(currentDate.getDate() + 1);
   renderDay();
-});
+};
 
-document.getElementById("today").addEventListener("click", () => {
+document.getElementById("today").onclick = () => {
   currentDate = new Date();
   renderDay();
-});
+};
 
-document.getElementById("newAppointment")
-  .addEventListener("click", () => openModal("09:00", "10:00"));
+document.getElementById("newAppointment").onclick = () => openNew();
+
+/* =========================
+   INIT
+========================= */
 
 renderDay();
