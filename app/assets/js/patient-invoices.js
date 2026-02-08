@@ -1,4 +1,4 @@
-import { db } from "./firebase.js";
+import { auth, db } from "./firebase.js";
 import {
   collection,
   getDocs,
@@ -7,143 +7,99 @@ import {
   orderBy
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-/* DOM */
-const searchInput = document.getElementById("patient-search");
-const resultsBox = document.getElementById("patient-results");
-const patientInfo = document.getElementById("patient-info");
-const patientDetails = document.getElementById("patient-details");
-const invoicesSection = document.getElementById("invoices-section");
-const invoicesTableBody = document.getElementById("invoices-table-body");
+const list = document.getElementById("list");
+const monthFilter = document.getElementById("monthFilter");
+const patientFilter = document.getElementById("patientFilter");
 
-let allPatients = [];
+let invoices = [];
 
-/* ===========================
-   CARGA PACIENTES
-=========================== */
-async function loadPatients() {
-  const snap = await getDocs(collection(db, "patients"));
-  allPatients = snap.docs.map(doc => ({
-    id: doc.id,
-    ...doc.data()
-  }));
-}
-
-loadPatients();
-
-/* ===========================
-   BUSCADOR PACIENTE
-=========================== */
-searchInput.addEventListener("input", () => {
-  const term = searchInput.value.toLowerCase().trim();
-  resultsBox.innerHTML = "";
-
-  if (!term || term.length < 2) {
-    resultsBox.style.display = "none";
-    return;
-  }
-
-  const matches = allPatients.filter(p =>
-    [p.name, p.surname, p.dni, p.email, p.phone]
-      .filter(Boolean)
-      .some(v => v.toLowerCase().includes(term))
-  );
-
-  if (!matches.length) {
-    resultsBox.innerHTML = `<div class="search-empty">Sin resultados</div>`;
-    resultsBox.style.display = "block";
-    return;
-  }
-
-  matches.forEach(p => {
-    const item = document.createElement("div");
-    item.className = "search-item";
-    item.textContent = `${p.name || ""} ${p.surname || ""} · ${p.dni || p.email || ""}`;
-
-    item.addEventListener("click", () => selectPatient(p));
-    resultsBox.appendChild(item);
-  });
-
-  resultsBox.style.display = "block";
-});
-
-/* ===========================
-   SELECCIÓN PACIENTE
-=========================== */
-async function selectPatient(patient) {
-  searchInput.value = "";
-  resultsBox.innerHTML = "";
-  resultsBox.style.display = "none";
-
-  patientDetails.innerHTML = `
-    <p><strong>Nombre:</strong> ${patient.name || "-"}</p>
-    <p><strong>Apellidos:</strong> ${patient.surname || "-"}</p>
-    <p><strong>DNI:</strong> ${patient.dni || "-"}</p>
-    <p><strong>Email:</strong> ${patient.email || "-"}</p>
-    <p><strong>Teléfono:</strong> ${patient.phone || "-"}</p>
-  `;
-
-  patientInfo.classList.remove("hidden");
-  await loadInvoices(patient.id);
-}
-
-/* ===========================
-   FACTURAS DEL PACIENTE
-=========================== */
-async function loadInvoices(patientId) {
-  invoicesTableBody.innerHTML = "";
-
+/* =========================
+   LOAD
+========================= */
+async function loadInvoices() {
   const q = query(
     collection(db, "invoices"),
-    where("patientId", "==", patientId),
+    where("therapistId", "==", auth.currentUser.uid),
     orderBy("createdAt", "desc")
   );
 
   const snap = await getDocs(q);
+  invoices = snap.docs.map(d => ({
+    id: d.id,
+    ...d.data()
+  }));
 
-  if (snap.empty) {
-    invoicesTableBody.innerHTML = `
-      <tr>
-        <td colspan="5">Este paciente no tiene facturas.</td>
-      </tr>
-    `;
-    invoicesSection.classList.remove("hidden");
+  render();
+}
+
+/* =========================
+   FILTER + RENDER
+========================= */
+function render() {
+  list.innerHTML = "";
+
+  const month = monthFilter.value;
+  const patient = patientFilter.value.toLowerCase();
+
+  let filtered = invoices;
+
+  if (month) {
+    filtered = filtered.filter(i => {
+      if (!i.createdAt?.toDate) return false;
+      const d = i.createdAt.toDate();
+      return (
+        d.getFullYear() === Number(month.split("-")[0]) &&
+        d.getMonth() + 1 === Number(month.split("-")[1])
+      );
+    });
+  }
+
+  if (patient) {
+    filtered = filtered.filter(i =>
+      (i.patientName || "").toLowerCase().includes(patient)
+    );
+  }
+
+  if (!filtered.length) {
+    list.innerHTML = `<p>No hay facturas</p>`;
     return;
   }
 
-  snap.docs.forEach(doc => {
-    const inv = doc.data();
+  let total = 0;
 
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>${inv.concept || "Sesión terapéutica"}</td>
-      <td>${inv.createdAt?.toDate
-        ? inv.createdAt.toDate().toLocaleDateString("es-ES")
-        : "-"}</td>
-      <td>${inv.amount ? `${inv.amount} €` : "-"}</td>
-      <td>
-        <span class="status ${inv.status}">
-          ${translateStatus(inv.status)}
-        </span>
-      </td>
-      <td>
-        <button class="small-btn">Ver</button>
-      </td>
+  filtered.forEach(i => {
+    total += Number(i.amount || 0);
+
+    const div = document.createElement("div");
+    div.className = "card";
+
+    div.innerHTML = `
+      <strong>${i.patientName || "—"}</strong><br>
+      ${i.amount} €<br>
+      ${i.createdAt?.toDate
+        ? i.createdAt.toDate().toLocaleDateString("es-ES")
+        : ""}<br>
+      <span class="status ${i.status}">
+        ${i.status === "paid" ? "Pagada" : "Pendiente"}
+      </span>
     `;
 
-    invoicesTableBody.appendChild(tr);
+    list.appendChild(div);
   });
 
-  invoicesSection.classList.remove("hidden");
+  const summary = document.createElement("div");
+  summary.className = "card";
+  summary.innerHTML = `<strong>Total: ${total} €</strong>`;
+  list.appendChild(summary);
 }
 
-/* ===========================
-   UTILIDADES
-=========================== */
-function translateStatus(status) {
-  switch (status) {
-    case "draft": return "Borrador";
-    case "issued": return "Emitida";
-    case "paid": return "Pagada";
-    default: return "-";
-  }
-}
+/* =========================
+   EVENTS
+========================= */
+monthFilter?.addEventListener("change", render);
+patientFilter?.addEventListener("input", render);
+
+/* =========================
+   INIT
+========================= */
+loadInvoices();
