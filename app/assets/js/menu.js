@@ -12,73 +12,61 @@ import {
   getDoc
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-/* =========================
-   ESTADO GLOBAL (ANTI-BUCLE)
-========================= */
-let menuInitialized = false;
-let authListenerAttached = false;
+let unsubscribeAuth = null;
 
-/* =========================
-   API PÚBLICA
-========================= */
 export async function loadMenu() {
   const menu = document.querySelector(".app-menu");
   if (!menu) return;
 
-  if (menuInitialized) return;
-  menuInitialized = true;
-
   const auth = getAuth();
 
-  if (!authListenerAttached) {
-    authListenerAttached = true;
+  // 🔒 evitar múltiples listeners
+  if (unsubscribeAuth) return;
 
-    onAuthStateChanged(auth, async (user) => {
-      if (!user) {
-        menu.innerHTML = "";
-        return;
-      }
-
-      await renderMenu(menu, user, auth);
-    });
-  }
-}
-
-/* =========================
-   RENDER MENÚ
-========================= */
-async function renderMenu(menu, user, auth) {
-
-  /* ===== ROL REAL ===== */
-  let role = "patient";
-
-  try {
-    const snap = await getDoc(doc(db, "users", user.uid));
-    if (snap.exists()) {
-      role = snap.data().role || "patient";
+  unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
+    if (!user) {
+      menu.innerHTML = "";
+      return;
     }
-  } catch (e) {
-    console.warn("menu.js → error leyendo rol", e);
-  }
 
-  const isAdmin = role === "admin";
-  const isTherapist = role === "therapist" || isAdmin;
+    /* ======================
+       ROL REAL (ROBUSTO)
+    ====================== */
+    let role = "patient";
 
-  /* ===== HTML ===== */
-  menu.innerHTML = `
-    <div class="app-menu-inner">
+    try {
+      const snap = await getDoc(doc(db, "users", user.uid));
+      if (snap.exists() && snap.data().role) {
+        role = snap.data().role;
+      }
+    } catch (err) {
+      console.warn("menu.js → no se pudo leer rol, usando patient");
+    }
 
-      <button data-link="index.html">Inicio</button>
+    const isAdmin = role === "admin";
+    const isTherapist = role === "therapist" || isAdmin;
 
-      <div class="menu-group">
-        <button class="menu-group-toggle">Foro</button>
-        <div class="menu-group-content">
-          <a href="foro.html">Foro</a>
+    /* ======================
+       MENU
+    ====================== */
+    menu.innerHTML = `
+      <div class="app-menu-inner">
+
+        <!-- INICIO -->
+        <button class="menu-group-toggle" data-link="index.html">
+          Inicio
+        </button>
+
+        <!-- FORO -->
+        <div class="menu-group">
+          <button class="menu-group-toggle">Foro</button>
+          <div class="menu-group-content">
+            <a href="foro.html">Foro</a>
+          </div>
         </div>
-      </div>
 
-      ${
-        !isTherapist ? `
+        ${
+          !isTherapist ? `
         <div class="menu-group">
           <button class="menu-group-toggle">Mi espacio</button>
           <div class="menu-group-content">
@@ -91,11 +79,10 @@ async function renderMenu(menu, user, auth) {
             <a href="agenda-paciente.html">Mis citas</a>
           </div>
         </div>
-        ` : ""
-      }
+        ` : ""}
 
-      ${
-        isTherapist ? `
+        ${
+          isTherapist ? `
         <div class="menu-group">
           <button class="menu-group-toggle">Espacio terapeuta</button>
           <div class="menu-group-content">
@@ -108,59 +95,64 @@ async function renderMenu(menu, user, auth) {
             <a href="entries-by-patient.html">Registros por paciente</a>
             <hr>
             <a href="patient-invoices.html">Facturación</a>
-            ${
-              isAdmin ? `
+            ${isAdmin ? `
               <hr>
               <a href="exercises-admin.html">Gestionar ejercicios</a>
-              ` : ""
-            }
+            ` : ""}
           </div>
         </div>
-        ` : ""
-      }
+        ` : ""}
 
-      <button id="logout-btn">Salir</button>
+        <!-- SALIR -->
+        <button class="menu-group-toggle" id="logout-btn">
+          Salir
+        </button>
 
-    </div>
-  `;
+      </div>
+    `;
 
-  bindMenuEvents(menu, auth);
-}
+    /* ======================
+       NAVEGACIÓN DIRECTA
+    ====================== */
+    menu.querySelectorAll("[data-link]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        window.location.href = btn.dataset.link;
+      });
+    });
 
-/* =========================
-   EVENTOS (DELEGADOS)
-========================= */
-function bindMenuEvents(menu, auth) {
+    /* ======================
+       DESPLEGABLES (ESTABLE)
+    ====================== */
+    menu.querySelectorAll(".menu-group > .menu-group-toggle")
+      .forEach(btn => {
+        btn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          const group = btn.parentElement;
 
-  /* navegación */
-  menu.querySelectorAll("[data-link]").forEach(btn => {
-    btn.onclick = () => {
-      window.location.href = btn.dataset.link;
-    };
-  });
+          menu.querySelectorAll(".menu-group.open")
+            .forEach(g => {
+              if (g !== group) g.classList.remove("open");
+            });
 
-  /* desplegables */
-  menu.querySelectorAll(".menu-group-toggle").forEach(btn => {
-    btn.onclick = () => {
-      const group = btn.closest(".menu-group");
-
-      menu.querySelectorAll(".menu-group.open")
-        .forEach(g => {
-          if (g !== group) g.classList.remove("open");
+          group.classList.toggle("open");
         });
+      });
 
-      if (group) {
-        group.classList.toggle("open");
-      }
-    };
+    // cerrar al clicar fuera
+    document.addEventListener("click", () => {
+      menu.querySelectorAll(".menu-group.open")
+        .forEach(g => g.classList.remove("open"));
+    });
+
+    /* ======================
+       LOGOUT
+    ====================== */
+    const logoutBtn = document.getElementById("logout-btn");
+    if (logoutBtn) {
+      logoutBtn.addEventListener("click", async () => {
+        await signOut(auth);
+        window.location.href = "login.html";
+      });
+    }
   });
-
-  /* logout */
-  const logoutBtn = menu.querySelector("#logout-btn");
-  if (logoutBtn) {
-    logoutBtn.onclick = async () => {
-      await signOut(auth);
-      window.location.href = "login.html";
-    };
-  }
 }
