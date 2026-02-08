@@ -9,91 +9,80 @@
 
 <style>
 .availability-wrapper {
-  padding: 1rem;
-  max-width: 1000px;
-  margin: 0 auto;
+  padding:1rem;
+  max-width:1200px;
+  margin:0 auto;
 }
 
 .availability-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: .5rem;
-  margin-bottom: 1rem;
-}
-
-.availability-header h1 {
-  margin: 0;
-  font-size: 1.4rem;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:1rem;
 }
 
 .availability-nav {
-  display: flex;
-  gap: .5rem;
-}
-
-.availability-grid-wrapper {
-  overflow-x: auto;
+  display:flex;
+  gap:.5rem;
 }
 
 .availability-grid {
-  display: grid;
-  grid-template-columns: 64px repeat(7, minmax(120px,1fr));
-  gap: 6px;
-  min-width: 900px;
+  display:grid;
+  grid-template-columns:64px repeat(7,1fr);
+  gap:.4rem;
 }
 
 .hour-label {
-  font-size: .75rem;
-  text-align: right;
-  padding-right: 6px;
-  color: #666;
+  font-size:.75rem;
+  text-align:right;
+  padding-right:6px;
+  color:#666;
 }
 
 .day-label {
-  text-align: center;
-  font-weight: 600;
-  font-size: .8rem;
+  text-align:center;
+  font-weight:600;
+  font-size:.85rem;
 }
 
 .slot {
-  display: flex;
-  gap: 4px;
-  justify-content: center;
-  align-items: stretch;
-  padding: 4px;
-  border-radius: 10px;
-  background: #e5e7eb;
+  min-height:54px;
+  border-radius:14px;
+  background:#e5e7eb;
+  padding:4px;
+  display:flex;
+  flex-direction:column;
+  gap:4px;
 }
 
 .slot.available {
-  background: #e6f4d7;
+  background:#e6f4d7;
 }
 
 .slot .mode {
-  flex: 1;
-  border: none;
-  border-radius: 6px;
-  padding: 8px 4px;
-  font-size: .7rem;
-  cursor: pointer;
-  background: #e5e7eb;
+  border:none;
+  border-radius:8px;
+  font-size:.7rem;
+  padding:4px;
+  cursor:pointer;
+  background:#fff;
 }
 
 .slot .mode.on {
-  background: #1f6b4e;
-  color: #fff;
+  background:#1f6b4e;
+  color:#fff;
 }
 </style>
 </head>
 
 <body class="app-body">
+
 <header class="app-menu"></header>
 
 <main class="availability-wrapper">
 
   <div class="availability-header">
-    <h1>Disponibilidad semanal</h1>
+    <h1>Disponibilidad</h1>
 
     <div class="availability-nav">
       <button id="prevWeek" class="btn-secondary">←</button>
@@ -102,11 +91,9 @@
     </div>
   </div>
 
-  <p>Define tu disponibilidad por horas y modalidad.</p>
+  <p>Define tu disponibilidad semanal por modalidad.</p>
 
-  <div class="availability-grid-wrapper">
-    <div id="availabilityGrid" class="availability-grid"></div>
-  </div>
+  <div id="availabilityGrid" class="availability-grid"></div>
 
   <br>
   <button id="saveAvailability" class="btn-primary">
@@ -130,43 +117,51 @@ await loadMenu();
      SEMANA CONTROLADA
 ========================= -->
 <script>
-function mondayOf(date){
-  const d = new Date(date);
-  const day = (d.getDay() + 6) % 7;
-  d.setDate(d.getDate() - day);
-  d.setHours(0,0,0,0);
-  return d;
-}
+(function(){
+  function mondayOf(date){
+    const d = new Date(date);
+    const day = (d.getDay()+6)%7;
+    d.setDate(d.getDate()-day);
+    d.setHours(0,0,0,0);
+    return d;
+  }
 
-const params = new URLSearchParams(location.search);
-const paramWeek = params.get("week");
+  const params = new URLSearchParams(location.search);
+  const paramWeek = params.get("week");
 
-const baseDate = paramWeek ? new Date(paramWeek) : new Date();
-const monday = mondayOf(baseDate);
+  const baseDate = paramWeek ? new Date(paramWeek) : new Date();
+  const monday = mondayOf(baseDate);
 
-window.__availabilityWeekStart = monday.toISOString().slice(0,10);
+  window.__availabilityWeekStart = monday.toISOString().slice(0,10);
 
-function go(offset){
-  const d = new Date(monday);
-  d.setDate(d.getDate() + offset * 7);
-  location.href =
-    `disponibilidad.html?week=${d.toISOString().slice(0,10)}`;
-}
+  function go(offset){
+    const d = new Date(monday);
+    d.setDate(d.getDate()+offset*7);
+    location.href =
+      `disponibilidad.html?week=${d.toISOString().slice(0,10)}`;
+  }
 
-document.getElementById("prevWeek").onclick = () => go(-1);
-document.getElementById("nextWeek").onclick = () => go(1);
-document.getElementById("todayWeek").onclick = () =>
-  location.href = "disponibilidad.html";
+  document.getElementById("prevWeek").onclick = () => go(-1);
+  document.getElementById("nextWeek").onclick = () => go(1);
+  document.getElementById("todayWeek").onclick =
+    () => location.href = "disponibilidad.html";
+})();
 </script>
 
 <!-- =========================
      GRID LOGIC
 ========================= -->
 <script type="module">
+import { requireAuth } from "./assets/js/auth.js";
 import { auth, db } from "./assets/js/firebase.js";
 import {
   doc, getDoc, setDoc, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+await requireAuth();
+
+const user = auth.currentUser;
+const therapistId = user.uid;
 
 const grid = document.getElementById("availabilityGrid");
 const saveBtn = document.getElementById("saveAvailability");
@@ -175,20 +170,23 @@ const DAYS = ["mon","tue","wed","thu","fri","sat","sun"];
 const DAY_LABELS = ["L","M","X","J","V","S","D"];
 const HOURS = Array.from({length:12},(_,i)=>i+9);
 
-const therapistId = auth.currentUser.uid;
 const weekKey = window.__availabilityWeekStart;
 const docRef = doc(db,"availability",`${therapistId}_${weekKey}`);
 
 const slotsState = {};
 
 function normalize(key){
-  slotsState[key] ??= { online:false, viladecans:false, badalona:false };
+  slotsState[key] ??= {
+    online:false,
+    viladecans:false,
+    badalona:false
+  };
 }
 
 function render(){
-  grid.innerHTML = "";
-  grid.appendChild(document.createElement("div"));
+  grid.innerHTML="";
 
+  grid.appendChild(document.createElement("div"));
   DAY_LABELS.forEach(l=>{
     const d=document.createElement("div");
     d.className="day-label";
@@ -205,10 +203,11 @@ function render(){
     DAYS.forEach(day=>{
       const key=`${day}_${h}`;
       normalize(key);
-      const data=slotsState[key];
 
+      const data=slotsState[key];
       const slot=document.createElement("div");
       slot.className="slot";
+
       if(data.online||data.viladecans||data.badalona){
         slot.classList.add("available");
       }
@@ -221,18 +220,16 @@ function render(){
 
       slot.querySelectorAll(".mode").forEach(btn=>{
         btn.onclick=e=>{
-          e.stopPropagation();
+          e.preventDefault();
           const m=btn.dataset.m;
 
           if(m==="viladecans"){
             data.viladecans=!data.viladecans;
             if(data.viladecans) data.badalona=false;
-          }
-          else if(m==="badalona"){
+          } else if(m==="badalona"){
             data.badalona=!data.badalona;
             if(data.badalona) data.viladecans=false;
-          }
-          else{
+          } else {
             data.online=!data.online;
           }
           render();
@@ -244,21 +241,23 @@ function render(){
   });
 }
 
+/* LOAD */
 const snap = await getDoc(docRef);
 if(snap.exists()){
-  Object.assign(slotsState, snap.data().slots || {});
+  Object.assign(slotsState,snap.data().slots||{});
 }
 Object.keys(slotsState).forEach(normalize);
 render();
 
-saveBtn.onclick = async ()=>{
+/* SAVE */
+saveBtn.onclick=async()=>{
   await setDoc(docRef,{
     therapistId,
-    weekStart: weekKey,
-    slots: slotsState,
-    updatedAt: serverTimestamp()
+    weekStart:weekKey,
+    slots:slotsState,
+    updatedAt:serverTimestamp()
   });
-  alert("Disponibilidad guardada");
+  alert("Disponibilidad guardada correctamente");
 };
 </script>
 
