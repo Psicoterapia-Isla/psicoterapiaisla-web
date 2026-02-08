@@ -166,7 +166,7 @@ name.oninput = e => {
 };
 
 /* =========================
-   FACTURACIÓN
+   INVOICE NUMBER
 ========================= */
 async function getNextInvoiceNumber(therapistId) {
   const year = new Date().getFullYear();
@@ -188,18 +188,20 @@ async function getNextInvoiceNumber(therapistId) {
       });
     }
 
-    return `PI-${year}-${String(next).padStart(4, "0")}`;
+    return `PI-${year}-${String(next).padStart(4,"0")}`;
   });
 }
 
+/* =========================
+   FACTURA AUTOMÁTICA
+========================= */
 async function maybeCreateInvoice(appointmentId, data) {
   if (!data.completed || !data.paid) return;
   if (!data.amount || data.amount <= 0) return;
-  if (data.invoiceId) return;
 
   const invoiceNumber = await getNextInvoiceNumber(data.therapistId);
 
-  const invoiceRef = await addDoc(collection(db, "invoices"), {
+  const ref = await addDoc(collection(db, "invoices"), {
     therapistId: data.therapistId,
     appointmentId,
     invoiceNumber,
@@ -216,7 +218,7 @@ async function maybeCreateInvoice(appointmentId, data) {
   });
 
   await updateDoc(doc(db, "appointments", appointmentId), {
-    invoiceId: invoiceRef.id
+    invoiceId: ref.id
   });
 }
 
@@ -291,7 +293,14 @@ document.getElementById("save").onclick = async () => {
 
   await maybeCreateInvoice(appointmentId, data);
 
-  openWhatsAppNotification(data);
+  openWhatsAppNotification({
+    phone: data.phone,
+    name: data.name,
+    date: data.date,
+    start: data.start,
+    end: data.end,
+    modality: data.modality
+  });
 
   modal.classList.remove("show");
   renderWeek();
@@ -356,6 +365,7 @@ async function renderWeek() {
 
     DAYS.forEach(day => {
       const date = formatDate(dayFromKey(monday, day));
+      const slotKey = `${day}_${hour}`;
       const apptKey = `${date}_${hour}:00`;
 
       const cell = document.createElement("div");
@@ -366,7 +376,7 @@ async function renderWeek() {
         cell.classList.add(a.paid ? "paid" : a.completed ? "done" : "busy");
         cell.innerHTML = `<strong>${a.name || "—"}</strong><span>${a.start}–${a.end}</span>`;
         cell.onclick = () => openEdit(a);
-      } else if (availability[`${day}_${hour}`]) {
+      } else if (availability[slotKey]) {
         cell.classList.add("available");
         cell.textContent = "Disponible";
         cell.onclick = () => openNew({ date, hour });
