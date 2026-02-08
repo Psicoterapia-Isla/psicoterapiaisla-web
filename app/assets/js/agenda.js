@@ -16,6 +16,7 @@ await loadMenu();
 
 let currentDate = new Date();
 let editingId = null;
+let selectedPatientId = null;
 
 const agendaEl = document.getElementById("agenda");
 const dateLabel = document.getElementById("dateLabel");
@@ -37,34 +38,26 @@ const amount = document.getElementById("amount");
    DATE HELPERS
 ========================= */
 
-function formatDate(d) {
-  return d.toISOString().slice(0, 10);
-}
+const formatDate = d => d.toISOString().slice(0, 10);
 
-function startOfWeek(d) {
-  const date = new Date(d);
-  const day = date.getDay() || 7;
-  date.setDate(date.getDate() - day + 1);
-  return date;
-}
+const startOfWeek = d => {
+  const x = new Date(d);
+  const day = x.getDay() || 7;
+  x.setDate(x.getDate() - day + 1);
+  return x;
+};
 
-function endOfWeek(d) {
-  const date = startOfWeek(d);
-  date.setDate(date.getDate() + 6);
-  return date;
-}
+const endOfWeek = d => {
+  const x = startOfWeek(d);
+  x.setDate(x.getDate() + 6);
+  return x;
+};
 
-function formatHeaderRange(from, to) {
-  return `${from.toLocaleDateString("es-ES", { day: "numeric", month: "short" })} – ${to.toLocaleDateString("es-ES", { day: "numeric", month: "short", year: "numeric" })}`;
-}
+const formatHeaderRange = (a,b) =>
+  `${a.toLocaleDateString("es-ES",{day:"numeric",month:"short"})} – ${b.toLocaleDateString("es-ES",{day:"numeric",month:"short",year:"numeric"})}`;
 
-function weekdayLabel(dateStr) {
-  const d = new Date(dateStr);
-  return d.toLocaleDateString("es-ES", {
-    weekday: "long",
-    day: "numeric"
-  });
-}
+const weekdayLabel = d =>
+  new Date(d).toLocaleDateString("es-ES",{weekday:"long",day:"numeric"});
 
 /* =========================
    MODAL
@@ -72,6 +65,7 @@ function weekdayLabel(dateStr) {
 
 function resetModal() {
   editingId = null;
+  selectedPatientId = null;
   phone.value = "";
   name.value = "";
   service.value = "Visita Psicología";
@@ -84,15 +78,19 @@ function resetModal() {
   suggestions.innerHTML = "";
 }
 
-function openNew(startTime = "09:00", endTime = "10:00") {
+function openNew(startTime="09:00", endTime="10:00", date=null) {
   resetModal();
+  if (date) currentDate = new Date(date);
   start.value = startTime;
   end.value = endTime;
   modal.classList.remove("hidden");
 }
 
 function openEdit(a) {
+  resetModal();
   editingId = a.id;
+  selectedPatientId = a.patientId || null;
+  currentDate = new Date(a.date);
   phone.value = a.phone || "";
   name.value = a.name || "";
   service.value = a.service || "";
@@ -105,16 +103,15 @@ function openEdit(a) {
   modal.classList.remove("hidden");
 }
 
-function closeModal() {
+document.getElementById("close").onclick = () =>
   modal.classList.add("hidden");
-}
 
 /* =========================
    AUTOCOMPLETE
 ========================= */
 
 async function searchPatients(term) {
-  if (!term || term.length < 1) {
+  if (!term || term.length < 2) {
     suggestions.innerHTML = "";
     return;
   }
@@ -132,6 +129,7 @@ async function searchPatients(term) {
     const div = document.createElement("div");
     div.textContent = `${p.name} · ${p.phone}`;
     div.onclick = () => {
+      selectedPatientId = d.id;
       phone.value = p.phone;
       name.value = p.name;
       suggestions.innerHTML = "";
@@ -140,8 +138,15 @@ async function searchPatients(term) {
   });
 }
 
-phone.oninput = e => searchPatients(e.target.value);
-name.oninput = e => searchPatients(e.target.value);
+phone.oninput = e => {
+  selectedPatientId = null;
+  searchPatients(e.target.value);
+};
+
+name.oninput = e => {
+  selectedPatientId = null;
+  searchPatients(e.target.value);
+};
 
 /* =========================
    SAVE
@@ -153,6 +158,7 @@ document.getElementById("save").onclick = async () => {
 
   const data = {
     therapistId: user.uid,
+    patientId: selectedPatientId || null,
     date: formatDate(currentDate),
     phone: phone.value,
     name: name.value,
@@ -175,11 +181,9 @@ document.getElementById("save").onclick = async () => {
     });
   }
 
-  closeModal();
+  modal.classList.add("hidden");
   renderWeek();
 };
-
-document.getElementById("close").onclick = closeModal;
 
 /* =========================
    RENDER WEEK
@@ -190,81 +194,71 @@ async function renderWeek() {
 
   const from = startOfWeek(currentDate);
   const to = endOfWeek(currentDate);
-
-  dateLabel.textContent = formatHeaderRange(from, to);
+  dateLabel.textContent = formatHeaderRange(from,to);
 
   const user = auth.currentUser;
   if (!user) return;
 
   const q = query(
-    collection(db, "appointments"),
-    where("therapistId", "==", user.uid),
-    where("date", ">=", formatDate(from)),
-    where("date", "<=", formatDate(to))
+    collection(db,"appointments"),
+    where("therapistId","==",user.uid),
+    where("date",">=",formatDate(from)),
+    where("date","<=",formatDate(to))
   );
 
   const snap = await getDocs(q);
   const byDay = {};
 
-  snap.forEach(d => {
-    const a = { id: d.id, ...d.data() };
-    if (!byDay[a.date]) byDay[a.date] = [];
-    byDay[a.date].push(a);
+  snap.forEach(d=>{
+    const a={id:d.id,...d.data()};
+    (byDay[a.date]??=[]).push(a);
   });
 
-  Object.keys(byDay).sort().forEach(date => {
-    const dayBlock = document.createElement("div");
-    dayBlock.className = "agenda-day";
+  Object.keys(byDay).sort().forEach(date=>{
+    const day=document.createElement("div");
+    day.className="agenda-day";
 
-    const h = document.createElement("h3");
-    h.textContent = weekdayLabel(date);
-    dayBlock.appendChild(h);
+    const h=document.createElement("h3");
+    h.textContent=weekdayLabel(date);
+    day.appendChild(h);
 
-    const groups = { viladecans: [], badalona: [], online: [] };
+    ["viladecans","badalona","online"].forEach(loc=>{
+      const items=(byDay[date]||[]).filter(a=>a.modality===loc);
+      if(!items.length) return;
 
-    byDay[date].forEach(a => groups[a.modality]?.push(a));
+      const sec=document.createElement("div");
+      sec.className="agenda-section";
 
-    Object.entries(groups).forEach(([key, items]) => {
-      if (!items.length) return;
+      const t=document.createElement("h4");
+      t.textContent=loc==="viladecans"
+        ?"Psicoterapia Isla · Viladecans"
+        :loc==="badalona"
+        ?"Psicoterapia Isla · Badalona"
+        :"Online";
 
-      items.sort((a, b) => a.start.localeCompare(b.start));
+      sec.appendChild(t);
 
-      const section = document.createElement("div");
-      section.className = "agenda-section";
+      items.sort((a,b)=>a.start.localeCompare(b.start))
+        .forEach(a=>{
+          const b=document.createElement("div");
+          b.className="appointment";
+          if(/bloqueo|pràctiques/i.test(a.service||""))
+            b.classList.add("blocked");
 
-      const title = document.createElement("h4");
-      title.textContent =
-        key === "viladecans" ? "Psicoterapia Isla · Viladecans"
-        : key === "badalona" ? "Psicoterapia Isla · Badalona"
-        : "Online";
+          b.innerHTML=`
+            <div class="time">${a.start} – ${a.end}</div>
+            <div class="main">
+              <strong>${a.name||"—"}</strong>
+              <div class="service">${a.service}</div>
+            </div>`;
+          b.onclick=()=>openEdit(a);
+          sec.appendChild(b);
+        });
 
-      section.appendChild(title);
-
-      items.forEach(a => {
-        const block = document.createElement("div");
-        block.className = "appointment";
-
-        if (
-          a.service?.toLowerCase().includes("bloqueo") ||
-          a.service?.toLowerCase().includes("pràctiques")
-        ) block.classList.add("blocked");
-
-        block.innerHTML = `
-          <div class="time">${a.start} – ${a.end}</div>
-          <div class="main">
-            <strong>${a.name || "—"}</strong>
-            <div class="service">${a.service}</div>
-          </div>
-        `;
-
-        block.onclick = () => openEdit(a);
-        section.appendChild(block);
-      });
-
-      dayBlock.appendChild(section);
+      day.appendChild(sec);
     });
 
-    agendaEl.appendChild(dayBlock);
+    agendaEl.appendChild(day);
   });
 }
 
@@ -272,22 +266,10 @@ async function renderWeek() {
    NAV
 ========================= */
 
-document.getElementById("prevDay").onclick = () => {
-  currentDate.setDate(currentDate.getDate() - 7);
-  renderWeek();
-};
-
-document.getElementById("nextDay").onclick = () => {
-  currentDate.setDate(currentDate.getDate() + 7);
-  renderWeek();
-};
-
-document.getElementById("today").onclick = () => {
-  currentDate = new Date();
-  renderWeek();
-};
-
-document.getElementById("newAppointment").onclick = () => openNew();
+prevDay.onclick=()=>{currentDate.setDate(currentDate.getDate()-7);renderWeek();}
+nextDay.onclick=()=>{currentDate.setDate(currentDate.getDate()+7);renderWeek();}
+today.onclick=()=>{currentDate=new Date();renderWeek();}
+newAppointment.onclick=()=>openNew();
 
 /* =========================
    INIT
