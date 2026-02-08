@@ -22,7 +22,9 @@ const HOURS = Array.from({ length:12 }, (_,i)=>i+9);
 ========================= */
 const grid = document.getElementById("grid");
 const saveBtn = document.getElementById("save");
-const weekLabelEl = document.getElementById("weekLabel");
+function getWeekLabelEl(){
+  return document.getElementById("weekLabel");
+}
 
 /* =========================
    FECHAS
