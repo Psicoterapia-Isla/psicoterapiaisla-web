@@ -1,1 +1,142 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<title>Disponibilidad | Psicoterapia Isla</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
+<link rel="stylesheet" href="assets/css/app.css">
+
+<style>
+.availability-wrapper {
+  padding: 1rem;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.availability-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: .5rem;
+  margin-bottom: 1rem;
+}
+
+.availability-header h1 {
+  margin: 0;
+}
+
+.availability-nav {
+  display: flex;
+  gap: .5rem;
+}
+
+.availability-grid {
+  display: grid;
+  grid-template-columns: 60px repeat(7, 1fr);
+  gap: 6px;
+  margin-top: 1rem;
+}
+
+.hour-label {
+  font-size: 0.75rem;
+  text-align: right;
+  padding-right: 6px;
+  color: #666;
+}
+
+.day-label {
+  text-align: center;
+  font-weight: 600;
+}
+
+.slot {
+  height: 36px;
+  border-radius: 6px;
+  background: #e5e7eb;
+}
+</style>
+</head>
+
+<body class="app-body">
+
+<header class="app-menu"></header>
+
+<main class="availability-wrapper">
+
+  <div class="availability-header">
+    <h1>Disponibilidad semanal</h1>
+
+    <div class="availability-nav">
+      <button id="prevWeek" class="btn-secondary">←</button>
+      <button id="todayWeek" class="btn-secondary">Hoy</button>
+      <button id="nextWeek" class="btn-secondary">→</button>
+    </div>
+  </div>
+
+  <p>Marca las horas en las que estarás disponible para citas.</p>
+
+  <div id="availabilityGrid" class="availability-grid"></div>
+
+  <br>
+  <button id="saveAvailability" class="btn-primary">
+    Guardar disponibilidad
+  </button>
+
+</main>
+
+<!-- =========================
+     AUTH + MENU
+========================= -->
+<script type="module">
+import { requireAuth } from "./assets/js/auth.js";
+import { loadMenu } from "./assets/js/menu.js";
+
+await requireAuth();
+await loadMenu();
+</script>
+
+<!-- =========================
+     CONTROL DE SEMANA (ÚNICA FUENTE)
+========================= -->
+<script>
+(function () {
+
+  function mondayOf(date) {
+    const d = new Date(date);
+    const day = (d.getDay() + 6) % 7;
+    d.setDate(d.getDate() - day);
+    d.setHours(0,0,0,0);
+    return d;
+  }
+
+  const params = new URLSearchParams(location.search);
+  const paramWeek = params.get("week");
+
+  const baseDate = paramWeek ? new Date(paramWeek) : new Date();
+  const monday = mondayOf(baseDate);
+
+  // 🔒 CONTRATO con availability-grid.js
+  window.__availabilityWeekStart = monday.toISOString().slice(0,10);
+
+  function go(offsetWeeks) {
+    const d = new Date(monday);
+    d.setDate(d.getDate() + offsetWeeks * 7);
+    location.href = `disponibilidad.html?week=${d.toISOString().slice(0,10)}`;
+  }
+
+  document.getElementById("prevWeek").onclick = () => go(-1);
+  document.getElementById("nextWeek").onclick = () => go(1);
+  document.getElementById("todayWeek").onclick = () =>
+    location.href = "disponibilidad.html";
+
+})();
+</script>
+
+<!-- =========================
+     GRID
+========================= -->
+<script type="module" src="assets/js/availability-grid.js"></script>
+
+</body>
+</html>
