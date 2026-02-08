@@ -1,62 +1,25 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8" />
+<meta charset="UTF-8">
 <title>Agenda | Psicoterapia Isla</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="stylesheet" href="assets/css/app.css">
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
 <style>
-.wrapper { max-width:900px; margin:0 auto; padding:1.5rem; }
-.header { display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; }
-.nav { display:flex; gap:.5rem; }
-
-.day {
-  font-size:1.1rem;
-  font-weight:600;
-}
-
-.slot {
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  padding:.75rem;
-  border-radius:12px;
-  margin-bottom:.5rem;
-}
-
-.slot.free { background:#e5e7eb; cursor:pointer; }
-.slot.busy { background:#e6f4d7; cursor:pointer; }
-
-.time { width:60px; font-weight:600; }
-
-.modal {
-  display:none;
-  position:fixed;
-  inset:0;
-  background:rgba(0,0,0,.4);
-  z-index:999;
-}
-
-.modal-card {
-  background:#fff;
-  max-width:420px;
-  margin:10vh auto;
-  padding:1rem;
-  border-radius:16px;
-}
-
-.field { margin-bottom:.5rem; }
-.field input, .field select {
-  width:100%;
-  padding:.4rem;
-}
-
-.actions {
-  display:flex;
-  justify-content:space-between;
-  margin-top:1rem;
-}
+.wrapper{max-width:900px;margin:0 auto;padding:1.5rem}
+.header{display:flex;justify-content:space-between;align-items:center}
+.nav button{margin-right:.25rem}
+.slot{display:flex;gap:1rem;padding:.5rem;border-radius:8px;margin:.25rem 0;cursor:pointer}
+.free{background:#eee}
+.busy{background:#dff5e6}
+.time{width:60px;font-weight:bold}
+.modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4)}
+.modal-card{background:#fff;max-width:420px;margin:10vh auto;padding:1rem;border-radius:12px}
+.modal-card input,select{width:100%;margin-bottom:.5rem}
+.actions{display:flex;justify-content:flex-end;gap:.5rem}
 </style>
 </head>
 
@@ -64,55 +27,61 @@
 <header class="app-menu"></header>
 
 <main class="wrapper">
-
   <div class="header">
-    <div class="day" id="dayLabel"></div>
+    <h1>Agenda</h1>
     <div class="nav">
-      <button id="prevDay" class="btn-secondary">←</button>
-      <button id="today" class="btn-secondary">Hoy</button>
-      <button id="nextDay" class="btn-secondary">→</button>
+      <button id="prev">←</button>
+      <button id="today">Hoy</button>
+      <button id="next">→</button>
+      <button id="new">+ Cita</button>
     </div>
   </div>
 
+  <p id="dayLabel"></p>
   <div id="agenda"></div>
 </main>
 
 <!-- MODAL -->
-<div id="modal" class="modal">
+<div class="modal" id="modal">
   <div class="modal-card">
+    <h3>Cita</h3>
 
-    <div class="field">
-      <input id="pSearch" placeholder="Teléfono / nombre / apellidos">
-    </div>
+    <input id="search" placeholder="Buscar paciente (nombre o teléfono)">
+    <input id="name" placeholder="Nombre paciente">
+    <input id="phone" placeholder="Teléfono">
 
-    <div class="field">
-      <input id="pName" placeholder="Nombre completo">
-    </div>
+    <select id="modality">
+      <option value="">Modalidad</option>
+      <option value="viladecans">Viladecans</option>
+      <option value="badalona">Badalona</option>
+      <option value="online">Online</option>
+    </select>
 
-    <div class="field">
-      <select id="modality">
-        <option value="">Modalidad</option>
-        <option value="viladecans">Viladecans</option>
-        <option value="badalona">Badalona</option>
-        <option value="online">Online</option>
-      </select>
-    </div>
+    <label>
+      <input type="checkbox" id="done"> Sesión realizada
+    </label>
 
-    <div class="field">
-      <label>
-        <input type="checkbox" id="completed">
-        Sesión realizada
-      </label>
-    </div>
+    <label>
+      <input type="checkbox" id="paid"> Pagada
+    </label>
+
+    <input id="amount" type="number" placeholder="Importe (€)">
 
     <div class="actions">
-      <button id="whatsapp" class="btn-secondary">WhatsApp</button>
-      <button id="save" class="btn-primary">Guardar</button>
-      <button onclick="closeModal()">Cerrar</button>
+      <button id="pdf">PDF</button>
+      <button id="whatsapp">WhatsApp</button>
+      <button id="save">Guardar</button>
+      <button id="close">Cerrar</button>
     </div>
-
   </div>
 </div>
+
+<script type="module">
+import { requireAuth } from "./assets/js/auth.js";
+import { loadMenu } from "./assets/js/menu.js";
+await requireAuth();
+await loadMenu();
+</script>
 
 <script type="module" src="assets/js/agenda.js"></script>
 </body>
