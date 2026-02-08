@@ -7,16 +7,39 @@
 <link rel="stylesheet" href="assets/css/app.css">
 
 <style>
-.create-wrapper{max-width:520px;margin:0 auto;padding:1rem}
-h1{margin-bottom:1rem}
-
-.form-row{margin-bottom:.9rem}
-label{display:block;font-size:.85rem;margin-bottom:.25rem}
-input,select{
-  width:100%;padding:.7rem;border-radius:12px;
-  border:1px solid #ccc;font-size:.95rem
+.create-wrapper {
+  max-width: 520px;
+  margin: 0 auto;
+  padding: 1.5rem;
 }
-.actions{display:flex;justify-content:space-between;gap:.5rem}
+
+.create-wrapper h1 {
+  margin-bottom: 1rem;
+}
+
+.form-row {
+  margin-bottom: 1rem;
+}
+
+label {
+  display:block;
+  font-weight:600;
+  margin-bottom:.25rem;
+}
+
+input, select {
+  width:100%;
+  padding:.5rem;
+  border-radius:8px;
+  border:1px solid #ccc;
+}
+
+.actions {
+  display:flex;
+  justify-content:flex-end;
+  gap:.5rem;
+  margin-top:1.5rem;
+}
 </style>
 </head>
 
@@ -28,105 +51,57 @@ input,select{
 
   <div class="form-row">
     <label>Fecha</label>
-    <input id="cDate" type="date">
+    <input type="date" id="cDate">
   </div>
 
   <div class="form-row">
     <label>Hora inicio</label>
-    <input id="cStart" type="time">
+    <input type="time" id="cStart">
   </div>
 
   <div class="form-row">
     <label>Hora fin</label>
-    <input id="cEnd" type="time">
+    <input type="time" id="cEnd">
   </div>
 
   <div class="form-row">
     <label>Teléfono paciente</label>
-    <input id="cPhone" inputmode="numeric" maxlength="9" placeholder="600000000">
+    <input type="tel" id="cPatientPhone" placeholder="600000000">
   </div>
 
   <div class="form-row">
     <label>Nombre paciente</label>
-    <input id="cName">
+    <input type="text" id="cPatientName">
   </div>
 
   <div class="form-row">
     <label>Modalidad</label>
     <select id="cModality">
       <option value="">—</option>
-      <option value="viladecans">Viladecans</option>
-      <option value="badalona">Badalona</option>
+      <option value="viladecans">Presencial Viladecans</option>
+      <option value="badalona">Presencial Badalona</option>
       <option value="online">Online</option>
     </select>
   </div>
 
+  <div class="form-row">
+    <label>Servicio</label>
+    <input type="text" id="cService" value="Sesión de psicoterapia">
+  </div>
+
   <div class="actions">
-    <button onclick="history.back()" class="btn-secondary">Cancelar</button>
-    <button id="saveBtn" class="btn-primary">Crear cita</button>
+    <button class="btn-secondary" onclick="history.back()">Cancelar</button>
+    <button class="btn-primary" onclick="createAppointment()">Crear cita</button>
   </div>
 </main>
 
-<!-- AUTH + MENU -->
 <script type="module">
 import { requireAuth } from "./assets/js/auth.js";
 import { loadMenu } from "./assets/js/menu.js";
-await requireAuth(); await loadMenu();
+await requireAuth();
+await loadMenu();
 </script>
 
-<!-- LÓGICA -->
-<script type="module">
-import { auth, db } from "./assets/js/firebase.js";
-import {
-  addDoc, collection, Timestamp, serverTimestamp
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
-const dateInput = document.getElementById("cDate");
-dateInput.value = new Date().toISOString().split("T")[0];
-
-document.getElementById("saveBtn").onclick = async () => {
-  const date = dateInput.value;
-  const startH = cStart.value;
-  const endH = cEnd.value;
-  const phone = cPhone.value.trim();
-  const name = cName.value.trim();
-  const modality = cModality.value;
-
-  if(!date || !startH || !endH || !phone || !name || !modality){
-    alert("Completa todos los campos");
-    return;
-  }
-
-  if(!/^\d{9}$/.test(phone)){
-    alert("Teléfono inválido");
-    return;
-  }
-
-  const base = new Date(date); base.setHours(0,0,0,0);
-  const [sh,sm]=startH.split(":");
-  const [eh,em]=endH.split(":");
-
-  const start=new Date(base); start.setHours(sh,sm,0,0);
-  const end=new Date(base); end.setHours(eh,em,0,0);
-
-  if(end<=start){
-    alert("Hora fin debe ser posterior");
-    return;
-  }
-
-  await addDoc(collection(db,"appointments"),{
-    therapistId: auth.currentUser.uid,
-    patientId: phone,
-    patientName: name,
-    modality,
-    start: Timestamp.fromDate(start),
-    end: Timestamp.fromDate(end),
-    status: "scheduled",
-    createdAt: serverTimestamp()
-  });
-
-  location.href = `agenda-diaria.html?date=${date}`;
-};
-</script>
+<script type="module" src="assets/js/crear-cita.js"></script>
 </body>
 </html>
