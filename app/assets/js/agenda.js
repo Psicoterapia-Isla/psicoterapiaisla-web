@@ -150,13 +150,14 @@ async function searchPatients(term) {
   snap.forEach(d => {
     const p = d.data();
     const div = document.createElement("div");
-    div.textContent = `${p.name} · ${p.phone}`;
-    div.onclick = () => {
-      selectedPatientId = d.id;
-      phone.value = p.phone;
-      name.value = p.name;
-      suggestions.innerHTML = "";
-    };
+    div.textContent = `${p.nombre || ""} ${p.apellidos || ""} · ${p.telefono || ""}`;
+
+div.onclick = () => {
+  selectedPatientId = d.id;
+  phone.value = p.telefono || "";
+  name.value = `${p.nombre || ""} ${p.apellidos || ""}`.trim();
+  suggestions.innerHTML = "";
+};
     suggestions.appendChild(div);
   });
 }
