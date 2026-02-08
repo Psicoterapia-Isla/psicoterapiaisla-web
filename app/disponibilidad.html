@@ -7,42 +7,61 @@
 <link rel="stylesheet" href="assets/css/app.css">
 
 <style>
-.availability-wrapper{padding:1rem;max-width:1100px;margin:0 auto}
-.availability-header{
-  display:flex;justify-content:space-between;align-items:center;
-  gap:.5rem;margin-bottom:1rem
+.wrapper {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 1.5rem;
 }
-.availability-nav{display:flex;gap:.5rem}
-.availability-grid{
+
+.header {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:1rem;
+}
+
+.nav {
+  display:flex;
+  gap:.5rem;
+}
+
+.grid {
   display:grid;
-  grid-template-columns:60px repeat(7,minmax(140px,1fr));
-  gap:.4rem
+  grid-template-columns:60px repeat(7,1fr);
+  gap:6px;
 }
-.hour-label{
-  font-size:.75rem;text-align:right;padding-right:6px;color:#666
+
+.hour {
+  font-size:.75rem;
+  text-align:right;
+  padding-right:6px;
+  color:#666;
 }
-.day-label{text-align:center;font-weight:600}
-.slot{
-  height:54px;
-  border-radius:14px;
+
+.day {
+  text-align:center;
+  font-weight:600;
+}
+
+.slot {
+  padding:.25rem;
+  border-radius:8px;
   background:#e5e7eb;
   display:flex;
-  flex-direction:column;
-  gap:2px;
-  padding:4px
+  gap:.25rem;
+  justify-content:center;
 }
-.slot.available{background:#e6f4d7}
-.slot button{
-  flex:1;
-  border:none;
-  border-radius:8px;
+
+.mode {
   font-size:.65rem;
-  cursor:pointer;
-  background:#fff
+  padding:.25rem .4rem;
+  border-radius:6px;
+  border:none;
 }
-.slot button.on{
-  background:#355f53;
-  color:#fff
+
+.mode.on {
+  background:#1f6b4e;
+  color:#fff;
 }
 </style>
 </head>
@@ -50,28 +69,23 @@
 <body class="app-body">
 <header class="app-menu"></header>
 
-<main class="availability-wrapper">
+<main class="wrapper">
 
-  <div class="availability-header">
+  <div class="header">
     <h1>Disponibilidad</h1>
-    <div class="availability-nav">
+    <div class="nav">
       <button id="prevWeek" class="btn-secondary">←</button>
       <button id="todayWeek" class="btn-secondary">Hoy</button>
       <button id="nextWeek" class="btn-secondary">→</button>
     </div>
   </div>
 
-  <p>Define tu disponibilidad por hora y modalidad.</p>
-
-  <div id="availabilityGrid" class="availability-grid"></div>
+  <div id="grid" class="grid"></div>
 
   <br>
-  <button id="saveAvailability" class="btn-primary">
-    Guardar disponibilidad
-  </button>
+  <button id="save" class="btn-primary">Guardar disponibilidad</button>
 </main>
 
-<!-- ================= AUTH + MENU ================= -->
 <script type="module">
 import { requireAuth } from "./assets/js/auth.js";
 import { loadMenu } from "./assets/js/menu.js";
@@ -79,36 +93,34 @@ await requireAuth();
 await loadMenu();
 </script>
 
-<!-- ================= SEMANA CONTROLADA ================= -->
 <script>
-function mondayOf(date){
-  const d=new Date(date);
-  const day=(d.getDay()+6)%7;
-  d.setDate(d.getDate()-day);
-  d.setHours(0,0,0,0);
-  return d;
+function mondayOf(d){
+  const x=new Date(d);
+  const day=(x.getDay()+6)%7;
+  x.setDate(x.getDate()-day);
+  x.setHours(0,0,0,0);
+  return x;
 }
 
-const params=new URLSearchParams(location.search);
-const paramWeek=params.get("week");
-const baseDate=paramWeek?new Date(paramWeek):new Date();
-const monday=mondayOf(baseDate);
+const p=new URLSearchParams(location.search);
+const base=p.get("week")?new Date(p.get("week")):new Date();
+const monday=mondayOf(base);
 
-window.__availabilityWeekStart=monday.toISOString().slice(0,10);
+window.__weekKey=monday.toISOString().slice(0,10);
 
-function go(offset){
-  const d=new Date(monday);
-  d.setDate(d.getDate()+offset*7);
+document.getElementById("prevWeek").onclick=()=>{
+  const d=new Date(monday);d.setDate(d.getDate()-7);
   location.href=`disponibilidad.html?week=${d.toISOString().slice(0,10)}`;
-}
-
-prevWeek.onclick=()=>go(-1);
-nextWeek.onclick=()=>go(1);
-todayWeek.onclick=()=>location.href="disponibilidad.html";
+};
+document.getElementById("nextWeek").onclick=()=>{
+  const d=new Date(monday);d.setDate(d.getDate()+7);
+  location.href=`disponibilidad.html?week=${d.toISOString().slice(0,10)}`;
+};
+document.getElementById("todayWeek").onclick=()=>{
+  location.href="disponibilidad.html";
+};
 </script>
 
-<!-- ================= GRID ================= -->
-<script type="module" src="assets/js/availability-grid.js"></script>
-
+<script type="module" src="assets/js/disponibilidad.js"></script>
 </body>
 </html>
