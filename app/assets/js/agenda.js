@@ -1,123 +1,124 @@
+import { requireAuth } from "./auth.js";
+import { loadMenu } from "./menu.js";
 import { auth, db } from "./firebase.js";
+
 import {
-  collection, query, where,
-  getDocs, addDoc, updateDoc,
-  Timestamp, doc
+  collection, query, where, getDocs, addDoc,
+  Timestamp
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-const slotsDiv = document.getElementById("slots");
-const dateLabel = document.getElementById("dateLabel");
+await requireAuth();
+await loadMenu();
+
+const agenda = document.getElementById("agenda");
+const modal = document.getElementById("modal");
+
+const phone = document.getElementById("phone");
+const nameI = document.getElementById("name");
+const phoneSug = document.getElementById("phoneSug");
+const nameSug = document.getElementById("nameSug");
+
+const startI = document.getElementById("start");
+const endI = document.getElementById("end");
+const amountI = document.getElementById("amount");
+const paidI = document.getElementById("paid");
+const modalityI = document.getElementById("modality");
 
 let currentDate = new Date();
-let editingId = null;
+currentDate.setHours(0,0,0,0);
 
-/* ===== INIT ===== */
-auth.onAuthStateChanged(user => {
-  if (!user) return;
-  loadDay();
-});
+function renderHours() {
+  agenda.innerHTML = "";
+  for (let h = 9; h <= 20; h++) {
+    const hour = document.createElement("div");
+    hour.className = "hour";
+    hour.textContent = `${h}:00`;
 
-/* ===== NAV ===== */
-prev.onclick = () => { currentDate.setDate(currentDate.getDate()-1); loadDay(); };
-next.onclick = () => { currentDate.setDate(currentDate.getDate()+1); loadDay(); };
-today.onclick = () => { currentDate = new Date(); loadDay(); };
+    const slot = document.createElement("div");
+    slot.className = "slot";
+    slot.dataset.hour = h;
 
-/* ===== LOAD DAY ===== */
-async function loadDay(){
-  slotsDiv.innerHTML="";
-  dateLabel.textContent =
-    currentDate.toLocaleDateString("es-ES",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
+    slot.addEventListener("click", () => {
+      startI.value = `${String(h).padStart(2,"0")}:00`;
+      endI.value = `${String(h+1).padStart(2,"0")}:00`;
+      modal.classList.add("open");
+    });
 
-  const start = new Date(currentDate); start.setHours(0,0,0,0);
-  const end   = new Date(start.getTime()+86400000);
-
-  const snap = await getDocs(query(
-    collection(db,"appointments"),
-    where("therapistId","==",auth.currentUser.uid),
-    where("start",">=",Timestamp.fromDate(start)),
-    where("start","<",Timestamp.fromDate(end))
-  ));
-
-  const byHour = {};
-  snap.forEach(d=>{
-    byHour[d.data().start.toDate().getHours()] = {...d.data(),id:d.id};
-  });
-
-  for(let h=9;h<21;h++){
-    const div=document.createElement("div");
-    div.className="slot";
-
-    if(byHour[h]){
-      const a=byHour[h];
-      div.classList.add(a.status);
-      div.innerHTML=`
-        <div class="time">${h}:00</div>
-        <div><strong>${a.patientName}</strong></div>
-      `;
-      div.onclick=()=>openEdit(a);
-    } else {
-      div.classList.add("free");
-      div.innerHTML=`
-        <div class="time">${h}:00</div>
-        <div>Libre</div>
-      `;
-      div.onclick=()=>openCreate(h);
-    }
-
-    slotsDiv.appendChild(div);
+    agenda.append(hour, slot);
   }
 }
 
-/* ===== MODAL ===== */
-window.openCreate = (hour=null) => {
-  editingId=null;
-  modal.style.display="block";
-  if(hour!==null){
-    mStart.value=`${String(hour).padStart(2,"0")}:00`;
-    mEnd.value=`${String(hour+1).padStart(2,"0")}:00`;
+renderHours();
+
+document.getElementById("newCita").addEventListener("click", ()=>{
+  modal.classList.add("open");
+});
+
+document.getElementById("close").addEventListener("click", ()=>{
+  modal.classList.remove("open");
+});
+
+async function autocomplete(input, targetDiv, field) {
+  targetDiv.innerHTML = "";
+  if (input.length < 1) return;
+
+  const q = query(
+    collection(db,"patients"),
+    where(field, ">=", input),
+    where(field, "<=", input + "\uf8ff")
+  );
+
+  const snap = await getDocs(q);
+  snap.forEach(d=>{
+    const div = document.createElement("div");
+    div.textContent = d.data()[field];
+    div.onclick = ()=>{
+      if(field==="phone") phone.value = d.data().phone;
+      nameI.value = d.data().name;
+      targetDiv.innerHTML="";
+    };
+    targetDiv.appendChild(div);
+  });
+}
+
+phone.addEventListener("input", e=>{
+  autocomplete(e.target.value, phoneSug, "phone");
+});
+
+nameI.addEventListener("input", e=>{
+  autocomplete(e.target.value, nameSug, "name");
+});
+
+document.getElementById("save").addEventListener("click", async ()=>{
+  const user = auth.currentUser;
+
+  const dateStart = new Date(currentDate);
+  const [sh, sm] = startI.value.split(":");
+  dateStart.setHours(sh, sm);
+
+  const dateEnd = new Date(currentDate);
+  const [eh, em] = endI.value.split(":");
+  dateEnd.setHours(eh, em);
+
+  const ref = await addDoc(collection(db,"appointments"),{
+    therapistId: user.uid,
+    phone: phone.value,
+    name: nameI.value,
+    modality: modalityI.value,
+    start: Timestamp.fromDate(dateStart),
+    end: Timestamp.fromDate(dateEnd),
+    amount: Number(amountI.value || 0),
+    paid: paidI.checked,
+    createdAt: Timestamp.now()
+  });
+
+  if(paidI.checked){
+    const msg = encodeURIComponent(
+      `Hola ${nameI.value}, tu sesión ha sido registrada.\nGracias.\nPsicoterapia Isla`
+    );
+    window.open(`https://wa.me/${phone.value}?text=${msg}`,"_blank");
   }
-};
 
-window.openEdit = (a) => {
-  editingId=a.id;
-  modal.style.display="block";
-  mPhone.value=a.patientId;
-  mName.value=a.patientName;
-  mStart.value=`${a.start.toDate().getHours()}:00`;
-  mEnd.value=`${a.end.toDate().getHours()}:00`;
-  mModality.value=a.modality;
-  mStatus.value=a.status;
-};
-
-window.closeModal = () => modal.style.display="none";
-
-/* ===== SAVE ===== */
-window.save = async () => {
-  const user=auth.currentUser;
-  const base=new Date(currentDate);base.setHours(0,0,0,0);
-
-  const [sh]=mStart.value.split(":");
-  const [eh]=mEnd.value.split(":");
-
-  const start=new Date(base);start.setHours(sh,0,0,0);
-  const end=new Date(base);end.setHours(eh,0,0,0);
-
-  const data={
-    therapistId:user.uid,
-    patientId:mPhone.value,
-    patientName:mName.value,
-    modality:mModality.value,
-    status:mStatus.value,
-    start:Timestamp.fromDate(start),
-    end:Timestamp.fromDate(end)
-  };
-
-  if(editingId){
-    await updateDoc(doc(db,"appointments",editingId),data);
-  } else {
-    await addDoc(collection(db,"appointments"),data);
-  }
-
-  closeModal();
-  loadDay();
-};
+  modal.classList.remove("open");
+  location.reload();
+});
