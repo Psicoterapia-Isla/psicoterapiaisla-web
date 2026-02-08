@@ -1,7 +1,7 @@
 import { auth, db } from "./firebase.js";
 import {
   collection, query, where, orderBy,
-  getDocs, doc, updateDoc, Timestamp
+  getDocs, Timestamp
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 import { onAuthStateChanged } from
@@ -18,104 +18,52 @@ function toISO(d){
 }
 
 /* ===== NAV ===== */
-prev.onclick = () => {
-  const d = new Date(currentDate);
-  d.setDate(d.getDate() - 1);
-  location.href = `agenda-diaria.html?date=${toISO(d)}`;
+prev.onclick=()=>{
+  const d=new Date(currentDate);d.setDate(d.getDate()-1);
+  location.href=`agenda-diaria.html?date=${toISO(d)}`;
 };
-
-next.onclick = () => {
-  const d = new Date(currentDate);
-  d.setDate(d.getDate() + 1);
-  location.href = `agenda-diaria.html?date=${toISO(d)}`;
+next.onclick=()=>{
+  const d=new Date(currentDate);d.setDate(d.getDate()+1);
+  location.href=`agenda-diaria.html?date=${toISO(d)}`;
 };
+today.onclick=()=>location.href="agenda-diaria.html";
 
-today.onclick = () => {
-  location.href = "agenda-diaria.html";
-};
+/* ===== AUTH SAFE ===== */
+onAuthStateChanged(auth, async (user)=>{
+  if(!user) return;
 
-/* ===== AUTH SAFE ENTRY ===== */
-onAuthStateChanged(auth, async (user) => {
-  if (!user) return;
-
-  const therapistId = user.uid;
-
-  /* ===== HEADER ===== */
   const base = new Date(currentDate);
   base.setHours(0,0,0,0);
 
-  dayNum.textContent = base.getDate();
-  dayName.textContent = base.toLocaleDateString("es-ES",{weekday:"long"});
-  dayMonth.textContent = base.toLocaleDateString("es-ES",{month:"long",year:"numeric"});
-
-  /* ===== LOAD APPOINTMENTS ===== */
   const snap = await getDocs(query(
     collection(db,"appointments"),
-    where("therapistId","==",therapistId),
+    where("therapistId","==",user.uid),
     where("start",">=",Timestamp.fromDate(base)),
     where("start","<",Timestamp.fromDate(new Date(base.getTime()+86400000))),
     orderBy("start")
   ));
 
   const byHour = {};
-  snap.forEach(d => {
+  snap.forEach(d=>{
     byHour[d.data().start.toDate().getHours()] =
       { ...d.data(), id:d.id };
   });
 
-  /* ===== RENDER ===== */
-  list.innerHTML = "";
-  let currentApp = null;
+  list.innerHTML="";
 
-  for(let h=9; h<21; h++){
-    const div = document.createElement("div");
+  for(let h=9;h<21;h++){
+    const div=document.createElement("div");
 
     if(byHour[h]){
-      const a = byHour[h];
-      div.className = "slot busy";
-      div.innerHTML = `
-        <div class="time">${h}:00</div>
-        <div>
-          <strong>${a.patientName}</strong><br>
-          <small>${a.modality}</small>
-        </div>
-      `;
-      div.onclick = () => openModal(a);
+      const a=byHour[h];
+      div.className="slot busy";
+      div.innerHTML=`<strong>${h}:00</strong> ${a.patientName}`;
     } else {
-      div.className = "slot free";
-      div.innerHTML = `
-        <div class="time">${h}:00</div>
-        <div>Libre</div>
-      `;
+      div.className="slot free";
+      div.innerHTML=`<strong>${h}:00</strong> Libre`;
+      div.onclick=()=>openCreateModal(currentDate,h);
     }
 
     list.appendChild(div);
   }
-
-  /* ===== MODAL ===== */
-  window.closeModal = () => modal.style.display = "none";
-
-  function openModal(a){
-    currentApp = a;
-    mPatient.textContent = a.patientName;
-    mTime.textContent =
-      `${a.start.toDate().getHours()}:00 – ${a.end.toDate().getHours()}:00`;
-    mDone.checked = a.status === "completed";
-    modal.style.display = "block";
-  }
-
-  /* ===== SAVE ===== */
-  mSave.onclick = async () => {
-    if(!currentApp) return;
-
-    await updateDoc(
-      doc(db,"appointments",currentApp.id),
-      {
-        status: mDone.checked ? "completed" : "scheduled",
-        completedAt: mDone.checked ? Timestamp.now() : null
-      }
-    );
-
-    location.reload();
-  };
 });
