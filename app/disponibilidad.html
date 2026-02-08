@@ -2,71 +2,93 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8" />
-<title>Disponibilidad | Psicoterapia Isla</title>
+<title>Disponibilidad semanal | Psicoterapia Isla</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
 <link rel="stylesheet" href="assets/css/app.css">
 
 <style>
+/* ======================
+   LAYOUT
+====================== */
 .availability-wrapper {
-  padding: 1rem;
-  max-width: 900px;
-  margin: 0 auto;
+  max-width:1100px;
+  margin:0 auto;
+  padding:1rem;
 }
 
 .availability-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: .5rem;
-  margin-bottom: 1rem;
-}
-
-.availability-header h1 {
-  margin: 0;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:1rem;
 }
 
 .availability-nav {
-  display: flex;
-  gap: .5rem;
+  display:flex;
+  gap:.4rem;
 }
 
+/* ======================
+   GRID
+====================== */
 .availability-grid {
-  display: grid;
-  grid-template-columns: 60px repeat(7, 1fr);
-  gap: 6px;
-  margin-top: 1rem;
+  display:grid;
+  grid-template-columns:60px repeat(7,1fr);
+  gap:.5rem;
 }
 
 .hour-label {
-  font-size: 0.75rem;
-  text-align: right;
-  padding-right: 6px;
-  color: #666;
+  text-align:right;
+  font-size:.7rem;
+  color:#666;
+  padding-top:.6rem;
 }
 
 .day-label {
-  text-align: center;
-  font-weight: 600;
+  text-align:center;
+  font-weight:600;
+  font-size:.8rem;
 }
 
+/* ======================
+   SLOT
+====================== */
 .slot {
-  height: 36px;
-  border-radius: 6px;
-  background: #e5e7eb;
+  background:#e5e7eb;
+  border-radius:12px;
+  padding:.3rem;
+  display:flex;
+  gap:.25rem;
+}
+
+.slot.available {
+  background:#e6f4d7;
+}
+
+.slot button {
+  flex:1;
+  border:none;
+  border-radius:8px;
+  font-size:.6rem;
+  padding:.3rem 0;
+  cursor:pointer;
+  background:rgba(255,255,255,.6);
+}
+
+.slot button.on {
+  background:#1f6b4e;
+  color:#fff;
 }
 </style>
 </head>
 
 <body class="app-body">
-
 <header class="app-menu"></header>
 
 <main class="availability-wrapper">
 
   <div class="availability-header">
     <h1>Disponibilidad semanal</h1>
-
     <div class="availability-nav">
       <button id="prevWeek" class="btn-secondary">←</button>
       <button id="todayWeek" class="btn-secondary">Hoy</button>
@@ -74,7 +96,7 @@
     </div>
   </div>
 
-  <p>Marca las horas en las que estarás disponible para citas.</p>
+  <p>Marca por hora dónde puedes atender: <strong>online</strong> y/o <strong>presencial</strong>.</p>
 
   <div id="availabilityGrid" class="availability-grid"></div>
 
@@ -85,9 +107,7 @@
 
 </main>
 
-<!-- =========================
-     AUTH + MENU
-========================= -->
+<!-- AUTH + MENU -->
 <script type="module">
 import { requireAuth } from "./assets/js/auth.js";
 import { loadMenu } from "./assets/js/menu.js";
@@ -96,47 +116,136 @@ await requireAuth();
 await loadMenu();
 </script>
 
-<!-- =========================
-     CONTROL DE SEMANA (ÚNICA FUENTE)
-========================= -->
+<!-- SEMANA CONTROLADA -->
 <script>
-(function () {
+function mondayOf(date){
+  const d=new Date(date);
+  const day=(d.getDay()+6)%7;
+  d.setDate(d.getDate()-day);
+  d.setHours(0,0,0,0);
+  return d;
+}
 
-  function mondayOf(date) {
-    const d = new Date(date);
-    const day = (d.getDay() + 6) % 7;
-    d.setDate(d.getDate() - day);
-    d.setHours(0,0,0,0);
-    return d;
-  }
+const params=new URLSearchParams(location.search);
+const paramWeek=params.get("week");
+const baseDate=paramWeek?new Date(paramWeek):new Date();
+const monday=mondayOf(baseDate);
 
-  const params = new URLSearchParams(location.search);
-  const paramWeek = params.get("week");
+window.__availabilityWeekStart=monday.toISOString().slice(0,10);
 
-  const baseDate = paramWeek ? new Date(paramWeek) : new Date();
-  const monday = mondayOf(baseDate);
+function go(offset){
+  const d=new Date(monday);
+  d.setDate(d.getDate()+offset*7);
+  location.href=`disponibilidad.html?week=${d.toISOString().slice(0,10)}`;
+}
 
-  // 🔒 CONTRATO con availability-grid.js
-  window.__availabilityWeekStart = monday.toISOString().slice(0,10);
-
-  function go(offsetWeeks) {
-    const d = new Date(monday);
-    d.setDate(d.getDate() + offsetWeeks * 7);
-    location.href = `disponibilidad.html?week=${d.toISOString().slice(0,10)}`;
-  }
-
-  document.getElementById("prevWeek").onclick = () => go(-1);
-  document.getElementById("nextWeek").onclick = () => go(1);
-  document.getElementById("todayWeek").onclick = () =>
-    location.href = "disponibilidad.html";
-
-})();
+prevWeek.onclick=()=>go(-1);
+nextWeek.onclick=()=>go(1);
+todayWeek.onclick=()=>location.href="disponibilidad.html";
 </script>
 
-<!-- =========================
-     GRID
-========================= -->
-<script type="module" src="assets/js/availability-grid.js"></script>
+<!-- GRID LOGIC -->
+<script type="module">
+import { requireAuth } from "./assets/js/auth.js";
+import { auth, db } from "./assets/js/firebase.js";
+import {
+  doc,getDoc,setDoc,serverTimestamp
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+await requireAuth();
+const therapistId=auth.currentUser.uid;
+
+const grid=document.getElementById("availabilityGrid");
+const saveBtn=document.getElementById("saveAvailability");
+
+const DAYS=["mon","tue","wed","thu","fri","sat","sun"];
+const DAY_LABELS=["L","M","X","J","V","S","D"];
+const HOURS=Array.from({length:12},(_,i)=>i+9);
+
+const slotsState={};
+
+const weekKey=window.__availabilityWeekStart;
+const docRef=doc(db,"availability",`${therapistId}_${weekKey}`);
+
+function normalize(key){
+  slotsState[key]??={online:false,viladecans:false,badalona:false};
+}
+
+function render(){
+  grid.innerHTML="";
+  grid.appendChild(document.createElement("div"));
+
+  DAY_LABELS.forEach(l=>{
+    const d=document.createElement("div");
+    d.className="day-label";
+    d.textContent=l;
+    grid.appendChild(d);
+  });
+
+  HOURS.forEach(h=>{
+    const hl=document.createElement("div");
+    hl.className="hour-label";
+    hl.textContent=`${h}:00`;
+    grid.appendChild(hl);
+
+    DAYS.forEach(day=>{
+      const key=`${day}_${h}`;
+      normalize(key);
+      const data=slotsState[key];
+
+      const slot=document.createElement("div");
+      slot.className="slot";
+      if(data.online||data.viladecans||data.badalona){
+        slot.classList.add("available");
+      }
+
+      slot.innerHTML=`
+        <button class="${data.online?"on":""}" data-m="online">Online</button>
+        <button class="${data.viladecans?"on":""}" data-m="viladecans">Vila</button>
+        <button class="${data.badalona?"on":""}" data-m="badalona">Bada</button>
+      `;
+
+      slot.querySelectorAll("button").forEach(b=>{
+        b.onclick=e=>{
+          e.preventDefault();
+          const m=b.dataset.m;
+
+          if(m==="viladecans"){
+            data.viladecans=!data.viladecans;
+            if(data.viladecans) data.badalona=false;
+          } else if(m==="badalona"){
+            data.badalona=!data.badalona;
+            if(data.badalona) data.viladecans=false;
+          } else {
+            data.online=!data.online;
+          }
+
+          render();
+        };
+      });
+
+      grid.appendChild(slot);
+    });
+  });
+}
+
+const snap=await getDoc(docRef);
+if(snap.exists()){
+  Object.assign(slotsState,snap.data().slots||{});
+}
+
+render();
+
+saveBtn.onclick=async()=>{
+  await setDoc(docRef,{
+    therapistId,
+    weekStart:weekKey,
+    slots:slotsState,
+    updatedAt:serverTimestamp()
+  });
+  alert("Disponibilidad guardada");
+};
+</script>
 
 </body>
 </html>
