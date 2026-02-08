@@ -131,7 +131,7 @@ document.getElementById("close").onclick = () =>
   modal.classList.remove("show");
 
 /* =========================
-   AUTOCOMPLETE
+   AUTOCOMPLETE (ROBUSTO)
 ========================= */
 async function searchPatients(term) {
   if (!term || term.length < 2) {
@@ -190,6 +190,7 @@ document.getElementById("save").onclick = async () => {
     completed: completed.checked,
     paid: paid.checked,
     amount: Number(amount.value || 0),
+    invoiceId: null, // preparado para facturación
     updatedAt: Timestamp.now()
   };
 
@@ -218,7 +219,7 @@ async function renderWeek() {
   const user = auth.currentUser;
   if (!user) return;
 
-  /* ===== AVAILABILITY (solo esta semana) ===== */
+  /* ===== AVAILABILITY ===== */
   const availSnap = await getDocs(
     query(
       collection(db, "availability"),
@@ -278,19 +279,29 @@ async function renderWeek() {
       const cell = document.createElement("div");
       cell.className = "slot";
 
+      const avail = availability[slotKey];
+      const hasAvailability =
+        avail && (avail.online || avail.viladecans || avail.badalona);
+
       if (bySlot[apptKey]) {
         const a = bySlot[apptKey];
-        cell.classList.add(
-          a.paid ? "paid" :
-          a.completed ? "done" :
-          "busy"
-        );
-        cell.innerHTML = `<strong>${a.name || "—"}</strong><span>${a.start}–${a.end}</span>`;
+
+        if (a.invoiceId) cell.classList.add("paid");
+        else if (a.paid) cell.classList.add("paid");
+        else if (a.completed) cell.classList.add("done");
+        else cell.classList.add("busy");
+
+        cell.innerHTML = `
+          <strong>${a.name || "—"}</strong>
+          <span>${a.start}–${a.end}</span>
+        `;
         cell.onclick = () => openEdit(a);
-      } else if (availability[slotKey]) {
+
+      } else if (hasAvailability) {
         cell.classList.add("available");
         cell.textContent = "Disponible";
         cell.onclick = () => openNew({ date, hour });
+
       } else {
         cell.classList.add("disabled");
       }
