@@ -1,3 +1,4 @@
+<!-- agenda-semanal.html -->
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -5,60 +6,6 @@
 <title>Agenda semanal | Psicoterapia Isla</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <link rel="stylesheet" href="assets/css/app.css">
-
-<style>
-.week-wrapper { padding:1rem; overflow-x:auto; }
-
-.week-header {
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  gap:.5rem;
-  margin-bottom:1rem;
-}
-
-.week-nav {
-  display:flex;
-  gap:.5rem;
-}
-
-.week-grid {
-  display:grid;
-  grid-template-columns:60px repeat(7,minmax(120px,1fr));
-  gap:.4rem;
-}
-
-.week-hour {
-  font-size:.75rem;
-  text-align:right;
-  padding-right:6px;
-  color:#666;
-}
-
-.day-header {
-  text-align:center;
-  font-weight:600;
-}
-
-.week-slot {
-  height:44px;
-  border-radius:8px;
-  font-size:.7rem;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  text-align:center;
-}
-
-.week-slot.disabled {
-  background:#e5e7eb;
-  cursor:not-allowed;
-}
-
-.week-slot.available { background:#e6f4d7; cursor:pointer; }
-.week-slot.reserved  { background:#fff2cc; cursor:pointer; }
-.week-slot.done      { background:#e6f0ff; cursor:pointer; }
-</style>
 </head>
 
 <body class="app-body">
@@ -68,7 +15,6 @@
 
   <div class="week-header">
     <h1>Agenda semanal</h1>
-
     <div class="week-nav">
       <button id="prevWeek" class="btn-secondary">←</button>
       <button id="todayWeek" class="btn-secondary">Hoy</button>
@@ -83,7 +29,6 @@
 import { requireAuth } from "./assets/js/auth.js";
 import { loadMenu } from "./assets/js/menu.js";
 import { auth, db } from "./assets/js/firebase.js";
-
 import {
   collection, getDocs, query, where,
   Timestamp, doc, getDoc
@@ -92,9 +37,6 @@ import {
 await requireAuth();
 await loadMenu();
 
-/* =========================
-   AUTH / BASE
-========================= */
 const therapistId = auth.currentUser.uid;
 const grid = document.getElementById("weekGrid");
 
@@ -102,138 +44,107 @@ const START_HOUR = 9;
 const END_HOUR = 21;
 const DAYS = ["mon","tue","wed","thu","fri","sat","sun"];
 
-/* =========================
-   SEMANA CONTROLADA POR URL
-========================= */
-function mondayOf(date) {
-  const d = new Date(date);
-  const day = (d.getDay() + 6) % 7;
-  d.setDate(d.getDate() - day);
-  d.setHours(0,0,0,0);
-  return d;
+/* ===== FECHA CONTROLADA ===== */
+function mondayOf(d){
+  const x = new Date(d);
+  x.setDate(x.getDate() - ((x.getDay()+6)%7));
+  x.setHours(0,0,0,0);
+  return x;
 }
 
 const params = new URLSearchParams(location.search);
-const paramWeek = params.get("week");
-
-const baseDate = paramWeek ? new Date(paramWeek) : new Date();
-const monday = mondayOf(baseDate);
+const base = params.get("week") ? new Date(params.get("week")) : new Date();
+const monday = mondayOf(base);
 const weekKey = monday.toISOString().slice(0,10);
 
-/* navegación */
-function go(offsetWeeks) {
+document.getElementById("prevWeek").onclick =
+  () => go(-1);
+document.getElementById("nextWeek").onclick =
+  () => go(1);
+document.getElementById("todayWeek").onclick =
+  () => location.href = "agenda-semanal.html";
+
+function go(n){
   const d = new Date(monday);
-  d.setDate(d.getDate() + offsetWeeks * 7);
+  d.setDate(d.getDate()+n*7);
   location.href = `agenda-semanal.html?week=${d.toISOString().slice(0,10)}`;
 }
 
-document.getElementById("prevWeek").onclick = () => go(-1);
-document.getElementById("nextWeek").onclick = () => go(1);
-document.getElementById("todayWeek").onclick = () =>
-  location.href = "agenda-semanal.html";
-
-/* =========================
-   DISPONIBILIDAD
-========================= */
-const availabilitySnap = await getDoc(
-  doc(db, "availability", `${therapistId}_${weekKey}`)
+/* ===== DISPONIBILIDAD ===== */
+const availSnap = await getDoc(
+  doc(db,"availability",`${therapistId}_${weekKey}`)
 );
+const slots = availSnap.exists()
+  ? availSnap.data().slots || {}
+  : {};
 
-const availabilitySlots =
-  availabilitySnap.exists()
-    ? availabilitySnap.data().slots || {}
-    : {};
-
-/* =========================
-   CITAS
-========================= */
+/* ===== CITAS ===== */
 const start = Timestamp.fromDate(monday);
 const end = Timestamp.fromDate(
-  new Date(monday.getTime() + 7 * 86400000)
+  new Date(monday.getTime()+7*86400000)
 );
 
-const appointmentsSnap = await getDocs(query(
-  collection(db, "appointments"),
-  where("therapistId", "==", therapistId),
-  where("start", ">=", start),
-  where("start", "<", end)
+const appsSnap = await getDocs(query(
+  collection(db,"appointments"),
+  where("therapistId","==",therapistId),
+  where("start",">=",start),
+  where("start","<",end)
 ));
 
-const appointmentsByKey = {};
-appointmentsSnap.forEach(d => {
+const appsByKey = {};
+appsSnap.forEach(d=>{
   const a = d.data();
   const s = a.start.toDate();
-  const key = `${DAYS[(s.getDay()+6)%7]}_${s.getHours()}`;
-  appointmentsByKey[key] = { ...a, id: d.id };
+  const k = `${DAYS[(s.getDay()+6)%7]}_${s.getHours()}`;
+  appsByKey[k] = { ...a, id:d.id };
 });
 
-/* =========================
-   CABECERAS
-========================= */
+/* ===== CABECERAS ===== */
 grid.appendChild(document.createElement("div"));
-
-for (let d = 0; d < 7; d++) {
-  const day = new Date(monday);
-  day.setDate(monday.getDate() + d);
-
-  const h = document.createElement("div");
-  h.className = "day-header";
-  h.textContent =
-    day.toLocaleDateString("es-ES", {
-      weekday: "short",
-      day: "numeric"
-    });
-
+for(let d=0;d<7;d++){
+  const x=new Date(monday); x.setDate(x.getDate()+d);
+  const h=document.createElement("div");
+  h.className="day-header";
+  h.textContent=x.toLocaleDateString("es-ES",{weekday:"short",day:"numeric"});
   grid.appendChild(h);
 }
 
-/* =========================
-   GRID
-========================= */
-for (let hour = START_HOUR; hour < END_HOUR; hour++) {
-  const hc = document.createElement("div");
-  hc.className = "week-hour";
-  hc.textContent = `${hour}:00`;
+/* ===== GRID ===== */
+for(let h=START_HOUR;h<END_HOUR;h++){
+  const hc=document.createElement("div");
+  hc.className="week-hour";
+  hc.textContent=`${h}:00`;
   grid.appendChild(hc);
 
-  for (let d = 0; d < 7; d++) {
-    const key = `${DAYS[d]}_${hour}`;
-    const cell = document.createElement("div");
+  for(let d=0;d<7;d++){
+    const key=`${DAYS[d]}_${h}`;
+    const cell=document.createElement("div");
 
-    if (appointmentsByKey[key]) {
-      const app = appointmentsByKey[key];
-      cell.className =
-        `week-slot ${app.status === "completed" ? "done" : "reserved"}`;
-      cell.textContent = app.patientName || "";
-      cell.onclick = () =>
-        location.href =
-          `agenda-diaria.html?date=${toISO(app.start.toDate())}`;
+    if(appsByKey[key]){
+      cell.className="week-slot reserved";
+      cell.textContent=appsByKey[key].patientName||"";
+      cell.onclick=()=>location.href=
+        `agenda-diaria.html?date=${toISO(appsByKey[key].start.toDate())}`;
     }
-    else if (availabilitySlots[key]) {
-      cell.className = "week-slot available";
-      cell.textContent = "Disponible";
-      cell.onclick = () =>
-        location.href =
-          `agenda-diaria.html?date=${toISO(
-            new Date(monday.getTime() + d * 86400000)
-          )}`;
+    else if(slots[key]){
+      cell.className="week-slot available";
+      cell.textContent="Disponible";
+      cell.onclick=()=>location.href=
+        `agenda-diaria.html?date=${toISO(
+          new Date(monday.getTime()+d*86400000)
+        )}`;
     }
-    else {
-      cell.className = "week-slot disabled";
-      cell.textContent = "";
+    else{
+      cell.className="week-slot disabled";
     }
 
     grid.appendChild(cell);
   }
 }
 
-/* =========================
-   HELPERS
-========================= */
-function toISO(d) {
-  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+function toISO(d){
+  return d.toISOString().slice(0,10);
 }
 </script>
-
 </body>
 </html>
