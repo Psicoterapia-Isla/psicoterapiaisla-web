@@ -17,7 +17,7 @@ await loadMenu();
 let currentDate = new Date();
 let editingId = null;
 
-const agendaEl = document.getElementById("hours"); // 🔧 CORREGIDO
+const agendaEl = document.getElementById("agenda");
 const dateLabel = document.getElementById("dateLabel");
 
 const modal = document.getElementById("modal");
@@ -34,21 +34,41 @@ const paid = document.getElementById("paid");
 const amount = document.getElementById("amount");
 
 /* =========================
-   HELPERS
+   DATE HELPERS
 ========================= */
 
 function formatDate(d) {
   return d.toISOString().slice(0, 10);
 }
 
-function formatHeaderDate(d) {
+function startOfWeek(d) {
+  const date = new Date(d);
+  const day = date.getDay() || 7;
+  date.setDate(date.getDate() - day + 1);
+  return date;
+}
+
+function endOfWeek(d) {
+  const date = startOfWeek(d);
+  date.setDate(date.getDate() + 6);
+  return date;
+}
+
+function formatHeaderRange(from, to) {
+  return `${from.toLocaleDateString("es-ES", { day: "numeric", month: "short" })} – ${to.toLocaleDateString("es-ES", { day: "numeric", month: "short", year: "numeric" })}`;
+}
+
+function weekdayLabel(dateStr) {
+  const d = new Date(dateStr);
   return d.toLocaleDateString("es-ES", {
     weekday: "long",
-    day: "numeric",
-    month: "long",
-    year: "numeric"
+    day: "numeric"
   });
 }
+
+/* =========================
+   MODAL
+========================= */
 
 function resetModal() {
   editingId = null;
@@ -63,94 +83,6 @@ function resetModal() {
   amount.value = "";
   suggestions.innerHTML = "";
 }
-
-/* =========================
-   RENDER AGENDA
-========================= */
-
-async function renderDay() {
-  agendaEl.innerHTML = "";
-  dateLabel.textContent = formatHeaderDate(currentDate);
-
-  const user = auth.currentUser;
-  if (!user) return;
-
-  const q = query(
-    collection(db, "appointments"),
-    where("therapistId", "==", user.uid),
-    where("date", "==", formatDate(currentDate))
-  );
-
-  const snap = await getDocs(q);
-  const appointments = [];
-
-  snap.forEach(d => {
-    appointments.push({ id: d.id, ...d.data() });
-  });
-
-  if (!appointments.length) {
-    const empty = document.createElement("div");
-    empty.className = "agenda-empty";
-    empty.textContent = "No hay citas este día";
-    agendaEl.appendChild(empty);
-    return;
-  }
-
-  appointments.sort((a, b) => a.start.localeCompare(b.start));
-
-  const groups = {
-    viladecans: [],
-    badalona: [],
-    online: []
-  };
-
-  appointments.forEach(a => {
-    if (groups[a.modality]) groups[a.modality].push(a);
-  });
-
-  Object.entries(groups).forEach(([key, items]) => {
-    if (!items.length) return;
-
-    const section = document.createElement("div");
-    section.className = "agenda-section";
-
-    const title = document.createElement("h4");
-    title.textContent =
-      key === "viladecans" ? "Psicoterapia Isla · Viladecans"
-      : key === "badalona" ? "Psicoterapia Isla · Badalona"
-      : "Online";
-
-    section.appendChild(title);
-
-    items.forEach(a => {
-      const block = document.createElement("div");
-      block.className = "appointment";
-
-      const isBlock =
-        a.service?.toLowerCase().includes("pràctiques") ||
-        a.service?.toLowerCase().includes("bloqueo");
-
-      if (isBlock) block.classList.add("blocked");
-
-      block.innerHTML = `
-        <div class="time">${a.start} – ${a.end}</div>
-        <div class="main">
-          <strong>${a.name || "—"}</strong>
-          <div class="service">${a.service}</div>
-        </div>
-      `;
-
-      block.addEventListener("click", () => openEdit(a));
-      section.appendChild(block);
-    });
-
-    agendaEl.appendChild(section);
-  });
-}
-
-/* =========================
-   MODAL
-========================= */
 
 function openNew(startTime = "09:00", endTime = "10:00") {
   resetModal();
@@ -199,23 +131,23 @@ async function searchPatients(term) {
     const p = d.data();
     const div = document.createElement("div");
     div.textContent = `${p.name} · ${p.phone}`;
-    div.addEventListener("click", () => {
+    div.onclick = () => {
       phone.value = p.phone;
       name.value = p.name;
       suggestions.innerHTML = "";
-    });
+    };
     suggestions.appendChild(div);
   });
 }
 
-phone.addEventListener("input", e => searchPatients(e.target.value));
-name.addEventListener("input", e => searchPatients(e.target.value));
+phone.oninput = e => searchPatients(e.target.value);
+name.oninput = e => searchPatients(e.target.value);
 
 /* =========================
    SAVE
 ========================= */
 
-document.getElementById("save").addEventListener("click", async () => {
+document.getElementById("save").onclick = async () => {
   const user = auth.currentUser;
   if (!user) return;
 
@@ -244,28 +176,115 @@ document.getElementById("save").addEventListener("click", async () => {
   }
 
   closeModal();
-  renderDay();
-});
+  renderWeek();
+};
 
-document.getElementById("close").addEventListener("click", closeModal);
+document.getElementById("close").onclick = closeModal;
+
+/* =========================
+   RENDER WEEK
+========================= */
+
+async function renderWeek() {
+  agendaEl.innerHTML = "";
+
+  const from = startOfWeek(currentDate);
+  const to = endOfWeek(currentDate);
+
+  dateLabel.textContent = formatHeaderRange(from, to);
+
+  const user = auth.currentUser;
+  if (!user) return;
+
+  const q = query(
+    collection(db, "appointments"),
+    where("therapistId", "==", user.uid),
+    where("date", ">=", formatDate(from)),
+    where("date", "<=", formatDate(to))
+  );
+
+  const snap = await getDocs(q);
+  const byDay = {};
+
+  snap.forEach(d => {
+    const a = { id: d.id, ...d.data() };
+    if (!byDay[a.date]) byDay[a.date] = [];
+    byDay[a.date].push(a);
+  });
+
+  Object.keys(byDay).sort().forEach(date => {
+    const dayBlock = document.createElement("div");
+    dayBlock.className = "agenda-day";
+
+    const h = document.createElement("h3");
+    h.textContent = weekdayLabel(date);
+    dayBlock.appendChild(h);
+
+    const groups = { viladecans: [], badalona: [], online: [] };
+
+    byDay[date].forEach(a => groups[a.modality]?.push(a));
+
+    Object.entries(groups).forEach(([key, items]) => {
+      if (!items.length) return;
+
+      items.sort((a, b) => a.start.localeCompare(b.start));
+
+      const section = document.createElement("div");
+      section.className = "agenda-section";
+
+      const title = document.createElement("h4");
+      title.textContent =
+        key === "viladecans" ? "Psicoterapia Isla · Viladecans"
+        : key === "badalona" ? "Psicoterapia Isla · Badalona"
+        : "Online";
+
+      section.appendChild(title);
+
+      items.forEach(a => {
+        const block = document.createElement("div");
+        block.className = "appointment";
+
+        if (
+          a.service?.toLowerCase().includes("bloqueo") ||
+          a.service?.toLowerCase().includes("pràctiques")
+        ) block.classList.add("blocked");
+
+        block.innerHTML = `
+          <div class="time">${a.start} – ${a.end}</div>
+          <div class="main">
+            <strong>${a.name || "—"}</strong>
+            <div class="service">${a.service}</div>
+          </div>
+        `;
+
+        block.onclick = () => openEdit(a);
+        section.appendChild(block);
+      });
+
+      dayBlock.appendChild(section);
+    });
+
+    agendaEl.appendChild(dayBlock);
+  });
+}
 
 /* =========================
    NAV
 ========================= */
 
 document.getElementById("prevDay").onclick = () => {
-  currentDate.setDate(currentDate.getDate() - 1);
-  renderDay();
+  currentDate.setDate(currentDate.getDate() - 7);
+  renderWeek();
 };
 
 document.getElementById("nextDay").onclick = () => {
-  currentDate.setDate(currentDate.getDate() + 1);
-  renderDay();
+  currentDate.setDate(currentDate.getDate() + 7);
+  renderWeek();
 };
 
 document.getElementById("today").onclick = () => {
   currentDate = new Date();
-  renderDay();
+  renderWeek();
 };
 
 document.getElementById("newAppointment").onclick = () => openNew();
@@ -274,4 +293,4 @@ document.getElementById("newAppointment").onclick = () => openNew();
    INIT
 ========================= */
 
-renderDay();
+renderWeek();
