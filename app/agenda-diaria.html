@@ -7,50 +7,116 @@
 <link rel="stylesheet" href="assets/css/app.css">
 
 <style>
-.agenda-wrapper { max-width:600px; margin:0 auto; padding:1rem; }
+/* ======================
+   LAYOUT GENERAL
+====================== */
+.agenda-wrapper {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 1rem;
+}
 
-.day-header {
+.agenda-header {
   display:flex;
   justify-content:space-between;
   align-items:center;
   margin-bottom:1rem;
 }
 
-.day-left { display:flex; gap:.75rem; align-items:center; }
+.agenda-date {
+  display:flex;
+  align-items:center;
+  gap:.75rem;
+}
 
-.day-circle {
-  width:42px;height:42px;border-radius:50%;
-  background:#1f6b4e;color:#fff;
-  display:flex;align-items:center;justify-content:center;
+.date-circle {
+  width:44px;
+  height:44px;
+  border-radius:50%;
+  background:#1f6b4e;
+  color:#fff;
+  display:flex;
+  align-items:center;
+  justify-content:center;
   font-weight:600;
 }
 
-.nav-buttons { display:flex; gap:.5rem; }
+.date-text div:first-child {
+  font-weight:600;
+}
 
-.agenda-list { display:flex; flex-direction:column; gap:.75rem; }
-
-.agenda-card {
-  background:#e6f4d7;
-  border-radius:14px;
-  padding:.75rem 1rem;
+.nav-buttons {
   display:flex;
+  gap:.4rem;
+}
+
+/* ======================
+   TIMELINE
+====================== */
+.timeline {
+  margin-top:1rem;
+}
+
+.time-row {
+  display:grid;
+  grid-template-columns: 56px 1fr;
   gap:.75rem;
+  margin-bottom:.75rem;
   align-items:flex-start;
 }
 
-.agenda-card.done { opacity:.7; }
+.time-label {
+  text-align:right;
+  font-size:.75rem;
+  color:#666;
+  padding-top:.4rem;
+}
 
-.agenda-hour { font-weight:600; min-width:52px; }
+/* ======================
+   TARJETAS
+====================== */
+.card {
+  border-radius:14px;
+  padding:.75rem .9rem;
+  background:#e6f4d7;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  cursor:pointer;
+}
 
-.agenda-main { flex:1; }
+.card.pending { background:#e6f4d7; }
+.card.completed { background:#e6f0ff; }
 
-.agenda-name { font-weight:600; }
+.card.empty {
+  background:#e5e7eb;
+  color:#777;
+}
 
-.agenda-sub { font-size:.75rem; opacity:.7; }
+.card-info {
+  display:flex;
+  flex-direction:column;
+  gap:.15rem;
+}
 
-.agenda-icons { display:flex; gap:.4rem; opacity:.7; }
+.card-name {
+  font-weight:600;
+  font-size:.9rem;
+}
 
-/* MODAL */
+.card-sub {
+  font-size:.7rem;
+  opacity:.8;
+}
+
+.card-actions {
+  font-size:.9rem;
+  opacity:.6;
+}
+
+/* ======================
+   MODAL
+====================== */
 .modal {
   display:none;
   position:fixed;
@@ -62,9 +128,16 @@
 .modal-card {
   background:#fff;
   max-width:420px;
-  margin:8vh auto;
+  margin:10vh auto;
   padding:1rem;
-  border-radius:14px;
+  border-radius:16px;
+}
+
+.modal-row { margin-bottom:.75rem; }
+.modal-actions {
+  display:flex;
+  justify-content:flex-end;
+  gap:.5rem;
 }
 </style>
 </head>
@@ -74,12 +147,13 @@
 
 <main class="agenda-wrapper">
 
-  <div class="day-header">
-    <div class="day-left">
-      <div class="day-circle" id="dayNumber"></div>
-      <div>
+  <!-- HEADER -->
+  <div class="agenda-header">
+    <div class="agenda-date">
+      <div class="date-circle" id="dayNumber"></div>
+      <div class="date-text">
         <div id="dayName"></div>
-        <div id="dayMonth"></div>
+        <div id="dayMonth" style="font-size:.75rem;opacity:.7"></div>
       </div>
     </div>
 
@@ -90,15 +164,31 @@
     </div>
   </div>
 
-  <div id="agendaList" class="agenda-list"></div>
+  <!-- TIMELINE -->
+  <div id="timeline" class="timeline"></div>
+
 </main>
 
+<!-- ======================
+     MODAL CITA
+====================== -->
 <div id="appointmentModal" class="modal">
   <div class="modal-card">
+
     <h3 id="amPatient"></h3>
-    <div id="amDateTime"></div>
-    <div id="amModality"></div>
-    <button onclick="closeAppointmentModal()">Cerrar</button>
+    <div class="modal-row" id="amDateTime"></div>
+    <div class="modal-row" id="amModality"></div>
+
+    <div class="modal-row">
+      <input type="checkbox" id="amCompleted">
+      <label for="amCompleted">Sesión realizada</label>
+    </div>
+
+    <div class="modal-actions">
+      <button id="amSaveBtn" class="btn-primary">Guardar</button>
+      <button onclick="closeAppointmentModal()">Cerrar</button>
+    </div>
+
   </div>
 </div>
 
@@ -106,6 +196,11 @@
 import { requireAuth } from "./assets/js/auth.js";
 import { loadMenu } from "./assets/js/menu.js";
 import { auth, db } from "./assets/js/firebase.js";
+
+import {
+  markAppointmentCompleted
+} from "./assets/js/appointment-manager.js";
+
 import {
   collection, getDocs, query, where, orderBy, Timestamp
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
@@ -113,74 +208,138 @@ import {
 await requireAuth();
 await loadMenu();
 
+/* ======================
+   FECHA
+====================== */
 let currentDate =
   new URLSearchParams(location.search).get("date")
   || new Date().toISOString().split("T")[0];
 
-function loadDate(d){ location.href=`agenda-diaria.html?date=${d}`; }
+function go(dateISO){
+  location.href = `agenda-diaria.html?date=${dateISO}`;
+}
 
 prevDay.onclick = () => {
-  const d=new Date(currentDate); d.setDate(d.getDate()-1);
-  loadDate(toISO(d));
+  const d = new Date(currentDate);
+  d.setDate(d.getDate()-1);
+  go(toISO(d));
 };
+
 nextDay.onclick = () => {
-  const d=new Date(currentDate); d.setDate(d.getDate()+1);
-  loadDate(toISO(d));
+  const d = new Date(currentDate);
+  d.setDate(d.getDate()+1);
+  go(toISO(d));
 };
+
 todayBtn.onclick = () =>
-  loadDate(new Date().toISOString().split("T")[0]);
+  go(new Date().toISOString().split("T")[0]);
 
-const baseDate=new Date(currentDate); baseDate.setHours(0,0,0,0);
+const baseDate = new Date(currentDate);
+baseDate.setHours(0,0,0,0);
 
-dayNumber.textContent=baseDate.getDate();
-dayName.textContent=baseDate.toLocaleDateString("es-ES",{weekday:"long"});
-dayMonth.textContent=baseDate.toLocaleDateString("es-ES",{month:"long",year:"numeric"});
+dayNumber.textContent = baseDate.getDate();
+dayName.textContent =
+  baseDate.toLocaleDateString("es-ES",{weekday:"long"});
+dayMonth.textContent =
+  baseDate.toLocaleDateString("es-ES",{month:"long",year:"numeric"});
 
-const therapistId=auth.currentUser.uid;
-const agendaList=document.getElementById("agendaList");
+/* ======================
+   DATOS
+====================== */
+const therapistId = auth.currentUser.uid;
+const timeline = document.getElementById("timeline");
 
-window.closeAppointmentModal=()=>appointmentModal.style.display="none";
+let currentAppointment = null;
 
-function openAppointmentModal(app){
-  const s=app.start.toDate(), e=app.end.toDate();
-  amPatient.textContent=app.patientName;
-  amDateTime.textContent=`${s.getHours()}:00 – ${e.getHours()}:00`;
-  amModality.textContent=app.modality;
+/* ======================
+   MODAL
+====================== */
+window.closeAppointmentModal = () =>
+  appointmentModal.style.display="none";
+
+function openModal(app){
+  currentAppointment = app;
+  const s = app.start.toDate();
+  const e = app.end.toDate();
+
+  amPatient.textContent = app.patientName;
+  amDateTime.textContent = `${s.getHours()}:00 – ${e.getHours()}:00`;
+  amModality.textContent = `Modalidad: ${app.modality}`;
+  amCompleted.checked = app.status === "completed";
+
   appointmentModal.style.display="block";
 }
 
-const snap=await getDocs(query(
+amSaveBtn.onclick = async () => {
+  if (amCompleted.checked) {
+    await markAppointmentCompleted(currentAppointment);
+  }
+  location.reload();
+};
+
+/* ======================
+   CARGA CITAS
+====================== */
+const snap = await getDocs(query(
   collection(db,"appointments"),
   where("therapistId","==",therapistId),
   where("start",">=",Timestamp.fromDate(baseDate)),
-  where("start","<",Timestamp.fromDate(new Date(baseDate.getTime()+86400000))),
+  where("start","<",
+    Timestamp.fromDate(new Date(baseDate.getTime()+86400000))
+  ),
   orderBy("start")
 ));
 
+const byHour = {};
 snap.forEach(d=>{
-  const app={...d.data(),id:d.id};
-  const h=app.start.toDate().getHours();
-
-  const card=document.createElement("div");
-  card.className=`agenda-card ${app.status==="completed"?"done":""}`;
-  card.innerHTML=`
-    <div class="agenda-hour">${h}:00</div>
-    <div class="agenda-main">
-      <div class="agenda-name">${app.patientName}</div>
-      <div class="agenda-sub">${app.service||"Visita Psicología"}</div>
-    </div>
-    <div class="agenda-icons">
-      ${app.status==="completed"?"✔️":""}
-      ${app.invoiceId?"🧾":""}
-    </div>
-  `;
-  card.onclick=()=>openAppointmentModal(app);
-  agendaList.appendChild(card);
+  byHour[d.data().start.toDate().getHours()] =
+    {...d.data(), id:d.id};
 });
+
+/* ======================
+   RENDER
+====================== */
+for(let h=9; h<21; h++){
+  const row = document.createElement("div");
+  row.className="time-row";
+
+  const time = document.createElement("div");
+  time.className="time-label";
+  time.textContent = `${h}:00`;
+
+  const card = document.createElement("div");
+
+  if (byHour[h]) {
+    const app = byHour[h];
+    card.className =
+      `card ${app.status==="completed"?"completed":"pending"}`;
+    card.innerHTML = `
+      <div class="card-info">
+        <div class="card-name">${app.patientName}</div>
+        <div class="card-sub">${app.modality}</div>
+      </div>
+      <div class="card-actions">✓</div>
+    `;
+    card.onclick = () => openModal(app);
+  } else {
+    card.className="card empty";
+    card.innerHTML = `
+      <div class="card-info">
+        <div class="card-name">Libre</div>
+        <div class="card-sub">Sin cita</div>
+      </div>
+    `;
+  }
+
+  row.appendChild(time);
+  row.appendChild(card);
+  timeline.appendChild(row);
+}
 
 function toISO(d){
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
 }
 </script>
+
 </body>
 </html>
