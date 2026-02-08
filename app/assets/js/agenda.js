@@ -1,124 +1,119 @@
-import { requireAuth } from "./auth.js";
-import { loadMenu } from "./menu.js";
-import { auth, db } from "./firebase.js";
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<title>Agenda | Psicoterapia Isla</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link rel="stylesheet" href="assets/css/app.css">
 
-import {
-  collection, query, where, getDocs, addDoc,
-  Timestamp
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+<style>
+.wrapper { max-width:900px; margin:0 auto; padding:1.5rem; }
+.header { display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; }
+.nav { display:flex; gap:.5rem; }
 
-await requireAuth();
-await loadMenu();
-
-const agenda = document.getElementById("agenda");
-const modal = document.getElementById("modal");
-
-const phone = document.getElementById("phone");
-const nameI = document.getElementById("name");
-const phoneSug = document.getElementById("phoneSug");
-const nameSug = document.getElementById("nameSug");
-
-const startI = document.getElementById("start");
-const endI = document.getElementById("end");
-const amountI = document.getElementById("amount");
-const paidI = document.getElementById("paid");
-const modalityI = document.getElementById("modality");
-
-let currentDate = new Date();
-currentDate.setHours(0,0,0,0);
-
-function renderHours() {
-  agenda.innerHTML = "";
-  for (let h = 9; h <= 20; h++) {
-    const hour = document.createElement("div");
-    hour.className = "hour";
-    hour.textContent = `${h}:00`;
-
-    const slot = document.createElement("div");
-    slot.className = "slot";
-    slot.dataset.hour = h;
-
-    slot.addEventListener("click", () => {
-      startI.value = `${String(h).padStart(2,"0")}:00`;
-      endI.value = `${String(h+1).padStart(2,"0")}:00`;
-      modal.classList.add("open");
-    });
-
-    agenda.append(hour, slot);
-  }
+.day {
+  font-size:1.1rem;
+  font-weight:600;
 }
 
-renderHours();
-
-document.getElementById("newCita").addEventListener("click", ()=>{
-  modal.classList.add("open");
-});
-
-document.getElementById("close").addEventListener("click", ()=>{
-  modal.classList.remove("open");
-});
-
-async function autocomplete(input, targetDiv, field) {
-  targetDiv.innerHTML = "";
-  if (input.length < 1) return;
-
-  const q = query(
-    collection(db,"patients"),
-    where(field, ">=", input),
-    where(field, "<=", input + "\uf8ff")
-  );
-
-  const snap = await getDocs(q);
-  snap.forEach(d=>{
-    const div = document.createElement("div");
-    div.textContent = d.data()[field];
-    div.onclick = ()=>{
-      if(field==="phone") phone.value = d.data().phone;
-      nameI.value = d.data().name;
-      targetDiv.innerHTML="";
-    };
-    targetDiv.appendChild(div);
-  });
+.slot {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:.75rem;
+  border-radius:12px;
+  margin-bottom:.5rem;
 }
 
-phone.addEventListener("input", e=>{
-  autocomplete(e.target.value, phoneSug, "phone");
-});
+.slot.free { background:#e5e7eb; cursor:pointer; }
+.slot.busy { background:#e6f4d7; cursor:pointer; }
 
-nameI.addEventListener("input", e=>{
-  autocomplete(e.target.value, nameSug, "name");
-});
+.time { width:60px; font-weight:600; }
 
-document.getElementById("save").addEventListener("click", async ()=>{
-  const user = auth.currentUser;
+.modal {
+  display:none;
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.4);
+  z-index:999;
+}
 
-  const dateStart = new Date(currentDate);
-  const [sh, sm] = startI.value.split(":");
-  dateStart.setHours(sh, sm);
+.modal-card {
+  background:#fff;
+  max-width:420px;
+  margin:10vh auto;
+  padding:1rem;
+  border-radius:16px;
+}
 
-  const dateEnd = new Date(currentDate);
-  const [eh, em] = endI.value.split(":");
-  dateEnd.setHours(eh, em);
+.field { margin-bottom:.5rem; }
+.field input, .field select {
+  width:100%;
+  padding:.4rem;
+}
 
-  const ref = await addDoc(collection(db,"appointments"),{
-    therapistId: user.uid,
-    phone: phone.value,
-    name: nameI.value,
-    modality: modalityI.value,
-    start: Timestamp.fromDate(dateStart),
-    end: Timestamp.fromDate(dateEnd),
-    amount: Number(amountI.value || 0),
-    paid: paidI.checked,
-    createdAt: Timestamp.now()
-  });
+.actions {
+  display:flex;
+  justify-content:space-between;
+  margin-top:1rem;
+}
+</style>
+</head>
 
-  if(paidI.checked){
-    const msg = encodeURIComponent(
-      `Hola ${nameI.value}, tu sesión ha sido registrada.\nGracias.\nPsicoterapia Isla`
-    );
-    window.open(`https://wa.me/${phone.value}?text=${msg}`,"_blank");
-  }
+<body class="app-body">
+<header class="app-menu"></header>
 
-  modal.classList.remove("open");
-  location.reload();
-});
+<main class="wrapper">
+
+  <div class="header">
+    <div class="day" id="dayLabel"></div>
+    <div class="nav">
+      <button id="prevDay" class="btn-secondary">←</button>
+      <button id="today" class="btn-secondary">Hoy</button>
+      <button id="nextDay" class="btn-secondary">→</button>
+    </div>
+  </div>
+
+  <div id="agenda"></div>
+</main>
+
+<!-- MODAL -->
+<div id="modal" class="modal">
+  <div class="modal-card">
+
+    <div class="field">
+      <input id="pSearch" placeholder="Teléfono / nombre / apellidos">
+    </div>
+
+    <div class="field">
+      <input id="pName" placeholder="Nombre completo">
+    </div>
+
+    <div class="field">
+      <select id="modality">
+        <option value="">Modalidad</option>
+        <option value="viladecans">Viladecans</option>
+        <option value="badalona">Badalona</option>
+        <option value="online">Online</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label>
+        <input type="checkbox" id="completed">
+        Sesión realizada
+      </label>
+    </div>
+
+    <div class="actions">
+      <button id="whatsapp" class="btn-secondary">WhatsApp</button>
+      <button id="save" class="btn-primary">Guardar</button>
+      <button onclick="closeModal()">Cerrar</button>
+    </div>
+
+  </div>
+</div>
+
+<script type="module" src="assets/js/agenda.js"></script>
+</body>
+</html>
