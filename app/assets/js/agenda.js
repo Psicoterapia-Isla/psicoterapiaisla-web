@@ -3,27 +3,40 @@ import { loadMenu } from "./menu.js";
 import { auth, db } from "./firebase.js";
 
 import {
-  collection, query, where, getDocs,
-  addDoc, updateDoc, doc, Timestamp
+  collection,
+  query,
+  where,
+  getDocs,
+  addDoc,
+  updateDoc,
+  doc,
+  Timestamp
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
+/* =========================
+   INIT
+========================= */
 await requireAuth();
 await loadMenu();
 
 /* =========================
    STATE
 ========================= */
-
-let currentDate = new Date();
+let baseDate = new Date();
 let editingId = null;
 let selectedPatientId = null;
+let currentSlot = null;
 
-const agendaEl = document.getElementById("agenda");
-const dateLabel = document.getElementById("dateLabel");
+const HOURS = Array.from({ length: 12 }, (_, i) => i + 9); // 9–20
+const DAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
+
+/* =========================
+   DOM
+========================= */
+const grid = document.getElementById("agendaGrid");
+const weekLabel = document.getElementById("weekLabel");
 
 const modal = document.getElementById("modal");
-const suggestions = document.getElementById("suggestions");
-
 const phone = document.getElementById("phone");
 const name = document.getElementById("name");
 const service = document.getElementById("service");
@@ -33,39 +46,42 @@ const end = document.getElementById("end");
 const completed = document.getElementById("completed");
 const paid = document.getElementById("paid");
 const amount = document.getElementById("amount");
+const suggestions = document.getElementById("suggestions");
 
 /* =========================
    DATE HELPERS
 ========================= */
-
 const formatDate = d => d.toISOString().slice(0, 10);
 
-const startOfWeek = d => {
+function mondayOf(d) {
   const x = new Date(d);
-  const day = x.getDay() || 7;
-  x.setDate(x.getDate() - day + 1);
+  const n = (x.getDay() + 6) % 7;
+  x.setDate(x.getDate() - n);
+  x.setHours(0, 0, 0, 0);
   return x;
-};
+}
 
-const endOfWeek = d => {
-  const x = startOfWeek(d);
-  x.setDate(x.getDate() + 6);
-  return x;
-};
+function formatWeekLabel(monday) {
+  const end = new Date(monday);
+  end.setDate(end.getDate() + 6);
+  return `${monday.toLocaleDateString("es-ES",{day:"numeric",month:"short"})} – ${end.toLocaleDateString("es-ES",{day:"numeric",month:"short",year:"numeric"})}`;
+}
 
-const formatHeaderRange = (a,b) =>
-  `${a.toLocaleDateString("es-ES",{day:"numeric",month:"short"})} – ${b.toLocaleDateString("es-ES",{day:"numeric",month:"short",year:"numeric"})}`;
-
-const weekdayLabel = d =>
-  new Date(d).toLocaleDateString("es-ES",{weekday:"long",day:"numeric"});
+function dayFromKey(monday, key) {
+  const idx = DAYS.indexOf(key);
+  const d = new Date(monday);
+  d.setDate(d.getDate() + idx);
+  return d;
+}
 
 /* =========================
    MODAL
 ========================= */
-
 function resetModal() {
   editingId = null;
   selectedPatientId = null;
+  currentSlot = null;
+
   phone.value = "";
   name.value = "";
   service.value = "Visita Psicología";
@@ -78,38 +94,45 @@ function resetModal() {
   suggestions.innerHTML = "";
 }
 
-function openNew(startTime="09:00", endTime="10:00", date=null) {
+function openNew(slot) {
   resetModal();
-  if (date) currentDate = new Date(date);
-  start.value = startTime;
-  end.value = endTime;
-  modal.classList.remove("hidden");
+  currentSlot = slot;
+
+  start.value = `${slot.hour}:00`;
+  end.value = `${slot.hour + 1}:00`;
+
+  modal.classList.add("show");
 }
 
 function openEdit(a) {
   resetModal();
+
   editingId = a.id;
   selectedPatientId = a.patientId || null;
-  currentDate = new Date(a.date);
+  currentSlot = {
+    date: a.date,
+    hour: Number(a.start.split(":")[0])
+  };
+
   phone.value = a.phone || "";
   name.value = a.name || "";
   service.value = a.service || "";
-  modality.value = a.modality || "viladecans";
+  modality.value = a.modality;
   start.value = a.start;
   end.value = a.end;
   completed.checked = !!a.completed;
   paid.checked = !!a.paid;
   amount.value = a.amount || "";
-  modal.classList.remove("hidden");
+
+  modal.classList.add("show");
 }
 
 document.getElementById("close").onclick = () =>
-  modal.classList.add("hidden");
+  modal.classList.remove("show");
 
 /* =========================
    AUTOCOMPLETE
 ========================= */
-
 async function searchPatients(term) {
   if (!term || term.length < 2) {
     suggestions.innerHTML = "";
@@ -142,7 +165,6 @@ phone.oninput = e => {
   selectedPatientId = null;
   searchPatients(e.target.value);
 };
-
 name.oninput = e => {
   selectedPatientId = null;
   searchPatients(e.target.value);
@@ -151,15 +173,14 @@ name.oninput = e => {
 /* =========================
    SAVE
 ========================= */
-
 document.getElementById("save").onclick = async () => {
   const user = auth.currentUser;
-  if (!user) return;
+  if (!user || !currentSlot) return;
 
   const data = {
     therapistId: user.uid,
     patientId: selectedPatientId || null,
-    date: formatDate(currentDate),
+    date: currentSlot.date,
     phone: phone.value,
     name: name.value,
     service: service.value,
@@ -181,98 +202,123 @@ document.getElementById("save").onclick = async () => {
     });
   }
 
-  modal.classList.add("hidden");
+  modal.classList.remove("show");
   renderWeek();
 };
 
 /* =========================
    RENDER WEEK
 ========================= */
-
 async function renderWeek() {
-  agendaEl.innerHTML = "";
+  grid.innerHTML = "";
 
-  const from = startOfWeek(currentDate);
-  const to = endOfWeek(currentDate);
-  dateLabel.textContent = formatHeaderRange(from,to);
+  const monday = mondayOf(baseDate);
+  weekLabel.textContent = formatWeekLabel(monday);
 
   const user = auth.currentUser;
   if (!user) return;
 
-  const q = query(
-    collection(db,"appointments"),
-    where("therapistId","==",user.uid),
-    where("date",">=",formatDate(from)),
-    where("date","<=",formatDate(to))
+  /* ===== LOAD AVAILABILITY ===== */
+  const availSnap = await getDocs(
+    query(
+      collection(db, "availability"),
+      where("therapistId", "==", user.uid)
+    )
   );
 
-  const snap = await getDocs(q);
-  const byDay = {};
-
-  snap.forEach(d=>{
-    const a={id:d.id,...d.data()};
-    (byDay[a.date]??=[]).push(a);
+  const availability = {};
+  availSnap.forEach(d => {
+    const a = d.data();
+    if (a.weekStart && a.slots) {
+      Object.assign(availability, a.slots);
+    }
   });
 
-  Object.keys(byDay).sort().forEach(date=>{
-    const day=document.createElement("div");
-    day.className="agenda-day";
+  /* ===== LOAD APPOINTMENTS ===== */
+  const from = formatDate(monday);
+  const to = formatDate(new Date(monday.getTime() + 6 * 86400000));
 
-    const h=document.createElement("h3");
-    h.textContent=weekdayLabel(date);
-    day.appendChild(h);
+  const apptSnap = await getDocs(
+    query(
+      collection(db, "appointments"),
+      where("therapistId", "==", user.uid),
+      where("date", ">=", from),
+      where("date", "<=", to)
+    )
+  );
 
-    ["viladecans","badalona","online"].forEach(loc=>{
-      const items=(byDay[date]||[]).filter(a=>a.modality===loc);
-      if(!items.length) return;
+  const bySlot = {};
+  apptSnap.forEach(d => {
+    const a = { id: d.id, ...d.data() };
+    const key = `${a.date}_${a.start}`;
+    bySlot[key] = a;
+  });
 
-      const sec=document.createElement("div");
-      sec.className="agenda-section";
+  /* ===== HEADER ===== */
+  grid.appendChild(document.createElement("div"));
+  DAYS.forEach((_, i) => {
+    const d = new Date(monday);
+    d.setDate(d.getDate() + i);
+    const h = document.createElement("div");
+    h.className = "day-label";
+    h.textContent = d.toLocaleDateString("es-ES",{weekday:"short",day:"numeric"});
+    grid.appendChild(h);
+  });
 
-      const t=document.createElement("h4");
-      t.textContent=loc==="viladecans"
-        ?"Psicoterapia Isla · Viladecans"
-        :loc==="badalona"
-        ?"Psicoterapia Isla · Badalona"
-        :"Online";
+  /* ===== GRID ===== */
+  HOURS.forEach(hour => {
+    const hl = document.createElement("div");
+    hl.className = "hour-label";
+    hl.textContent = `${hour}:00`;
+    grid.appendChild(hl);
 
-      sec.appendChild(t);
+    DAYS.forEach(day => {
+      const date = formatDate(dayFromKey(monday, day));
+      const slotKey = `${day}_${hour}`;
+      const apptKey = `${date}_${hour}:00`;
 
-      items.sort((a,b)=>a.start.localeCompare(b.start))
-        .forEach(a=>{
-          const b=document.createElement("div");
-          b.className="appointment";
-          if(/bloqueo|pràctiques/i.test(a.service||""))
-            b.classList.add("blocked");
+      const cell = document.createElement("div");
+      cell.className = "slot";
 
-          b.innerHTML=`
-            <div class="time">${a.start} – ${a.end}</div>
-            <div class="main">
-              <strong>${a.name||"—"}</strong>
-              <div class="service">${a.service}</div>
-            </div>`;
-          b.onclick=()=>openEdit(a);
-          sec.appendChild(b);
-        });
+      if (bySlot[apptKey]) {
+        const a = bySlot[apptKey];
+        cell.classList.add(
+          a.paid ? "paid" :
+          a.completed ? "done" : "busy"
+        );
+        cell.innerHTML = `<strong>${a.name || "—"}</strong><span>${a.start}–${a.end}</span>`;
+        cell.onclick = () => openEdit(a);
+      } else if (availability[slotKey]) {
+        cell.classList.add("available");
+        cell.textContent = "Disponible";
+        cell.onclick = () =>
+          openNew({ date, hour });
+      } else {
+        cell.classList.add("disabled");
+      }
 
-      day.appendChild(sec);
+      grid.appendChild(cell);
     });
-
-    agendaEl.appendChild(day);
   });
 }
 
 /* =========================
    NAV
 ========================= */
-
-prevDay.onclick=()=>{currentDate.setDate(currentDate.getDate()-7);renderWeek();}
-nextDay.onclick=()=>{currentDate.setDate(currentDate.getDate()+7);renderWeek();}
-today.onclick=()=>{currentDate=new Date();renderWeek();}
-newAppointment.onclick=()=>openNew();
+prevWeek.onclick = () => {
+  baseDate.setDate(baseDate.getDate() - 7);
+  renderWeek();
+};
+nextWeek.onclick = () => {
+  baseDate.setDate(baseDate.getDate() + 7);
+  renderWeek();
+};
+today.onclick = () => {
+  baseDate = new Date();
+  renderWeek();
+};
 
 /* =========================
-   INIT
+   START
 ========================= */
-
 renderWeek();
