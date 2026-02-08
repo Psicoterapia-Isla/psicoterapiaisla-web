@@ -11,7 +11,6 @@
 <header class="app-menu"></header>
 
 <main class="wrapper">
-
   <div class="header">
     <h1>Agenda diaria</h1>
     <div class="nav">
@@ -24,35 +23,43 @@
   <div id="list"></div>
 </main>
 
-<!-- MODAL CREAR CITA -->
-<div id="createModal" class="modal">
+<!-- MODAL CITA -->
+<div id="modal" class="modal">
   <div class="modal-card">
-    <h3>Nueva cita</h3>
 
-    <label>Teléfono</label>
-    <input id="cPatientPhone" type="text">
+    <h3 id="mPatient"></h3>
+    <p id="mTime"></p>
 
-    <label>Nombre</label>
-    <input id="cPatientName" type="text">
+    <label>
+      <input type="checkbox" id="mDone">
+      Sesión realizada
+    </label>
 
-    <label>Modalidad</label>
-    <select id="cModality">
+    <hr>
+
+    <label>Importe (€)</label>
+    <input id="mAmount" type="number" value="60">
+
+    <label>Método de pago</label>
+    <select id="mPayment">
       <option value="">—</option>
-      <option value="online">Online</option>
-      <option value="viladecans">Viladecans</option>
-      <option value="badalona">Badalona</option>
+      <option value="efectivo">Efectivo</option>
+      <option value="tarjeta">Tarjeta</option>
+      <option value="bizum">Bizum</option>
+      <option value="transferencia">Transferencia</option>
     </select>
 
-    <label>Hora inicio</label>
-    <input id="cStart" type="time">
-
-    <label>Hora fin</label>
-    <input id="cEnd" type="time">
+    <label>
+      <input type="checkbox" id="mPaid">
+      Pagada
+    </label>
 
     <div class="actions">
-      <button onclick="createAppointment()" class="btn-primary">Crear</button>
-      <button onclick="closeCreateModal()">Cancelar</button>
+      <button id="mInvoice" class="btn-secondary">Emitir factura</button>
+      <button id="mSave" class="btn-primary">Guardar</button>
+      <button onclick="closeModal()">Cerrar</button>
     </div>
+
   </div>
 </div>
 
@@ -64,6 +71,5 @@ await loadMenu();
 </script>
 
 <script type="module" src="assets/js/agenda-diaria.js"></script>
-<script type="module" src="assets/js/crear-cita.js"></script>
 </body>
 </html>
