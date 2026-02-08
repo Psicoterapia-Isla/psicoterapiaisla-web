@@ -2,38 +2,161 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Agenda | Psicoterapia Isla</title>
+  <title>Agenda semanal | Psicoterapia Isla</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
   <link rel="stylesheet" href="assets/css/app.css">
+
+  <style>
+    .agenda-wrapper {
+      padding: 1.5rem;
+    }
+
+    .agenda-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+      gap: .5rem;
+      flex-wrap: wrap;
+    }
+
+    .agenda-header h1 {
+      margin: 0;
+    }
+
+    .agenda-nav {
+      display: flex;
+      gap: .5rem;
+      flex-wrap: wrap;
+    }
+
+    /* ===== GRID SEMANAL ===== */
+    .agenda-scroll {
+      overflow-x: auto;
+      padding-bottom: 12px;
+    }
+
+    .agenda-grid {
+      display: grid;
+      grid-template-columns: 70px repeat(7, 1fr);
+      min-width: 1000px;
+      gap: 6px;
+    }
+
+    .hour-label {
+      text-align: right;
+      font-size: .75rem;
+      padding-right: 6px;
+      opacity: .6;
+    }
+
+    .day-label {
+      text-align: center;
+      font-weight: 600;
+      font-size: .85rem;
+    }
+
+    .slot {
+      min-height: 54px;
+      border-radius: 10px;
+      padding: 6px;
+      font-size: .75rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      text-align: center;
+      cursor: pointer;
+    }
+
+    .slot.available { background: #e6f4d7; }
+    .slot.busy      { background: #fff2cc; }
+    .slot.done      { background: #e6f0ff; }
+    .slot.paid      { background: #d1fae5; }
+    .slot.disabled  { background: #e5e7eb; cursor: default; }
+
+    .slot strong {
+      font-size: .8rem;
+    }
+
+    /* ===== MODAL ===== */
+    .modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.45);
+      display: none;
+      z-index: 999;
+    }
+
+    .modal.show {
+      display: block;
+    }
+
+    .modal-card {
+      background: #fff;
+      max-width: 420px;
+      margin: 10vh auto;
+      padding: 1.25rem;
+      border-radius: 16px;
+    }
+
+    .suggestions {
+      background: #fff;
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      margin-bottom: 12px;
+      max-height: 160px;
+      overflow-y: auto;
+    }
+
+    .suggestions div {
+      padding: 8px 12px;
+      cursor: pointer;
+    }
+
+    .suggestions div:hover {
+      background: #f3f4f6;
+    }
+
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: .5rem;
+      margin-top: 1rem;
+    }
+  </style>
 </head>
 
 <body class="app-body">
 <header class="app-menu"></header>
 
-<main class="wrapper">
-  <div class="header">
-    <h1>Agenda</h1>
-    <div class="nav">
-      <button id="prevDay" class="btn-secondary">←</button>
+<main class="agenda-wrapper">
+
+  <div class="agenda-header">
+    <h1>Agenda semanal</h1>
+    <div class="agenda-nav">
+      <button id="prevWeek" class="btn-secondary">←</button>
       <button id="today" class="btn-secondary">Hoy</button>
-      <button id="nextDay" class="btn-secondary">→</button>
-      <button id="newAppointment" class="btn-primary">+ Cita</button>
+      <button id="nextWeek" class="btn-secondary">→</button>
     </div>
   </div>
 
-  <h3 id="dateLabel"></h3>
+  <h3 id="weekLabel"></h3>
 
-  <div id="agenda"></div>
+  <div class="agenda-scroll">
+    <div id="agendaGrid" class="agenda-grid"></div>
+  </div>
+
 </main>
 
-<!-- MODAL CITA -->
-<div id="modal" class="modal hidden">
-  <div class="modal-content">
+<!-- ================= MODAL CITA ================= -->
+<div id="modal" class="modal">
+  <div class="modal-card">
+
     <h3>Cita</h3>
 
     <label>Teléfono</label>
     <input id="phone" autocomplete="off">
-
     <div id="suggestions" class="suggestions"></div>
 
     <label>Nombre</label>
@@ -60,18 +183,19 @@
       Sesión realizada
     </label>
 
-    <label>Importe (€)</label>
-    <input id="amount" type="number">
-
     <label>
       <input type="checkbox" id="paid">
       Pagada
     </label>
 
+    <label>Importe (€)</label>
+    <input id="amount" type="number">
+
     <div class="modal-actions">
       <button id="save" class="btn-primary">Guardar</button>
       <button id="close" class="btn-secondary">Cerrar</button>
     </div>
+
   </div>
 </div>
 
