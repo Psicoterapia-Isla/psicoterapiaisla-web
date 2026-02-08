@@ -1,145 +1,101 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8" />
-<title>Agenda diaria | Psicoterapia Isla</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<link rel="stylesheet" href="assets/css/app.css">
-
-<style>
-.wrapper {
-  max-width:720px;
-  margin:0 auto;
-  padding:1.5rem;
-}
-
-.header {
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  margin-bottom:1rem;
-}
-
-.date-info {
-  display:flex;
-  gap:.75rem;
-  align-items:center;
-}
-
-.circle {
-  width:44px;
-  height:44px;
-  border-radius:50%;
-  background:#1f6b4e;
-  color:#fff;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-weight:600;
-}
-
-.nav {
-  display:flex;
-  gap:.5rem;
-}
-
-.slot {
-  display:flex;
-  align-items:center;
-  gap:1rem;
-  padding:.75rem;
-  border-radius:12px;
-  margin-bottom:.5rem;
-  cursor:pointer;
-}
-
-.slot.free {
-  background:#e5e7eb;
-}
-
-.slot.busy {
-  background:#e6f4d7;
-}
-
-.time {
-  width:60px;
-  font-weight:600;
-}
-
-.modal {
-  display:none;
-  position:fixed;
-  inset:0;
-  background:rgba(0,0,0,.4);
-  z-index:999;
-}
-
-.modal-card {
-  background:#fff;
-  max-width:420px;
-  margin:10vh auto;
-  padding:1rem;
-  border-radius:16px;
-}
-
-.actions {
-  display:flex;
-  justify-content:flex-end;
-  gap:.5rem;
-  margin-top:1rem;
-}
-</style>
+  <meta charset="UTF-8">
+  <title>Agenda diaria | Psicoterapia Isla</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="assets/css/app.css">
 </head>
 
 <body class="app-body">
 <header class="app-menu"></header>
 
-<main class="wrapper">
+<main class="day-wrapper">
+  <h1>Agenda diaria</h1>
 
-  <div class="header">
-    <div class="date-info">
-      <div class="circle" id="dayNum"></div>
-      <div>
-        <div id="dayName"></div>
-        <div id="dayMonth"></div>
-      </div>
-    </div>
-
-    <div class="nav">
-      <button id="prev" class="btn-secondary">←</button>
-      <button id="today" class="btn-secondary">Hoy</button>
-      <button id="next" class="btn-secondary">→</button>
-    </div>
+  <div class="day-nav">
+    <button id="prevDay">←</button>
+    <button id="todayDay">Hoy</button>
+    <button id="nextDay">→</button>
   </div>
 
-  <div id="list"></div>
+  <div id="dayList"></div>
 </main>
-
-<!-- MODAL -->
-<div id="modal" class="modal">
-  <div class="modal-card">
-    <h3 id="mPatient"></h3>
-    <p id="mTime"></p>
-
-    <label>
-      <input type="checkbox" id="mDone">
-      Sesión realizada
-    </label>
-
-    <div class="actions">
-      <button id="mSave" class="btn-primary">Guardar</button>
-      <button onclick="closeModal()">Cerrar</button>
-    </div>
-  </div>
-</div>
 
 <script type="module">
 import { requireAuth } from "./assets/js/auth.js";
 import { loadMenu } from "./assets/js/menu.js";
-await requireAuth();
-await loadMenu();
-</script>
+import { db } from "./assets/js/firebase.js";
 
-<script type="module" src="assets/js/agenda-diaria.js"></script>
+import {
+  collection, query, where, getDocs, Timestamp
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+/* =========================
+   AUTH (CORRECTO)
+========================= */
+const user = await requireAuth();
+await loadMenu();
+const therapistId = user.uid;
+
+/* =========================
+   FECHA
+========================= */
+const params = new URLSearchParams(location.search);
+const baseDate = params.get("date")
+  ? new Date(params.get("date"))
+  : new Date();
+
+baseDate.setHours(0,0,0,0);
+
+const start = Timestamp.fromDate(baseDate);
+const end = Timestamp.fromDate(
+  new Date(baseDate.getTime() + 86400000)
+);
+
+/* =========================
+   NAV
+========================= */
+document.getElementById("prevDay").onclick = () => {
+  const d = new Date(baseDate);
+  d.setDate(d.getDate() - 1);
+  location.href = `agenda-diaria.html?date=${d.toISOString().slice(0,10)}`;
+};
+
+document.getElementById("nextDay").onclick = () => {
+  const d = new Date(baseDate);
+  d.setDate(d.getDate() + 1);
+  location.href = `agenda-diaria.html?date=${d.toISOString().slice(0,10)}`;
+};
+
+document.getElementById("todayDay").onclick = () =>
+  location.href = "agenda-diaria.html";
+
+/* =========================
+   DATA
+========================= */
+const q = query(
+  collection(db, "appointments"),
+  where("therapistId", "==", therapistId),
+  where("start", ">=", start),
+  where("start", "<", end)
+);
+
+const snap = await getDocs(q);
+const list = document.getElementById("dayList");
+list.innerHTML = "";
+
+snap.forEach(doc => {
+  const a = doc.data();
+  const div = document.createElement("div");
+  div.className = "day-item";
+  div.innerHTML = `
+    <strong>${a.patientName || ""}</strong><br>
+    ${a.start.toDate().toLocaleTimeString("es-ES")} -
+    ${a.end.toDate().toLocaleTimeString("es-ES")}
+  `;
+  list.appendChild(div);
+});
+</script>
 </body>
 </html>
