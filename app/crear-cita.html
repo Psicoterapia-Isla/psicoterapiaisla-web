@@ -1,107 +1,74 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8" />
-<title>Nueva cita | Psicoterapia Isla</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta charset="UTF-8">
+<title>Nueva cita</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="stylesheet" href="assets/css/app.css">
-
-<style>
-.create-wrapper {
-  max-width: 520px;
-  margin: 0 auto;
-  padding: 1.5rem;
-}
-
-.create-wrapper h1 {
-  margin-bottom: 1rem;
-}
-
-.form-row {
-  margin-bottom: 1rem;
-}
-
-label {
-  display:block;
-  font-weight:600;
-  margin-bottom:.25rem;
-}
-
-input, select {
-  width:100%;
-  padding:.5rem;
-  border-radius:8px;
-  border:1px solid #ccc;
-}
-
-.actions {
-  display:flex;
-  justify-content:flex-end;
-  gap:.5rem;
-  margin-top:1.5rem;
-}
-</style>
 </head>
 
 <body class="app-body">
 <header class="app-menu"></header>
 
-<main class="create-wrapper">
-  <h1>Nueva cita</h1>
+<main class="wrapper">
+<h1>Nueva cita</h1>
 
-  <div class="form-row">
-    <label>Fecha</label>
-    <input type="date" id="cDate">
-  </div>
+<label>Teléfono</label>
+<input id="phone">
 
-  <div class="form-row">
-    <label>Hora inicio</label>
-    <input type="time" id="cStart">
-  </div>
+<label>Nombre</label>
+<input id="name">
 
-  <div class="form-row">
-    <label>Hora fin</label>
-    <input type="time" id="cEnd">
-  </div>
+<label>Modalidad</label>
+<select id="mod">
+  <option value="">—</option>
+  <option value="viladecans">Viladecans</option>
+  <option value="badalona">Badalona</option>
+  <option value="online">Online</option>
+</select>
 
-  <div class="form-row">
-    <label>Teléfono paciente</label>
-    <input type="tel" id="cPatientPhone" placeholder="600000000">
-  </div>
+<label>Hora inicio</label>
+<input type="time" id="start">
 
-  <div class="form-row">
-    <label>Nombre paciente</label>
-    <input type="text" id="cPatientName">
-  </div>
+<label>Hora fin</label>
+<input type="time" id="end">
 
-  <div class="form-row">
-    <label>Modalidad</label>
-    <select id="cModality">
-      <option value="">—</option>
-      <option value="viladecans">Presencial Viladecans</option>
-      <option value="badalona">Presencial Badalona</option>
-      <option value="online">Online</option>
-    </select>
-  </div>
-
-  <div class="form-row">
-    <label>Servicio</label>
-    <input type="text" id="cService" value="Sesión de psicoterapia">
-  </div>
-
-  <div class="actions">
-    <button class="btn-secondary" onclick="history.back()">Cancelar</button>
-    <button class="btn-primary" onclick="createAppointment()">Crear cita</button>
-  </div>
+<br><br>
+<button id="save" class="btn-primary">Crear cita</button>
 </main>
 
 <script type="module">
 import { requireAuth } from "./assets/js/auth.js";
 import { loadMenu } from "./assets/js/menu.js";
-await requireAuth();
-await loadMenu();
-</script>
+import { auth, db } from "./assets/js/firebase.js";
+import { addDoc, collection, Timestamp, serverTimestamp }
+from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-<script type="module" src="assets/js/crear-cita.js"></script>
+await requireAuth();await loadMenu();
+
+const date=new URLSearchParams(location.search).get("date");
+const base=new Date(date);base.setHours(0,0,0,0);
+
+save.onclick=async()=>{
+  const [sh,sm]=start.value.split(":");
+  const [eh,em]=end.value.split(":");
+
+  const s=new Date(base);s.setHours(sh,sm);
+  const e=new Date(base);e.setHours(eh,em);
+
+  await addDoc(collection(db,"appointments"),{
+    therapistId:auth.currentUser.uid,
+    patientId:phone.value,
+    patientName:name.value,
+    modality:mod.value,
+    start:Timestamp.fromDate(s),
+    end:Timestamp.fromDate(e),
+    status:"scheduled",
+    createdAt:serverTimestamp()
+  });
+
+  location.href=`agenda-diaria.html?date=${date}`;
+};
+</script>
 </body>
 </html>
