@@ -14,9 +14,9 @@
 .slot{padding:.6rem;border-radius:10px;background:#e5e7eb;cursor:pointer}
 .slot.busy{background:#d1fae5}
 .modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:999}
-.modal-card{background:#fff;max-width:460px;margin:8vh auto;padding:1rem;border-radius:16px}
+.modal-card{background:#fff;max-width:480px;margin:6vh auto;padding:1rem;border-radius:16px}
 input,select{width:100%;margin-bottom:.5rem;padding:.45rem}
-.results{background:#f3f4f6;border-radius:8px;max-height:120px;overflow:auto}
+.results{background:#f3f4f6;border-radius:8px;max-height:140px;overflow:auto}
 .results div{padding:.35rem;cursor:pointer}
 .results div:hover{background:#e5e7eb}
 .actions{display:flex;justify-content:space-between;margin-top:.5rem}
@@ -46,9 +46,10 @@ input,select{width:100%;margin-bottom:.5rem;padding:.45rem}
   <div class="modal-card">
     <h3>Cita</h3>
 
-    <input id="phone" placeholder="Teléfono">
+    <input id="search" placeholder="Teléfono / Nombre / Apellidos">
     <div id="results" class="results"></div>
 
+    <input id="phone" placeholder="Teléfono">
     <input id="name" placeholder="Nombre completo">
     <input id="service" value="Visita Psicología">
 
@@ -65,9 +66,11 @@ input,select{width:100%;margin-bottom:.5rem;padding:.45rem}
     <label><input type="checkbox" id="done"> Sesión realizada</label>
     <input id="amount" placeholder="Importe (€)">
     <label><input type="checkbox" id="paid"> Pagada</label>
+    <label><input type="checkbox" id="invoiced"> Facturada</label>
 
     <div class="actions">
       <button id="save">Guardar</button>
+      <button id="pdf">PDF</button>
       <button onclick="closeModal()">Cerrar</button>
     </div>
   </div>
@@ -79,7 +82,8 @@ import { loadMenu } from "./assets/js/menu.js";
 import { auth, db } from "./assets/js/firebase.js";
 import {
   collection, query, where, getDocs,
-  addDoc, Timestamp
+  addDoc, updateDoc, doc,
+  Timestamp
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 await requireAuth();
@@ -113,13 +117,18 @@ today.onclick=()=>{currentDate=new Date();render();};
 new.onclick=()=>openNew(9);
 
 /* ===== MODAL ===== */
+let currentAppointmentId=null;
+
 function resetModal(){
+  search.value="";
   phone.value="";
   name.value="";
   amount.value="";
   done.checked=false;
   paid.checked=false;
+  invoiced.checked=false;
   results.innerHTML="";
+  currentAppointmentId=null;
 }
 window.openNew=(h)=>{
   resetModal();
@@ -129,10 +138,10 @@ window.openNew=(h)=>{
 };
 window.closeModal=()=>modal.style.display="none";
 
-/* ===== AUTOCOMPLETE EN TIEMPO REAL ===== */
-phone.oninput=async()=>{
+/* ===== AUTOCOMPLETE DINÁMICO ===== */
+search.oninput=async()=>{
   results.innerHTML="";
-  const v=phone.value.toLowerCase();
+  const v=search.value.toLowerCase();
   if(v.length<2) return;
 
   const q=query(
@@ -163,6 +172,19 @@ save.onclick=async()=>{
   const s=new Date(base);s.setHours(sh,sm);
   const e=new Date(base);e.setHours(eh,em);
 
+  let invoiceId=null;
+
+  if(invoiced.checked){
+    const inv=await addDoc(collection(db,"invoices"),{
+      therapistId:user.uid,
+      patientName:name.value,
+      amount:Number(amount.value||0),
+      issued:true,
+      issuedAt:Timestamp.now()
+    });
+    invoiceId=inv.id;
+  }
+
   await addDoc(collection(db,"appointments"),{
     therapistId:user.uid,
     patientId:phone.value,
@@ -174,12 +196,20 @@ save.onclick=async()=>{
     status:done.checked?"completed":"scheduled",
     paid:paid.checked,
     amount:Number(amount.value||0),
+    invoiceId,
     createdAt:Timestamp.now()
   });
 
   window.open(`https://wa.me/34${phone.value}?text=Tu cita ha sido confirmada`, "_blank");
   closeModal();
   render();
+};
+
+/* ===== PDF ===== */
+pdf.onclick=()=>{
+  const w=window.open();
+  w.document.write(`<h1>Factura</h1><p>${name.value}</p><p>${amount.value} €</p>`);
+  w.print();
 };
 </script>
 </body>
