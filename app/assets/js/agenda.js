@@ -218,23 +218,22 @@ async function renderWeek() {
   const user = auth.currentUser;
   if (!user) return;
 
-  /* ===== LOAD AVAILABILITY ===== */
+  /* ===== AVAILABILITY (solo esta semana) ===== */
   const availSnap = await getDocs(
     query(
       collection(db, "availability"),
-      where("therapistId", "==", user.uid)
+      where("therapistId", "==", user.uid),
+      where("weekStart", "==", formatDate(monday))
     )
   );
 
   const availability = {};
   availSnap.forEach(d => {
     const a = d.data();
-    if (a.weekStart && a.slots) {
-      Object.assign(availability, a.slots);
-    }
+    if (a.slots) Object.assign(availability, a.slots);
   });
 
-  /* ===== LOAD APPOINTMENTS ===== */
+  /* ===== APPOINTMENTS ===== */
   const from = formatDate(monday);
   const to = formatDate(new Date(monday.getTime() + 6 * 86400000));
 
@@ -250,8 +249,7 @@ async function renderWeek() {
   const bySlot = {};
   apptSnap.forEach(d => {
     const a = { id: d.id, ...d.data() };
-    const key = `${a.date}_${a.start}`;
-    bySlot[key] = a;
+    bySlot[`${a.date}_${a.start}`] = a;
   });
 
   /* ===== HEADER ===== */
@@ -284,15 +282,15 @@ async function renderWeek() {
         const a = bySlot[apptKey];
         cell.classList.add(
           a.paid ? "paid" :
-          a.completed ? "done" : "busy"
+          a.completed ? "done" :
+          "busy"
         );
         cell.innerHTML = `<strong>${a.name || "—"}</strong><span>${a.start}–${a.end}</span>`;
         cell.onclick = () => openEdit(a);
       } else if (availability[slotKey]) {
         cell.classList.add("available");
         cell.textContent = "Disponible";
-        cell.onclick = () =>
-          openNew({ date, hour });
+        cell.onclick = () => openNew({ date, hour });
       } else {
         cell.classList.add("disabled");
       }
