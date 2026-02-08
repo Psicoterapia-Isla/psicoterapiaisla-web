@@ -268,7 +268,14 @@ document.getElementById("save").onclick = async () => {
   modal.classList.remove("show");
   renderWeek();
 };
-
+openWhatsAppNotification({
+  phone: phone.value,
+  name: name.value,
+  date: currentSlot.date,
+  start: start.value,
+  end: end.value,
+  modality: modality.value
+});
 /* =========================
    RENDER WEEK
 ========================= */
