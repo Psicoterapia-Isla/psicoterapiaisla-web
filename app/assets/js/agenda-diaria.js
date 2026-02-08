@@ -1,11 +1,16 @@
 import { auth, db } from "./firebase.js";
 import {
   collection, query, where, orderBy,
-  getDocs, Timestamp
+  getDocs, doc, updateDoc, Timestamp
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-import { onAuthStateChanged } from
-  "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import {
+  invoiceAppointment,
+  markInvoicePaid
+} from "./appointment-manager.js";
+
+import { onAuthStateChanged }
+  from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
 const list = document.getElementById("list");
 
@@ -13,20 +18,38 @@ let currentDate =
   new URLSearchParams(location.search).get("date")
   || new Date().toISOString().split("T")[0];
 
+let currentApp = null;
+
+/* ===== NAV ===== */
+prev.onclick=()=>move(-1);
+next.onclick=()=>move(1);
+today.onclick=()=>location.href="agenda-diaria.html";
+
+function move(d){
+  const x=new Date(currentDate);
+  x.setDate(x.getDate()+d);
+  location.href=`agenda-diaria.html?date=${toISO(x)}`;
+}
+
 function toISO(d){
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
 }
 
-/* ===== NAV ===== */
-prev.onclick=()=>{
-  const d=new Date(currentDate);d.setDate(d.getDate()-1);
-  location.href=`agenda-diaria.html?date=${toISO(d)}`;
-};
-next.onclick=()=>{
-  const d=new Date(currentDate);d.setDate(d.getDate()+1);
-  location.href=`agenda-diaria.html?date=${toISO(d)}`;
-};
-today.onclick=()=>location.href="agenda-diaria.html";
+/* ===== MODAL ===== */
+window.closeModal = () => modal.style.display="none";
+
+function openModal(app){
+  currentApp = app;
+
+  const s = app.start.toDate();
+  const e = app.end.toDate();
+
+  mPatient.textContent = app.patientName;
+  mTime.textContent = `${s.getHours()}:00 – ${e.getHours()}:00`;
+  mDone.checked = app.status==="completed";
+
+  modal.style.display="block";
+}
 
 /* ===== AUTH SAFE ===== */
 onAuthStateChanged(auth, async (user)=>{
@@ -43,13 +66,13 @@ onAuthStateChanged(auth, async (user)=>{
     orderBy("start")
   ));
 
-  const byHour = {};
+  list.innerHTML="";
+  const byHour={};
+
   snap.forEach(d=>{
     byHour[d.data().start.toDate().getHours()] =
-      { ...d.data(), id:d.id };
+      {...d.data(),id:d.id};
   });
-
-  list.innerHTML="";
 
   for(let h=9;h<21;h++){
     const div=document.createElement("div");
@@ -58,12 +81,44 @@ onAuthStateChanged(auth, async (user)=>{
       const a=byHour[h];
       div.className="slot busy";
       div.innerHTML=`<strong>${h}:00</strong> ${a.patientName}`;
+      div.onclick=()=>openModal(a);
     } else {
       div.className="slot free";
       div.innerHTML=`<strong>${h}:00</strong> Libre`;
-      div.onclick=()=>openCreateModal(currentDate,h);
     }
 
     list.appendChild(div);
   }
 });
+
+/* ===== SAVE ===== */
+mSave.onclick = async ()=>{
+  if(!currentApp) return;
+
+  await updateDoc(
+    doc(db,"appointments",currentApp.id),
+    {
+      status: mDone.checked ? "completed":"scheduled",
+      completedAt: mDone.checked ? Timestamp.now():null
+    }
+  );
+
+  if(mPaid.checked && currentApp.invoiceId){
+    await markInvoicePaid(currentApp.invoiceId,mPayment.value);
+  }
+
+  location.reload();
+};
+
+/* ===== FACTURA ===== */
+mInvoice.onclick = async ()=>{
+  if(!currentApp || currentApp.invoiceId) return;
+
+  await invoiceAppointment(currentApp,{
+    amount:Number(mAmount.value),
+    paymentMethod:mPayment.value,
+    paid:mPaid.checked
+  });
+
+  location.reload();
+};
