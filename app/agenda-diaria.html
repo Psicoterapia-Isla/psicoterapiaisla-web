@@ -7,26 +7,23 @@
 <link rel="stylesheet" href="assets/css/app.css">
 
 <style>
-/* ======================
-   LAYOUT
-====================== */
 .agenda-wrapper {
-  max-width:680px;
-  margin:0 auto;
-  padding:1rem;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 1rem;
 }
 
 .day-header {
   display:flex;
   justify-content:space-between;
   align-items:center;
-  margin-bottom:1rem;
+  margin-bottom:1.2rem;
 }
 
-.day-info {
+.day-left {
   display:flex;
+  gap:1rem;
   align-items:center;
-  gap:.75rem;
 }
 
 .day-circle {
@@ -38,97 +35,63 @@
   display:flex;
   align-items:center;
   justify-content:center;
-  font-weight:600;
+  font-weight:700;
   font-size:1.1rem;
 }
 
-.day-text {
-  line-height:1.1;
-}
-
-.day-text strong {
-  text-transform:capitalize;
-}
-
-/* ======================
-   NAV
-====================== */
-.day-nav {
+.nav-buttons {
   display:flex;
   gap:.4rem;
-  flex-wrap:wrap;
 }
 
-/* ======================
-   SLOT
-====================== */
+.timeline {
+  display:flex;
+  flex-direction:column;
+  gap:.5rem;
+}
+
 .slot {
   display:flex;
   align-items:center;
-  gap:1rem;
-  padding:.75rem;
+  justify-content:space-between;
+  padding:.8rem 1rem;
   border-radius:14px;
-  margin-bottom:.5rem;
   cursor:pointer;
 }
 
-.slot-time {
-  width:54px;
-  font-weight:600;
-  font-size:.9rem;
-}
-
-.slot-green {
-  background:#e6f4d7;
-}
-
-.slot-grey {
-  background:#e5e7eb;
-  color:#555;
-}
-
-.slot-info strong {
-  display:block;
-}
-
-.slot-info small {
-  font-size:.7rem;
-  opacity:.7;
-}
-
-/* ======================
-   MODAL
-====================== */
-.modal {
-  display:none;
-  position:fixed;
-  inset:0;
-  background:rgba(0,0,0,.45);
-  z-index:999;
-}
-
-.modal-card {
-  background:#fff;
-  max-width:420px;
-  margin:10vh auto;
-  padding:1rem;
-  border-radius:16px;
-}
-
-.modal-row {
-  margin-bottom:.75rem;
-}
-
-.modal-row.inline {
+.slot-left {
   display:flex;
-  gap:.5rem;
+  gap:1rem;
   align-items:center;
 }
 
-.modal-actions {
-  display:flex;
-  justify-content:flex-end;
-  gap:.5rem;
+.slot-time {
+  font-weight:700;
+  width:52px;
+}
+
+.slot-info {
+  font-size:.8rem;
+  opacity:.8;
+}
+
+/* ESTADOS */
+.slot.available {
+  background:#e6f4d7;
+}
+
+.slot.busy {
+  background:#fff2cc;
+}
+
+.slot.done {
+  background:#e6f0ff;
+}
+
+.slot.blocked {
+  background:#e5e7eb;
+  color:#777;
+  cursor:not-allowed;
 }
 </style>
 </head>
@@ -139,60 +102,40 @@
 <main class="agenda-wrapper">
 
   <div class="day-header">
-    <div class="day-info">
+    <div class="day-left">
       <div class="day-circle" id="dayNumber"></div>
-      <div class="day-text">
-        <strong id="dayName"></strong><br>
-        <span id="dayMonth"></span>
+      <div>
+        <div id="dayName"></div>
+        <div id="dayMonth"></div>
       </div>
     </div>
 
-    <div class="day-nav">
+    <div class="nav-buttons">
       <button id="prevDay" class="btn-secondary">←</button>
       <button id="todayBtn" class="btn-secondary">Hoy</button>
       <button id="nextDay" class="btn-secondary">→</button>
-      <button id="newBtn" class="btn-primary">＋ Nueva</button>
     </div>
   </div>
 
-  <div id="agendaList"></div>
+  <div id="timeline" class="timeline"></div>
 </main>
 
 <!-- ================= MODAL ================= -->
 <div id="appointmentModal" class="modal">
   <div class="modal-card">
-
     <h3 id="amPatient"></h3>
-    <div class="modal-row" id="amDateTime"></div>
-    <div class="modal-row" id="amModality"></div>
+    <div id="amDateTime"></div>
+    <div id="amModality"></div>
 
     <div class="modal-row inline">
       <input type="checkbox" id="amCompleted">
       <label>Sesión realizada</label>
     </div>
 
-    <div class="modal-row">
-      <label>Importe (€)</label>
-      <input id="amAmount" type="number" value="60">
-    </div>
-
-    <div class="modal-row">
-      <label>Método de pago</label>
-      <select id="amPayment">
-        <option value="">—</option>
-        <option value="efectivo">Efectivo</option>
-        <option value="tarjeta">Tarjeta</option>
-        <option value="bizum">Bizum</option>
-        <option value="transferencia">Transferencia</option>
-      </select>
-    </div>
-
     <div class="modal-actions">
-      <button id="amInvoice" class="btn-primary">Factura</button>
-      <button id="amSave" class="btn-primary">Guardar</button>
-      <button onclick="closeModal()">Cerrar</button>
+      <button id="amSaveBtn" class="btn-primary">Guardar</button>
+      <button onclick="closeAppointmentModal()">Cerrar</button>
     </div>
-
   </div>
 </div>
 
@@ -200,132 +143,131 @@
 import { requireAuth } from "./assets/js/auth.js";
 import { loadMenu } from "./assets/js/menu.js";
 import { auth, db } from "./assets/js/firebase.js";
-
 import {
-  markAppointmentCompleted,
-  invoiceAppointment
-} from "./assets/js/appointment-manager.js";
-
-import {
-  collection,getDocs,query,where,orderBy,Timestamp
+  collection, getDocs, query, where, Timestamp, doc, getDoc
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+import { markAppointmentCompleted } from "./assets/js/appointment-manager.js";
 
 await requireAuth();
 await loadMenu();
 
-/* ======================
-   FECHA
-====================== */
+/* ================= FECHA ================= */
 let currentDate =
   new URLSearchParams(location.search).get("date")
   || new Date().toISOString().split("T")[0];
 
-function go(date){
-  location.href=`agenda-diaria.html?date=${date}`;
+function go(date) {
+  location.href = `agenda-diaria.html?date=${date}`;
 }
 
-prevDay.onclick=()=>{
-  const d=new Date(currentDate); d.setDate(d.getDate()-1);
+prevDay.onclick = () => {
+  const d = new Date(currentDate);
+  d.setDate(d.getDate()-1);
   go(toISO(d));
 };
-
-nextDay.onclick=()=>{
-  const d=new Date(currentDate); d.setDate(d.getDate()+1);
+nextDay.onclick = () => {
+  const d = new Date(currentDate);
+  d.setDate(d.getDate()+1);
   go(toISO(d));
 };
+todayBtn.onclick = () => go(new Date().toISOString().split("T")[0]);
 
-todayBtn.onclick=()=>go(new Date().toISOString().split("T")[0]);
-
-newBtn.onclick=()=>{
-  alert("Aquí enlazará creación de cita");
-};
-
-const baseDate=new Date(currentDate);
+const baseDate = new Date(currentDate);
 baseDate.setHours(0,0,0,0);
 
-dayNumber.textContent=baseDate.getDate();
-dayName.textContent=baseDate.toLocaleDateString("es-ES",{weekday:"long"});
-dayMonth.textContent=baseDate.toLocaleDateString("es-ES",{month:"long",year:"numeric"});
+dayNumber.textContent = baseDate.getDate();
+dayName.textContent = baseDate.toLocaleDateString("es-ES",{weekday:"long"});
+dayMonth.textContent = baseDate.toLocaleDateString("es-ES",{month:"long",year:"numeric"});
 
-/* ======================
-   DATA
-====================== */
-const therapistId=auth.currentUser.uid;
-const agendaList=document.getElementById("agendaList");
+const therapistId = auth.currentUser.uid;
+const timeline = document.getElementById("timeline");
 
-let currentAppointment=null;
+/* ================= DISPONIBILIDAD ================= */
+const monday = new Date(baseDate);
+monday.setDate(baseDate.getDate() - ((baseDate.getDay()+6)%7));
+const weekKey = monday.toISOString().slice(0,10);
 
-/* ======================
-   MODAL
-====================== */
-window.closeModal=()=>appointmentModal.style.display="none";
+const availabilitySnap = await getDoc(
+  doc(db,"availability",`${therapistId}_${weekKey}`)
+);
+const availability = availabilitySnap.exists()
+  ? availabilitySnap.data().slots || {}
+  : {};
 
-function openModal(app){
-  currentAppointment=app;
-  const s=app.start.toDate();
-  const e=app.end.toDate();
-
-  amPatient.textContent=app.patientName;
-  amDateTime.textContent=`${s.getHours()}:00 – ${e.getHours()}:00`;
-  amModality.textContent=`Modalidad: ${app.modality}`;
-  amCompleted.checked=app.status==="completed";
-
-  appointmentModal.style.display="block";
-}
-
-amSave.onclick=async()=>{
-  if(amCompleted.checked){
-    await markAppointmentCompleted(currentAppointment);
-  }
-  location.reload();
-};
-
-amInvoice.onclick=async()=>{
-  await invoiceAppointment(currentAppointment,{
-    amount:Number(amAmount.value),
-    paymentMethod:amPayment.value
-  });
-  location.reload();
-};
-
-/* ======================
-   RENDER
-====================== */
-const snap=await getDocs(query(
+/* ================= CITAS ================= */
+const snap = await getDocs(query(
   collection(db,"appointments"),
   where("therapistId","==",therapistId),
   where("start",">=",Timestamp.fromDate(baseDate)),
-  where("start","<",Timestamp.fromDate(new Date(baseDate.getTime()+86400000))),
-  orderBy("start")
+  where("start","<",Timestamp.fromDate(new Date(baseDate.getTime()+86400000)))
 ));
 
-const byHour={};
+const appointments = {};
 snap.forEach(d=>{
-  byHour[d.data().start.toDate().getHours()]={...d.data(),id:d.id};
+  appointments[d.data().start.toDate().getHours()] = {...d.data(), id:d.id};
 });
 
+/* ================= RENDER ================= */
 for(let h=9; h<21; h++){
-  const slot=document.createElement("div");
+  const key = `${["mon","tue","wed","thu","fri","sat","sun"][(baseDate.getDay()+6)%7]}_${h}`;
+  const slot = document.createElement("div");
 
-  if(byHour[h]){
-    const a=byHour[h];
-    slot.className="slot slot-green";
-    slot.innerHTML=`
-      <div class="slot-time">${h}:00</div>
-      <div class="slot-info">
-        <strong>${a.patientName}</strong>
-        <small>${a.modality}</small>
+  if (appointments[h]) {
+    const a = appointments[h];
+    slot.className = `slot ${a.status==="completed"?"done":"busy"}`;
+    slot.innerHTML = `
+      <div class="slot-left">
+        <div class="slot-time">${h}:00</div>
+        <div>
+          <strong>${a.patientName}</strong>
+          <div class="slot-info">${a.modality}</div>
+        </div>
       </div>`;
-    slot.onclick=()=>openModal(a);
-  } else {
-    slot.className="slot slot-grey";
-    slot.innerHTML=`
-      <div class="slot-time">${h}:00</div>
-      <div class="slot-info">Libre</div>`;
+    slot.onclick = () => openModal(a);
+  }
+  else if (availability[key]) {
+    slot.className = "slot available";
+    slot.innerHTML = `
+      <div class="slot-left">
+        <div class="slot-time">${h}:00</div>
+        <div>Disponible</div>
+      </div>`;
+    slot.onclick = () => alert("Aquí se conecta crear cita");
+  }
+  else {
+    slot.className = "slot blocked";
+    slot.innerHTML = `
+      <div class="slot-left">
+        <div class="slot-time">${h}:00</div>
+        <div>No disponible</div>
+      </div>`;
   }
 
-  agendaList.appendChild(slot);
+  timeline.appendChild(slot);
 }
+
+/* ================= MODAL ================= */
+let currentApp = null;
+
+window.closeAppointmentModal = () =>
+  appointmentModal.style.display="none";
+
+function openModal(app){
+  currentApp = app;
+  amPatient.textContent = app.patientName;
+  amDateTime.textContent = `${app.start.toDate().getHours()}:00`;
+  amModality.textContent = app.modality;
+  amCompleted.checked = app.status === "completed";
+  appointmentModal.style.display="block";
+}
+
+amSaveBtn.onclick = async () => {
+  if (amCompleted.checked) {
+    await markAppointmentCompleted(currentApp);
+  }
+  location.reload();
+};
 
 function toISO(d){
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
