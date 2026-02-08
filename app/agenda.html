@@ -7,19 +7,19 @@
 <link rel="stylesheet" href="assets/css/app.css">
 
 <style>
-.wrapper{max-width:1200px;margin:0 auto;padding:1.5rem}
-.header{display:flex;justify-content:space-between;align-items:center}
-.hours{display:grid;grid-template-columns:80px 1fr;gap:.4rem;margin-top:1rem}
-.hour-label{font-weight:600}
-.slot{padding:.6rem;border-radius:10px;background:#e5e7eb;cursor:pointer}
-.slot.busy{background:#d1fae5}
-.modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:999}
-.modal-card{background:#fff;max-width:480px;margin:6vh auto;padding:1rem;border-radius:16px}
-input,select{width:100%;margin-bottom:.5rem;padding:.45rem}
-.results{background:#f3f4f6;border-radius:8px;max-height:140px;overflow:auto}
-.results div{padding:.35rem;cursor:pointer}
-.results div:hover{background:#e5e7eb}
-.actions{display:flex;justify-content:space-between;margin-top:.5rem}
+.wrapper { max-width:1100px; margin:0 auto; padding:1.5rem; }
+.header { display:flex; align-items:center; gap:.5rem; }
+.header h1 { flex:1; }
+.hours { display:grid; grid-template-columns:80px 1fr; gap:.5rem; margin-top:1rem; }
+.hour { font-weight:600; color:#555; }
+.slot { background:#f3f4f6; border-radius:10px; padding:.5rem; cursor:pointer; }
+.slot.busy { background:#d1fae5; }
+.modal { position:fixed; inset:0; background:rgba(0,0,0,.4); display:none; }
+.modal-card { background:#fff; max-width:420px; margin:10vh auto; padding:1rem; border-radius:14px; }
+.suggestions { background:#fff; border:1px solid #ddd; max-height:120px; overflow:auto; }
+.suggestions div { padding:.4rem; cursor:pointer; }
+.suggestions div:hover { background:#e5e7eb; }
+.actions { display:flex; gap:.5rem; justify-content:flex-end; margin-top:1rem; }
 </style>
 </head>
 
@@ -29,49 +29,54 @@ input,select{width:100%;margin-bottom:.5rem;padding:.45rem}
 <main class="wrapper">
   <div class="header">
     <h1>Agenda</h1>
-    <div>
-      <button id="prev">←</button>
-      <button id="today">Hoy</button>
-      <button id="next">→</button>
-      <button id="new">+ Cita</button>
-    </div>
+    <button id="prev">←</button>
+    <button id="today">Hoy</button>
+    <button id="next">→</button>
+    <button id="new">+ Cita</button>
   </div>
 
   <div id="dateLabel"></div>
-  <div id="hours" class="hours"></div>
+  <div id="list" class="hours"></div>
 </main>
 
 <!-- MODAL -->
-<div class="modal" id="modal">
+<div id="modal" class="modal">
   <div class="modal-card">
     <h3>Cita</h3>
 
-    <input id="search" placeholder="Teléfono / Nombre / Apellidos">
-    <div id="results" class="results"></div>
+    <label>Teléfono</label>
+    <input id="phone">
+    <div id="phoneSug" class="suggestions"></div>
 
-    <input id="phone" placeholder="Teléfono">
-    <input id="name" placeholder="Nombre completo">
+    <label>Nombre</label>
+    <input id="name">
+    <div id="nameSug" class="suggestions"></div>
+
+    <label>Servicio</label>
     <input id="service" value="Visita Psicología">
 
+    <label>Modalidad</label>
     <select id="modality">
-      <option value="">Modalidad</option>
       <option value="viladecans">Viladecans</option>
       <option value="badalona">Badalona</option>
       <option value="online">Online</option>
     </select>
 
-    <input id="start" type="time">
-    <input id="end" type="time">
+    <label>Inicio</label>
+    <input type="time" id="start">
+
+    <label>Fin</label>
+    <input type="time" id="end">
 
     <label><input type="checkbox" id="done"> Sesión realizada</label>
-    <input id="amount" placeholder="Importe (€)">
+    <label>Importe (€)</label>
+    <input id="amount" value="70">
+
     <label><input type="checkbox" id="paid"> Pagada</label>
-    <label><input type="checkbox" id="invoiced"> Facturada</label>
 
     <div class="actions">
       <button id="save">Guardar</button>
-      <button id="pdf">PDF</button>
-      <button onclick="closeModal()">Cerrar</button>
+      <button id="close">Cerrar</button>
     </div>
   </div>
 </div>
@@ -81,112 +86,130 @@ import { requireAuth } from "./assets/js/auth.js";
 import { loadMenu } from "./assets/js/menu.js";
 import { auth, db } from "./assets/js/firebase.js";
 import {
-  collection, query, where, getDocs,
-  addDoc, updateDoc, doc,
-  Timestamp
+  collection, query, where, getDocs, addDoc, updateDoc,
+  Timestamp, doc
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 await requireAuth();
 await loadMenu();
 
-let currentDate=new Date();
-const hoursDiv=document.getElementById("hours");
-const dateLabel=document.getElementById("dateLabel");
+/* ===== DATE ===== */
+let current = new Date();
+current.setHours(0,0,0,0);
 
-/* ===== RENDER ===== */
-function render(){
-  hoursDiv.innerHTML="";
-  dateLabel.textContent=currentDate.toLocaleDateString("es-ES",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
-  for(let h=9;h<21;h++){
-    const l=document.createElement("div");
-    l.className="hour-label";
-    l.textContent=`${h}:00`;
-    const s=document.createElement("div");
-    s.className="slot";
-    s.textContent="Libre";
-    s.onclick=()=>openNew(h);
-    hoursDiv.append(l,s);
-  }
-}
-render();
+const list = document.getElementById("list");
+const label = document.getElementById("dateLabel");
 
 /* ===== NAV ===== */
-prev.onclick=()=>{currentDate.setDate(currentDate.getDate()-1);render();};
-next.onclick=()=>{currentDate.setDate(currentDate.getDate()+1);render();};
-today.onclick=()=>{currentDate=new Date();render();};
-new.onclick=()=>openNew(9);
+prev.onclick = ()=>move(-1);
+next.onclick = ()=>move(1);
+today.onclick = ()=>{ current=new Date(); render(); };
+
+function move(n){
+  current.setDate(current.getDate()+n);
+  render();
+}
+
+/* ===== LOAD ===== */
+async function render(){
+  label.textContent = current.toLocaleDateString("es-ES",{weekday:"long",day:"numeric",month:"long"});
+  list.innerHTML="";
+
+  const start = Timestamp.fromDate(current);
+  const end = Timestamp.fromDate(new Date(current.getTime()+86400000));
+
+  const snap = await getDocs(query(
+    collection(db,"appointments"),
+    where("therapistId","==",auth.currentUser.uid),
+    where("start",">=",start),
+    where("start","<",end)
+  ));
+
+  const byHour = {};
+  snap.forEach(d=>{
+    byHour[d.data().start.toDate().getHours()]={...d.data(),id:d.id};
+  });
+
+  for(let h=9;h<21;h++){
+    list.insertAdjacentHTML("beforeend",`
+      <div class="hour">${h}:00</div>
+      <div class="slot ${byHour[h]?"busy":""}" data-hour="${h}">
+        ${byHour[h]?byHour[h].patientName:"Libre"}
+      </div>
+    `);
+  }
+
+  document.querySelectorAll(".slot").forEach(s=>{
+    s.addEventListener("click",()=>openModal(byHour[s.dataset.hour],s.dataset.hour));
+  });
+}
 
 /* ===== MODAL ===== */
-let currentAppointmentId=null;
+let editing=null;
 
-function resetModal(){
-  search.value="";
-  phone.value="";
-  name.value="";
-  amount.value="";
-  done.checked=false;
-  paid.checked=false;
-  invoiced.checked=false;
-  results.innerHTML="";
-  currentAppointmentId=null;
+function reset(){
+  editing=null;
+  phone.value=name.value="";
+  start.value=end.value="";
+  done.checked=paid.checked=false;
 }
-window.openNew=(h)=>{
-  resetModal();
-  start.value=`${String(h).padStart(2,"0")}:00`;
-  end.value=`${String(h+1).padStart(2,"0")}:00`;
+
+function openModal(app,h){
+  reset();
   modal.style.display="block";
-};
-window.closeModal=()=>modal.style.display="none";
+  start.value=`${h}:00`;
+  end.value=`${Number(h)+1}:00`;
 
-/* ===== AUTOCOMPLETE DINÁMICO ===== */
-search.oninput=async()=>{
-  results.innerHTML="";
-  const v=search.value.toLowerCase();
-  if(v.length<2) return;
+  if(app){
+    editing=app;
+    phone.value=app.patientId;
+    name.value=app.patientName;
+    start.value=app.start.toDate().toTimeString().slice(0,5);
+    end.value=app.end.toDate().toTimeString().slice(0,5);
+    done.checked=app.status==="completed";
+  }
+}
 
-  const q=query(
+close.onclick=()=>modal.style.display="none";
+
+/* ===== AUTOCOMPLETE PROGRESIVO ===== */
+async function searchPatients(field,val,box){
+  box.innerHTML="";
+  if(val.length<2) return;
+
+  const snap = await getDocs(query(
     collection(db,"patients_normalized"),
-    where("search","array-contains",v)
-  );
-  const snap=await getDocs(q);
+    where(field,">=",val),
+    where(field,"<",val+"\uf8ff")
+  ));
 
   snap.forEach(d=>{
-    const p=d.data();
-    const r=document.createElement("div");
-    r.textContent=`${p.fullName} · ${p.phone}`;
-    r.onclick=()=>{
-      phone.value=p.phone;
-      name.value=p.fullName;
-      results.innerHTML="";
+    const r=d.data();
+    const div=document.createElement("div");
+    div.textContent=`${r.fullName} (${r.phone})`;
+    div.onclick=()=>{
+      phone.value=r.phone;
+      name.value=r.fullName;
+      box.innerHTML="";
     };
-    results.appendChild(r);
+    box.appendChild(div);
   });
-};
+}
+
+phone.addEventListener("input",e=>searchPatients("phone",e.target.value,phoneSug));
+name.addEventListener("input",e=>searchPatients("name",e.target.value.toLowerCase(),nameSug));
 
 /* ===== SAVE ===== */
 save.onclick=async()=>{
-  const user=auth.currentUser;
-  const base=new Date(currentDate);
-  const [sh,sm]=start.value.split(":");
-  const [eh,em]=end.value.split(":");
-  const s=new Date(base);s.setHours(sh,sm);
-  const e=new Date(base);e.setHours(eh,em);
+  const base=new Date(current);
+  const [sh]=start.value.split(":");
+  const [eh]=end.value.split(":");
 
-  let invoiceId=null;
+  const s=new Date(base); s.setHours(sh,0,0,0);
+  const e=new Date(base); e.setHours(eh,0,0,0);
 
-  if(invoiced.checked){
-    const inv=await addDoc(collection(db,"invoices"),{
-      therapistId:user.uid,
-      patientName:name.value,
-      amount:Number(amount.value||0),
-      issued:true,
-      issuedAt:Timestamp.now()
-    });
-    invoiceId=inv.id;
-  }
-
-  await addDoc(collection(db,"appointments"),{
-    therapistId:user.uid,
+  const data={
+    therapistId:auth.currentUser.uid,
     patientId:phone.value,
     patientName:name.value,
     service:service.value,
@@ -194,23 +217,21 @@ save.onclick=async()=>{
     start:Timestamp.fromDate(s),
     end:Timestamp.fromDate(e),
     status:done.checked?"completed":"scheduled",
-    paid:paid.checked,
-    amount:Number(amount.value||0),
-    invoiceId,
-    createdAt:Timestamp.now()
-  });
+    paid:paid.checked
+  };
 
-  window.open(`https://wa.me/34${phone.value}?text=Tu cita ha sido confirmada`, "_blank");
-  closeModal();
+  if(editing){
+    await updateDoc(doc(db,"appointments",editing.id),data);
+  } else {
+    await addDoc(collection(db,"appointments"),data);
+  }
+
+  modal.style.display="none";
   render();
 };
 
-/* ===== PDF ===== */
-pdf.onclick=()=>{
-  const w=window.open();
-  w.document.write(`<h1>Factura</h1><p>${name.value}</p><p>${amount.value} €</p>`);
-  w.print();
-};
+/* INIT */
+render();
 </script>
 </body>
 </html>
