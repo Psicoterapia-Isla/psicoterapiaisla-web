@@ -1,105 +1,107 @@
-<script type="module">
-  import { auth, db } from "./assets/js/firebase.js";
-  import {
-    collection,
-    getDocs,
-    query,
-    where,
-    addDoc,
-    updateDoc,
-    serverTimestamp
-  } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { auth, db } from "./firebase.js";
+import {
+  collection, query, where, orderBy,
+  getDocs, doc, updateDoc, Timestamp
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-  const agendaDay = document.getElementById("agendaDay");
+const therapistId = auth.currentUser.uid;
+const list = document.getElementById("list");
 
-  const today = new Date();
-  const date = today.toISOString().split("T")[0];
+let currentDate =
+  new URLSearchParams(location.search).get("date")
+  || new Date().toISOString().split("T")[0];
 
-  const BASE_HOURS = Array.from({ length: 12 }, (_, i) => i + 9);
-  const user = auth.currentUser;
-  const therapistId = user.uid;
+function toISO(d){
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+}
 
-  // =========================
-  // CARGAR AGENDA DEL DÍA
-  // =========================
-  const q = query(
-    collection(db, "agendaTerapeuta"),
-    where("therapistId", "==", therapistId),
-    where("date", "==", date)
-  );
+/* ===== NAV ===== */
+prev.onclick=()=>{
+  const d=new Date(currentDate);d.setDate(d.getDate()-1);
+  location.href=`agenda-diaria.html?date=${toISO(d)}`;
+};
+next.onclick=()=>{
+  const d=new Date(currentDate);d.setDate(d.getDate()+1);
+  location.href=`agenda-diaria.html?date=${toISO(d)}`;
+};
+today.onclick=()=>{
+  location.href="agenda-diaria.html";
+};
 
-  const snap = await getDocs(q);
+/* ===== HEADER ===== */
+const base=new Date(currentDate);
+base.setHours(0,0,0,0);
 
-  const slots = {};
-  snap.forEach(doc => {
-    slots[doc.data().hour] = {
-      id: doc.id,
-      ...doc.data()
-    };
-  });
+dayNum.textContent=base.getDate();
+dayName.textContent=base.toLocaleDateString("es-ES",{weekday:"long"});
+dayMonth.textContent=base.toLocaleDateString("es-ES",{month:"long",year:"numeric"});
 
-  // =========================
-  // RENDER + CLICK
-  // =========================
-  BASE_HOURS.forEach(hour => {
-    const data = slots[hour] || {
-      status: "blocked",
-      location: ""
-    };
+/* ===== LOAD APPOINTMENTS ===== */
+const snap = await getDocs(query(
+  collection(db,"appointments"),
+  where("therapistId","==",therapistId),
+  where("start",">=",Timestamp.fromDate(base)),
+  where("start","<",Timestamp.fromDate(new Date(base.getTime()+86400000))),
+  orderBy("start")
+));
 
-    const slot = document.createElement("div");
-    slot.className = `time-slot ${data.status}`;
+const byHour = {};
+snap.forEach(d=>{
+  byHour[d.data().start.toDate().getHours()] =
+    { ...d.data(), id:d.id };
+});
 
-    slot.innerHTML = `
-      <div class="slot-hour">${hour}:00</div>
-      <div class="slot-body">
-        <div>${data.status === "available" ? "Disponible" : "No disponible"}</div>
-        <div class="location">${data.location || ""}</div>
+/* ===== RENDER ===== */
+let currentApp=null;
+
+for(let h=9;h<21;h++){
+  const div=document.createElement("div");
+
+  if(byHour[h]){
+    const a=byHour[h];
+    div.className="slot busy";
+    div.innerHTML=`
+      <div class="time">${h}:00</div>
+      <div>
+        <strong>${a.patientName}</strong><br>
+        <small>${a.modality}</small>
       </div>
     `;
+    div.onclick=()=>openModal(a);
+  } else {
+    div.className="slot free";
+    div.innerHTML=`
+      <div class="time">${h}:00</div>
+      <div>Libre</div>
+    `;
+  }
 
-    slot.addEventListener("click", async () => {
+  list.appendChild(div);
+}
 
-      // ❌ No tocar citas reales
-      if (data.status === "reserved" || data.status === "done") {
-        return;
-      }
+/* ===== MODAL ===== */
+window.closeModal=()=>modal.style.display="none";
 
-      const nextStatus =
-        data.status === "blocked" ? "available" : "blocked";
+function openModal(a){
+  currentApp=a;
+  mPatient.textContent=a.patientName;
+  mTime.textContent=
+    `${a.start.toDate().getHours()}:00 – ${a.end.toDate().getHours()}:00`;
+  mDone.checked=a.status==="completed";
+  modal.style.display="block";
+}
 
-      // ➜ Ya existe documento → UPDATE
-      if (data.id) {
-        await updateDoc(
-          collection(db, "agendaTerapeuta").doc(data.id),
-          {
-            status: nextStatus,
-            updatedAt: serverTimestamp()
-          }
-        );
-      }
-      // ➜ No existe → CREATE
-      else {
-        await addDoc(collection(db, "agendaTerapeuta"), {
-          therapistId,
-          date,
-          hour,
-          status: nextStatus,
-          location: "",
-          patientId: null,
-          patientName: null,
-          invoiceId: null,
-          updatedAt: serverTimestamp()
-        });
-      }
+/* ===== SAVE (🔥 AQUÍ FALLABA ANTES) ===== */
+mSave.onclick=async()=>{
+  if(!currentApp) return;
 
-      // feedback visual inmediato
-      slot.classList.remove("available", "blocked");
-      slot.classList.add(nextStatus);
-      slot.querySelector(".slot-body div").textContent =
-        nextStatus === "available" ? "Disponible" : "No disponible";
-    });
+  await updateDoc(
+    doc(db,"appointments",currentApp.id),
+    {
+      status: mDone.checked ? "completed" : "scheduled",
+      completedAt: mDone.checked ? Timestamp.now() : null
+    }
+  );
 
-    agendaDay.appendChild(slot);
-  });
-</script>
+  location.reload();
+};
