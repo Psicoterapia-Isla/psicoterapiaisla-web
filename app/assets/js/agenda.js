@@ -97,22 +97,16 @@ function resetModal() {
 function openNew(slot) {
   resetModal();
   currentSlot = slot;
-
   start.value = `${slot.hour}:00`;
   end.value = `${slot.hour + 1}:00`;
-
   modal.classList.add("show");
 }
 
 function openEdit(a) {
   resetModal();
-
   editingId = a.id;
   selectedPatientId = a.patientId || null;
-  currentSlot = {
-    date: a.date,
-    hour: Number(a.start.split(":")[0])
-  };
+  currentSlot = { date: a.date, hour: Number(a.start.split(":")[0]) };
 
   phone.value = a.phone || "";
   name.value = a.name || "";
@@ -151,13 +145,12 @@ async function searchPatients(term) {
     const p = d.data();
     const div = document.createElement("div");
     div.textContent = `${p.nombre || ""} ${p.apellidos || ""} · ${p.telefono || ""}`;
-
-div.onclick = () => {
-  selectedPatientId = d.id;
-  phone.value = p.telefono || "";
-  name.value = `${p.nombre || ""} ${p.apellidos || ""}`.trim();
-  suggestions.innerHTML = "";
-};
+    div.onclick = () => {
+      selectedPatientId = d.id;
+      phone.value = p.telefono || "";
+      name.value = `${p.nombre || ""} ${p.apellidos || ""}`.trim();
+      suggestions.innerHTML = "";
+    };
     suggestions.appendChild(div);
   });
 }
@@ -171,6 +164,31 @@ name.oninput = e => {
   searchPatients(e.target.value);
 };
 
+/* =========================
+   FACTURACIÓN AUTOMÁTICA
+========================= */
+async function maybeCreateInvoice(appointmentId, data) {
+  if (!data.completed || !data.paid) return;
+  if (!data.amount || data.amount <= 0) return;
+  if (data.invoiceId) return;
+
+  const ref = await addDoc(collection(db, "invoices"), {
+    appointmentId,
+    patientId: data.patientId || null,
+    therapistId: data.therapistId,
+    amount: data.amount,
+    status: "paid",
+    createdAt: Timestamp.now()
+  });
+
+  await updateDoc(doc(db, "appointments", appointmentId), {
+    invoiceId: ref.id
+  });
+}
+
+/* =========================
+   SAVE
+========================= */
 document.getElementById("save").onclick = async () => {
   const user = auth.currentUser;
   if (!user || !currentSlot) return;
@@ -194,46 +212,22 @@ document.getElementById("save").onclick = async () => {
   let appointmentId;
 
   if (editingId) {
-    appointmentId = editingId;
     await updateDoc(doc(db, "appointments", editingId), data);
+    appointmentId = editingId;
   } else {
     const ref = await addDoc(collection(db, "appointments"), {
       ...data,
-      invoiceId: null,
       createdAt: Timestamp.now()
     });
     appointmentId = ref.id;
   }
 
-  await createInvoiceIfNeeded(appointmentId, data);
+  await maybeCreateInvoice(appointmentId, data);
 
   modal.classList.remove("show");
   renderWeek();
 };
 
-async function createInvoiceIfNeeded(appointmentId, data) {
-  if (!data.completed || !data.paid || data.amount <= 0) return;
-
-  // ya existe factura
-  if (data.invoiceId) return;
-
-  const invoice = {
-    therapistId: data.therapistId,
-    patientId: data.patientId || null,
-    appointmentId,
-    concept: data.service || "Sesión terapéutica",
-    amount: data.amount,
-    status: "paid",
-    createdAt: Timestamp.now(),
-    paidAt: Timestamp.now()
-  };
-
-  const ref = await addDoc(collection(db, "invoices"), invoice);
-
-  await updateDoc(doc(db, "appointments", appointmentId), {
-    invoiceId: ref.id
-  });
-}
 /* =========================
    RENDER WEEK
 ========================= */
@@ -256,10 +250,7 @@ async function renderWeek() {
   );
 
   const availability = {};
-  availSnap.forEach(d => {
-    const a = d.data();
-    if (a.slots) Object.assign(availability, a.slots);
-  });
+  availSnap.forEach(d => Object.assign(availability, d.data().slots || {}));
 
   /* ===== APPOINTMENTS ===== */
   const from = formatDate(monday);
@@ -306,29 +297,19 @@ async function renderWeek() {
       const cell = document.createElement("div");
       cell.className = "slot";
 
-      const avail = availability[slotKey];
-      const hasAvailability =
-        avail && (avail.online || avail.viladecans || avail.badalona);
-
       if (bySlot[apptKey]) {
         const a = bySlot[apptKey];
-
-        if (a.invoiceId) cell.classList.add("paid");
-        else if (a.paid) cell.classList.add("paid");
-        else if (a.completed) cell.classList.add("done");
-        else cell.classList.add("busy");
-
-        cell.innerHTML = `
-          <strong>${a.name || "—"}</strong>
-          <span>${a.start}–${a.end}</span>
-        `;
+        cell.classList.add(
+          a.paid ? "paid" :
+          a.completed ? "done" :
+          "busy"
+        );
+        cell.innerHTML = `<strong>${a.name || "—"}</strong><span>${a.start}–${a.end}</span>`;
         cell.onclick = () => openEdit(a);
-
-      } else if (hasAvailability) {
+      } else if (availability[slotKey]) {
         cell.classList.add("available");
         cell.textContent = "Disponible";
         cell.onclick = () => openNew({ date, hour });
-
       } else {
         cell.classList.add("disabled");
       }
@@ -341,18 +322,9 @@ async function renderWeek() {
 /* =========================
    NAV
 ========================= */
-prevWeek.onclick = () => {
-  baseDate.setDate(baseDate.getDate() - 7);
-  renderWeek();
-};
-nextWeek.onclick = () => {
-  baseDate.setDate(baseDate.getDate() + 7);
-  renderWeek();
-};
-today.onclick = () => {
-  baseDate = new Date();
-  renderWeek();
-};
+prevWeek.onclick = () => { baseDate.setDate(baseDate.getDate() - 7); renderWeek(); };
+nextWeek.onclick = () => { baseDate.setDate(baseDate.getDate() + 7); renderWeek(); };
+today.onclick = () => { baseDate = new Date(); renderWeek(); };
 
 /* =========================
    START
