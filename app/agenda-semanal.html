@@ -8,78 +8,75 @@
 
 <style>
 .week-wrapper {
+  max-width: 1200px;
+  margin: 0 auto;
   padding: 1rem;
 }
 
 .week-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1rem;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:1rem;
+  gap:.75rem;
 }
 
 .week-header h1 {
-  margin: 0;
-  font-size: 1.4rem;
+  margin:0;
 }
 
 .week-nav {
-  display: flex;
-  gap: .5rem;
-}
-
-.week-grid-wrapper {
-  overflow-x: auto;
+  display:flex;
+  gap:.5rem;
 }
 
 .week-grid {
-  display: grid;
-  grid-template-columns: 64px repeat(7, minmax(120px, 1fr));
-  gap: 6px;
-  min-width: 900px;
+  display:grid;
+  grid-template-columns:70px repeat(7, minmax(140px,1fr));
+  gap:.5rem;
 }
 
 .week-hour {
-  font-size: .75rem;
-  text-align: right;
-  padding-right: 6px;
-  color: #666;
+  font-size:.75rem;
+  text-align:right;
+  padding-right:6px;
+  color:#666;
 }
 
 .day-header {
-  text-align: center;
-  font-weight: 600;
-  font-size: .8rem;
+  text-align:center;
+  font-weight:600;
+  font-size:.8rem;
 }
 
 .week-slot {
-  height: 52px;
-  border-radius: 10px;
-  font-size: .72rem;
-  padding: 6px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-}
-
-.week-slot.disabled {
-  background: #e5e7eb;
+  height:52px;
+  border-radius:12px;
+  padding:.4rem;
+  font-size:.7rem;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
 }
 
 .week-slot.available {
-  background: #e6f4d7;
-  cursor: pointer;
+  background:#e6f4d7;
+  cursor:pointer;
 }
 
 .week-slot.reserved {
-  background: #fff2cc;
-  cursor: pointer;
+  background:#fff2cc;
+  cursor:pointer;
 }
 
 .week-slot.done {
-  background: #e6f0ff;
-  cursor: pointer;
+  background:#e6f0ff;
+  cursor:pointer;
+}
+
+.week-slot.disabled {
+  background:#e5e7eb;
 }
 </style>
 </head>
@@ -99,10 +96,7 @@
     </div>
   </div>
 
-  <div class="week-grid-wrapper">
-    <div id="weekGrid" class="week-grid"></div>
-  </div>
-
+  <div id="weekGrid" class="week-grid"></div>
 </main>
 
 <script type="module">
@@ -126,7 +120,7 @@ const END_HOUR = 21;
 const DAYS = ["mon","tue","wed","thu","fri","sat","sun"];
 
 /* =========================
-   SEMANA CONTROLADA
+   SEMANA CONTROLADA (URL)
 ========================= */
 function mondayOf(date) {
   const d = new Date(date);
@@ -143,9 +137,9 @@ const baseDate = paramWeek ? new Date(paramWeek) : new Date();
 const monday = mondayOf(baseDate);
 const weekKey = monday.toISOString().slice(0,10);
 
-function go(offset) {
+function go(offsetWeeks){
   const d = new Date(monday);
-  d.setDate(d.getDate() + offset * 7);
+  d.setDate(d.getDate() + offsetWeeks * 7);
   location.href = `agenda-semanal.html?week=${d.toISOString().slice(0,10)}`;
 }
 
@@ -157,9 +151,8 @@ todayWeek.onclick = () => location.href = "agenda-semanal.html";
    DISPONIBILIDAD
 ========================= */
 const availabilitySnap = await getDoc(
-  doc(db, "availability", `${therapistId}_${weekKey}`)
+  doc(db,"availability",`${therapistId}_${weekKey}`)
 );
-
 const availabilitySlots =
   availabilitySnap.exists()
     ? availabilitySnap.data().slots || {}
@@ -181,57 +174,53 @@ const appointmentsSnap = await getDocs(query(
 ));
 
 const appointmentsByKey = {};
-appointmentsSnap.forEach(d => {
+appointmentsSnap.forEach(d=>{
   const a = d.data();
   const s = a.start.toDate();
   const key = `${DAYS[(s.getDay()+6)%7]}_${s.getHours()}`;
-  appointmentsByKey[key] = { ...a, id: d.id };
+  appointmentsByKey[key] = { ...a, id:d.id };
 });
 
 /* =========================
    CABECERAS
 ========================= */
 grid.appendChild(document.createElement("div"));
-
-for (let d = 0; d < 7; d++) {
+for(let d=0; d<7; d++){
   const day = new Date(monday);
   day.setDate(monday.getDate() + d);
 
-  const el = document.createElement("div");
-  el.className = "day-header";
-  el.textContent =
-    day.toLocaleDateString("es-ES", {
-      weekday: "short",
-      day: "numeric"
-    });
-  grid.appendChild(el);
+  const h = document.createElement("div");
+  h.className="day-header";
+  h.textContent =
+    day.toLocaleDateString("es-ES",{weekday:"short",day:"numeric"});
+  grid.appendChild(h);
 }
 
 /* =========================
    GRID
 ========================= */
-for (let hour = START_HOUR; hour < END_HOUR; hour++) {
-  const h = document.createElement("div");
-  h.className = "week-hour";
-  h.textContent = `${hour}:00`;
-  grid.appendChild(h);
+for(let hour=START_HOUR; hour<END_HOUR; hour++){
+  const hc = document.createElement("div");
+  hc.className="week-hour";
+  hc.textContent = `${hour}:00`;
+  grid.appendChild(hc);
 
-  for (let d = 0; d < 7; d++) {
+  for(let d=0; d<7; d++){
     const key = `${DAYS[d]}_${hour}`;
     const cell = document.createElement("div");
 
     if (appointmentsByKey[key]) {
       const app = appointmentsByKey[key];
       cell.className =
-        `week-slot ${app.status === "completed" ? "done" : "reserved"}`;
+        `week-slot ${app.status==="completed"?"done":"reserved"}`;
       cell.textContent = app.patientName || "";
       cell.onclick = () =>
         location.href =
           `agenda-diaria.html?date=${toISO(app.start.toDate())}`;
     }
     else if (availabilitySlots[key]) {
-      cell.className = "week-slot available";
-      cell.textContent = "Disponible";
+      cell.className="week-slot available";
+      cell.textContent="Disponible";
       cell.onclick = () =>
         location.href =
           `agenda-diaria.html?date=${toISO(
@@ -239,17 +228,14 @@ for (let hour = START_HOUR; hour < END_HOUR; hour++) {
           )}`;
     }
     else {
-      cell.className = "week-slot disabled";
-      cell.textContent = "";
+      cell.className="week-slot disabled";
+      cell.textContent="";
     }
 
     grid.appendChild(cell);
   }
 }
 
-/* =========================
-   HELPERS
-========================= */
 function toISO(d){
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
 }
