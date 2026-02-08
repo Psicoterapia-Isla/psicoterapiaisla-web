@@ -208,6 +208,29 @@ document.getElementById("save").onclick = async () => {
   renderWeek();
 };
 
+async function createInvoiceIfNeeded(appointmentId, data) {
+  if (!data.completed || !data.paid || data.amount <= 0) return;
+
+  // ya existe factura
+  if (data.invoiceId) return;
+
+  const invoice = {
+    therapistId: data.therapistId,
+    patientId: data.patientId || null,
+    appointmentId,
+    concept: data.service || "Sesión terapéutica",
+    amount: data.amount,
+    status: "paid",
+    createdAt: Timestamp.now(),
+    paidAt: Timestamp.now()
+  };
+
+  const ref = await addDoc(collection(db, "invoices"), invoice);
+
+  await updateDoc(doc(db, "appointments", appointmentId), {
+    invoiceId: ref.id
+  });
+}
 /* =========================
    RENDER WEEK
 ========================= */
