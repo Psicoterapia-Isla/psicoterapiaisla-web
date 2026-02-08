@@ -8,9 +8,9 @@
 
 <style>
 .week-wrapper {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 1rem;
+  padding:1rem;
+  max-width:1200px;
+  margin:0 auto;
 }
 
 .week-header {
@@ -18,11 +18,6 @@
   justify-content:space-between;
   align-items:center;
   margin-bottom:1rem;
-  gap:.75rem;
-}
-
-.week-header h1 {
-  margin:0;
 }
 
 .week-nav {
@@ -32,8 +27,8 @@
 
 .week-grid {
   display:grid;
-  grid-template-columns:70px repeat(7, minmax(140px,1fr));
-  gap:.5rem;
+  grid-template-columns:64px repeat(7,1fr);
+  gap:.4rem;
 }
 
 .week-hour {
@@ -46,37 +41,36 @@
 .day-header {
   text-align:center;
   font-weight:600;
-  font-size:.8rem;
+  font-size:.85rem;
 }
 
 .week-slot {
-  height:52px;
+  height:46px;
   border-radius:12px;
-  padding:.4rem;
   font-size:.7rem;
   display:flex;
   align-items:center;
   justify-content:center;
   text-align:center;
+  cursor:pointer;
 }
 
+/* ESTADOS */
 .week-slot.available {
   background:#e6f4d7;
-  cursor:pointer;
 }
 
 .week-slot.reserved {
   background:#fff2cc;
-  cursor:pointer;
 }
 
 .week-slot.done {
   background:#e6f0ff;
-  cursor:pointer;
 }
 
 .week-slot.disabled {
   background:#e5e7eb;
+  cursor:not-allowed;
 }
 </style>
 </head>
@@ -120,26 +114,25 @@ const END_HOUR = 21;
 const DAYS = ["mon","tue","wed","thu","fri","sat","sun"];
 
 /* =========================
-   SEMANA CONTROLADA (URL)
+   SEMANA CONTROLADA
 ========================= */
-function mondayOf(date) {
+function mondayOf(date){
   const d = new Date(date);
-  const day = (d.getDay() + 6) % 7;
-  d.setDate(d.getDate() - day);
+  const day = (d.getDay()+6)%7;
+  d.setDate(d.getDate()-day);
   d.setHours(0,0,0,0);
   return d;
 }
 
 const params = new URLSearchParams(location.search);
 const paramWeek = params.get("week");
-
 const baseDate = paramWeek ? new Date(paramWeek) : new Date();
 const monday = mondayOf(baseDate);
 const weekKey = monday.toISOString().slice(0,10);
 
-function go(offsetWeeks){
+function go(offset){
   const d = new Date(monday);
-  d.setDate(d.getDate() + offsetWeeks * 7);
+  d.setDate(d.getDate()+offset*7);
   location.href = `agenda-semanal.html?week=${d.toISOString().slice(0,10)}`;
 }
 
@@ -153,7 +146,7 @@ todayWeek.onclick = () => location.href = "agenda-semanal.html";
 const availabilitySnap = await getDoc(
   doc(db,"availability",`${therapistId}_${weekKey}`)
 );
-const availabilitySlots =
+const availability =
   availabilitySnap.exists()
     ? availabilitySnap.data().slots || {}
     : {};
@@ -163,7 +156,7 @@ const availabilitySlots =
 ========================= */
 const start = Timestamp.fromDate(monday);
 const end = Timestamp.fromDate(
-  new Date(monday.getTime() + 7 * 86400000)
+  new Date(monday.getTime()+7*86400000)
 );
 
 const appointmentsSnap = await getDocs(query(
@@ -178,7 +171,7 @@ appointmentsSnap.forEach(d=>{
   const a = d.data();
   const s = a.start.toDate();
   const key = `${DAYS[(s.getDay()+6)%7]}_${s.getHours()}`;
-  appointmentsByKey[key] = { ...a, id:d.id };
+  appointmentsByKey[key] = {...a,id:d.id};
 });
 
 /* =========================
@@ -187,7 +180,7 @@ appointmentsSnap.forEach(d=>{
 grid.appendChild(document.createElement("div"));
 for(let d=0; d<7; d++){
   const day = new Date(monday);
-  day.setDate(monday.getDate() + d);
+  day.setDate(monday.getDate()+d);
 
   const h = document.createElement("div");
   h.className="day-header";
@@ -202,7 +195,7 @@ for(let d=0; d<7; d++){
 for(let hour=START_HOUR; hour<END_HOUR; hour++){
   const hc = document.createElement("div");
   hc.className="week-hour";
-  hc.textContent = `${hour}:00`;
+  hc.textContent=`${hour}:00`;
   grid.appendChild(hc);
 
   for(let d=0; d<7; d++){
@@ -218,13 +211,13 @@ for(let hour=START_HOUR; hour<END_HOUR; hour++){
         location.href =
           `agenda-diaria.html?date=${toISO(app.start.toDate())}`;
     }
-    else if (availabilitySlots[key]) {
+    else if (availability[key]) {
       cell.className="week-slot available";
       cell.textContent="Disponible";
       cell.onclick = () =>
         location.href =
           `agenda-diaria.html?date=${toISO(
-            new Date(monday.getTime() + d * 86400000)
+            new Date(monday.getTime()+d*86400000)
           )}`;
     }
     else {
@@ -236,6 +229,9 @@ for(let hour=START_HOUR; hour<END_HOUR; hour++){
   }
 }
 
+/* =========================
+   HELPERS
+========================= */
 function toISO(d){
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
 }
