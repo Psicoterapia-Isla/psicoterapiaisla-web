@@ -1,28 +1,25 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8" />
+<meta charset="UTF-8">
 <title>Agenda | Psicoterapia Isla</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="stylesheet" href="assets/css/app.css">
 
 <style>
-.wrapper{max-width:900px;margin:0 auto;padding:1.5rem}
-.header{display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem}
-.nav{display:flex;gap:.5rem;align-items:center}
-.day-title{font-weight:600}
-.slot{display:flex;justify-content:space-between;align-items:center;
-  padding:.75rem;border-radius:10px;margin-bottom:.4rem;cursor:pointer}
-.slot.free{background:#e5e7eb}
-.slot.busy{background:#e6f4d7}
-.slot.done{background:#e6f0ff}
-.time{width:60px;font-weight:600}
-.btn-add{background:#1f6b4e;color:#fff;border:none;border-radius:999px;padding:.4rem .9rem}
-
-.modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:999}
-.modal-card{background:#fff;max-width:420px;margin:10vh auto;padding:1rem;border-radius:16px}
-.actions{display:flex;justify-content:flex-end;gap:.5rem;margin-top:1rem}
-input,select{width:100%;margin:.25rem 0;padding:.4rem}
+.wrapper{max-width:1200px;margin:0 auto;padding:1.5rem}
+.header{display:flex;justify-content:space-between;align-items:center}
+.hours{display:grid;grid-template-columns:80px 1fr;gap:.4rem;margin-top:1rem}
+.hour-label{font-weight:600}
+.slot{padding:.6rem;border-radius:10px;background:#e5e7eb;cursor:pointer}
+.slot.busy{background:#d1fae5}
+.modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:999}
+.modal-card{background:#fff;max-width:460px;margin:8vh auto;padding:1rem;border-radius:16px}
+input,select{width:100%;margin-bottom:.5rem;padding:.45rem}
+.results{background:#f3f4f6;border-radius:8px;max-height:120px;overflow:auto}
+.results div{padding:.35rem;cursor:pointer}
+.results div:hover{background:#e5e7eb}
+.actions{display:flex;justify-content:space-between;margin-top:.5rem}
 </style>
 </head>
 
@@ -30,209 +27,159 @@ input,select{width:100%;margin:.25rem 0;padding:.4rem}
 <header class="app-menu"></header>
 
 <main class="wrapper">
-
   <div class="header">
-    <div class="day-title" id="dayLabel"></div>
-    <div class="nav">
-      <button id="prev" class="btn-secondary">←</button>
-      <button id="today" class="btn-secondary">Hoy</button>
-      <button id="next" class="btn-secondary">→</button>
-      <button class="btn-add" id="addBtn">+ Cita</button>
+    <h1>Agenda</h1>
+    <div>
+      <button id="prev">←</button>
+      <button id="today">Hoy</button>
+      <button id="next">→</button>
+      <button id="new">+ Cita</button>
     </div>
   </div>
 
-  <div id="list"></div>
+  <div id="dateLabel"></div>
+  <div id="hours" class="hours"></div>
 </main>
 
-<!-- MODAL CREAR / EDITAR -->
-<div id="modal" class="modal">
+<!-- MODAL -->
+<div class="modal" id="modal">
   <div class="modal-card">
-    <h3 id="mTitle">Cita</h3>
+    <h3>Cita</h3>
 
-    <label>Teléfono</label>
-    <input id="cPhone" />
+    <input id="phone" placeholder="Teléfono">
+    <div id="results" class="results"></div>
 
-    <label>Nombre</label>
-    <input id="cName" />
+    <input id="name" placeholder="Nombre completo">
+    <input id="service" value="Visita Psicología">
 
-    <label>Servicio</label>
-    <input id="cService" placeholder="Sesión de psicoterapia" />
-
-    <label>Modalidad</label>
-    <select id="cModality">
-      <option value="">—</option>
+    <select id="modality">
+      <option value="">Modalidad</option>
       <option value="viladecans">Viladecans</option>
       <option value="badalona">Badalona</option>
       <option value="online">Online</option>
     </select>
 
-    <label>Inicio</label>
-    <input type="time" id="cStart">
+    <input id="start" type="time">
+    <input id="end" type="time">
 
-    <label>Fin</label>
-    <input type="time" id="cEnd">
-
-    <hr>
-
-    <label>
-      <input type="checkbox" id="mDone"> Sesión realizada
-    </label>
-
-    <label>Importe (€)</label>
-    <input id="mAmount" type="number">
-
-    <label>
-      <input type="checkbox" id="mPaid"> Pagada
-    </label>
+    <label><input type="checkbox" id="done"> Sesión realizada</label>
+    <input id="amount" placeholder="Importe (€)">
+    <label><input type="checkbox" id="paid"> Pagada</label>
 
     <div class="actions">
-      <button class="btn-primary" id="saveBtn">Guardar</button>
+      <button id="save">Guardar</button>
       <button onclick="closeModal()">Cerrar</button>
     </div>
   </div>
 </div>
 
 <script type="module">
-/* ========= AUTH + MENU ========= */
 import { requireAuth } from "./assets/js/auth.js";
 import { loadMenu } from "./assets/js/menu.js";
-await requireAuth();
-await loadMenu();
-</script>
-
-<script type="module">
-/* ========= FIREBASE ========= */
 import { auth, db } from "./assets/js/firebase.js";
 import {
-  collection, query, where, getDocs, addDoc,
-  updateDoc, doc, getDoc,
-  Timestamp, serverTimestamp
+  collection, query, where, getDocs,
+  addDoc, Timestamp
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-/* ========= STATE ========= */
-let currentDate = new Date();
-currentDate.setHours(0,0,0,0);
-let currentAppointment = null;
-const list = document.getElementById("list");
+await requireAuth();
+await loadMenu();
 
-/* ========= NAV ========= */
-function renderHeader(){
-  dayLabel.textContent =
-    currentDate.toLocaleDateString("es-ES",
-      {weekday:"long",day:"numeric",month:"long",year:"numeric"});
-}
-prev.onclick=()=>{currentDate.setDate(currentDate.getDate()-1);loadDay();}
-next.onclick=()=>{currentDate.setDate(currentDate.getDate()+1);loadDay();}
-today.onclick=()=>{currentDate=new Date();currentDate.setHours(0,0,0,0);loadDay();}
+let currentDate=new Date();
+const hoursDiv=document.getElementById("hours");
+const dateLabel=document.getElementById("dateLabel");
 
-/* ========= LOAD DAY ========= */
-async function loadDay(){
-  renderHeader();
-  list.innerHTML="";
-
-  const start = Timestamp.fromDate(currentDate);
-  const end   = Timestamp.fromDate(new Date(currentDate.getTime()+86400000));
-
-  const snap = await getDocs(query(
-    collection(db,"appointments"),
-    where("therapistId","==",auth.currentUser.uid),
-    where("start",">=",start),
-    where("start","<",end)
-  ));
-
-  const byHour={};
-  snap.forEach(d=>{
-    byHour[d.data().start.toDate().getHours()]={...d.data(),id:d.id};
-  });
-
+/* ===== RENDER ===== */
+function render(){
+  hoursDiv.innerHTML="";
+  dateLabel.textContent=currentDate.toLocaleDateString("es-ES",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
   for(let h=9;h<21;h++){
-    const div=document.createElement("div");
-    const time=`${String(h).padStart(2,"0")}:00`;
-
-    if(byHour[h]){
-      const a=byHour[h];
-      div.className="slot "+(a.status==="completed"?"done":"busy");
-      div.innerHTML=`<div class="time">${time}</div><div>${a.patientName}</div>`;
-      div.onclick=()=>openModal(a);
-    }else{
-      div.className="slot free";
-      div.innerHTML=`<div class="time">${time}</div><div>Libre</div>`;
-      div.onclick=()=>openCreate(time);
-    }
-    list.appendChild(div);
+    const l=document.createElement("div");
+    l.className="hour-label";
+    l.textContent=`${h}:00`;
+    const s=document.createElement("div");
+    s.className="slot";
+    s.textContent="Libre";
+    s.onclick=()=>openNew(h);
+    hoursDiv.append(l,s);
   }
 }
-loadDay();
+render();
 
-/* ========= MODAL ========= */
+/* ===== NAV ===== */
+prev.onclick=()=>{currentDate.setDate(currentDate.getDate()-1);render();};
+next.onclick=()=>{currentDate.setDate(currentDate.getDate()+1);render();};
+today.onclick=()=>{currentDate=new Date();render();};
+new.onclick=()=>openNew(9);
+
+/* ===== MODAL ===== */
+function resetModal(){
+  phone.value="";
+  name.value="";
+  amount.value="";
+  done.checked=false;
+  paid.checked=false;
+  results.innerHTML="";
+}
+window.openNew=(h)=>{
+  resetModal();
+  start.value=`${String(h).padStart(2,"0")}:00`;
+  end.value=`${String(h+1).padStart(2,"0")}:00`;
+  modal.style.display="block";
+};
 window.closeModal=()=>modal.style.display="none";
 
-function openCreate(time){
-  currentAppointment=null;
-  cStart.value=time;
-  cEnd.value=`${String(parseInt(time)+1).padStart(2,"0")}:00`;
-  modal.style.display="block";
-}
+/* ===== AUTOCOMPLETE EN TIEMPO REAL ===== */
+phone.oninput=async()=>{
+  results.innerHTML="";
+  const v=phone.value.toLowerCase();
+  if(v.length<2) return;
 
-function openModal(a){
-  currentAppointment=a;
-  cPhone.value=a.patientId||"";
-  cName.value=a.patientName||"";
-  cService.value=a.service||"";
-  cModality.value=a.modality||"";
-  cStart.value=a.start.toDate().toTimeString().slice(0,5);
-  cEnd.value=a.end.toDate().toTimeString().slice(0,5);
-  mDone.checked=a.status==="completed";
-  modal.style.display="block";
-}
+  const q=query(
+    collection(db,"patients_normalized"),
+    where("search","array-contains",v)
+  );
+  const snap=await getDocs(q);
 
-addBtn.onclick=()=>openCreate("09:00");
-
-/* ========= AUTOCOMPLETE ========= */
-cPhone.oninput=async()=>{
-  const phone=cPhone.value.trim();
-  if(!/^\d{9}$/.test(phone)) return;
-
-  let snap=await getDoc(doc(db,"patients",phone));
-  if(!snap.exists())
-    snap=await getDoc(doc(db,"patients_normalized",phone));
-
-  if(snap.exists()){
-    cName.value=snap.data().fullName||"";
-    cName.disabled=true;
-  }else{
-    cName.disabled=false;
-  }
+  snap.forEach(d=>{
+    const p=d.data();
+    const r=document.createElement("div");
+    r.textContent=`${p.fullName} · ${p.phone}`;
+    r.onclick=()=>{
+      phone.value=p.phone;
+      name.value=p.fullName;
+      results.innerHTML="";
+    };
+    results.appendChild(r);
+  });
 };
 
-/* ========= SAVE ========= */
-saveBtn.onclick=async()=>{
+/* ===== SAVE ===== */
+save.onclick=async()=>{
+  const user=auth.currentUser;
   const base=new Date(currentDate);
-  const [sh,sm]=cStart.value.split(":");
-  const [eh,em]=cEnd.value.split(":");
-  const start=new Date(base);start.setHours(sh,sm,0,0);
-  const end=new Date(base);end.setHours(eh,em,0,0);
+  const [sh,sm]=start.value.split(":");
+  const [eh,em]=end.value.split(":");
+  const s=new Date(base);s.setHours(sh,sm);
+  const e=new Date(base);e.setHours(eh,em);
 
-  if(currentAppointment){
-    await updateDoc(doc(db,"appointments",currentAppointment.id),{
-      status:mDone.checked?"completed":"scheduled",
-      completedAt:mDone.checked?Timestamp.now():null
-    });
-  }else{
-    await addDoc(collection(db,"appointments"),{
-      therapistId:auth.currentUser.uid,
-      patientId:cPhone.value.trim(),
-      patientName:cName.value.trim(),
-      service:cService.value||"Sesión de psicoterapia",
-      modality:cModality.value,
-      start:Timestamp.fromDate(start),
-      end:Timestamp.fromDate(end),
-      status:"scheduled",
-      createdAt:serverTimestamp()
-    });
-  }
+  await addDoc(collection(db,"appointments"),{
+    therapistId:user.uid,
+    patientId:phone.value,
+    patientName:name.value,
+    service:service.value,
+    modality:modality.value,
+    start:Timestamp.fromDate(s),
+    end:Timestamp.fromDate(e),
+    status:done.checked?"completed":"scheduled",
+    paid:paid.checked,
+    amount:Number(amount.value||0),
+    createdAt:Timestamp.now()
+  });
+
+  window.open(`https://wa.me/34${phone.value}?text=Tu cita ha sido confirmada`, "_blank");
   closeModal();
-  loadDay();
+  render();
 };
 </script>
 </body>
