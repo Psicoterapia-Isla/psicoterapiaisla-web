@@ -7,50 +7,42 @@
 <link rel="stylesheet" href="assets/css/app.css">
 
 <style>
-.availability-wrapper{
-  max-width:900px;
-  margin:0 auto;
-  padding:1rem;
-}
+.availability-wrapper{padding:1rem;max-width:1100px;margin:0 auto}
 .availability-header{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  margin-bottom:1rem;
+  display:flex;justify-content:space-between;align-items:center;
+  gap:.5rem;margin-bottom:1rem
 }
 .availability-nav{display:flex;gap:.5rem}
 .availability-grid{
   display:grid;
-  grid-template-columns:60px repeat(7,1fr);
-  gap:6px;
+  grid-template-columns:60px repeat(7,minmax(140px,1fr));
+  gap:.4rem
 }
 .hour-label{
-  font-size:.75rem;
-  text-align:right;
-  padding-right:6px;
-  color:#666;
+  font-size:.75rem;text-align:right;padding-right:6px;color:#666
 }
 .day-label{text-align:center;font-weight:600}
 .slot{
-  height:38px;
-  border-radius:8px;
+  height:54px;
+  border-radius:14px;
   background:#e5e7eb;
   display:flex;
-  gap:4px;
-  padding:4px;
+  flex-direction:column;
+  gap:2px;
+  padding:4px
 }
 .slot.available{background:#e6f4d7}
 .slot button{
   flex:1;
   border:none;
-  border-radius:6px;
-  font-size:.7rem;
+  border-radius:8px;
+  font-size:.65rem;
   cursor:pointer;
-  background:#d1d5db;
+  background:#fff
 }
 .slot button.on{
   background:#355f53;
-  color:#fff;
+  color:#fff
 }
 </style>
 </head>
@@ -61,7 +53,7 @@
 <main class="availability-wrapper">
 
   <div class="availability-header">
-    <h1>Disponibilidad semanal</h1>
+    <h1>Disponibilidad</h1>
     <div class="availability-nav">
       <button id="prevWeek" class="btn-secondary">←</button>
       <button id="todayWeek" class="btn-secondary">Hoy</button>
@@ -69,7 +61,7 @@
     </div>
   </div>
 
-  <p>Define en qué horas puedes atender (online y/o presencial).</p>
+  <p>Define tu disponibilidad por hora y modalidad.</p>
 
   <div id="availabilityGrid" class="availability-grid"></div>
 
@@ -77,10 +69,9 @@
   <button id="saveAvailability" class="btn-primary">
     Guardar disponibilidad
   </button>
-
 </main>
 
-<!-- AUTH + MENU -->
+<!-- ================= AUTH + MENU ================= -->
 <script type="module">
 import { requireAuth } from "./assets/js/auth.js";
 import { loadMenu } from "./assets/js/menu.js";
@@ -88,36 +79,35 @@ await requireAuth();
 await loadMenu();
 </script>
 
-<!-- SEMANA CONTROLADA -->
+<!-- ================= SEMANA CONTROLADA ================= -->
 <script>
-(function(){
-  function mondayOf(d){
-    const x=new Date(d);
-    const day=(x.getDay()+6)%7;
-    x.setDate(x.getDate()-day);
-    x.setHours(0,0,0,0);
-    return x;
-  }
+function mondayOf(date){
+  const d=new Date(date);
+  const day=(d.getDay()+6)%7;
+  d.setDate(d.getDate()-day);
+  d.setHours(0,0,0,0);
+  return d;
+}
 
-  const params=new URLSearchParams(location.search);
-  const base=params.get("week")?new Date(params.get("week")):new Date();
-  const monday=mondayOf(base);
+const params=new URLSearchParams(location.search);
+const paramWeek=params.get("week");
+const baseDate=paramWeek?new Date(paramWeek):new Date();
+const monday=mondayOf(baseDate);
 
-  window.__availabilityWeekStart=monday.toISOString().slice(0,10);
+window.__availabilityWeekStart=monday.toISOString().slice(0,10);
 
-  function go(offset){
-    const d=new Date(monday);
-    d.setDate(d.getDate()+offset*7);
-    location.href=`disponibilidad.html?week=${d.toISOString().slice(0,10)}`;
-  }
+function go(offset){
+  const d=new Date(monday);
+  d.setDate(d.getDate()+offset*7);
+  location.href=`disponibilidad.html?week=${d.toISOString().slice(0,10)}`;
+}
 
-  document.getElementById("prevWeek").onclick=()=>go(-1);
-  document.getElementById("nextWeek").onclick=()=>go(1);
-  document.getElementById("todayWeek").onclick=()=>location.href="disponibilidad.html";
-})();
+prevWeek.onclick=()=>go(-1);
+nextWeek.onclick=()=>go(1);
+todayWeek.onclick=()=>location.href="disponibilidad.html";
 </script>
 
-<!-- GRID -->
+<!-- ================= GRID ================= -->
 <script type="module" src="assets/js/availability-grid.js"></script>
 
 </body>
