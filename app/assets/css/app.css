@@ -221,3 +221,128 @@ select {
   .card { padding: 16px; }
   .app-menu-inner { overflow-x: auto; }
 }
+/* =====================================================
+   MENU PRINCIPAL — BLOQUE DEFINITIVO Y ESTABLE
+   (no tocar JS, no dependencias externas)
+===================================================== */
+
+.app-menu {
+  background: linear-gradient(135deg, #4e7f73, #6b5a7a);
+  padding: 16px 0;
+}
+
+.app-menu-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 16px;
+
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* ===== BOTONES PRINCIPALES ===== */
+
+.menu-group-toggle {
+  background: rgba(255,255,255,0.18);
+  border: none;
+  border-radius: 999px;
+  padding: 10px 18px;
+  color: #fff;
+  font-size: 0.95rem;
+  cursor: pointer;
+  text-align: left;
+  width: fit-content;
+}
+
+.menu-group-toggle:hover {
+  background: rgba(255,255,255,0.28);
+}
+
+/* ===== GRUPOS ===== */
+
+.menu-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.menu-group-content {
+  display: none;
+  flex-direction: column;
+  gap: 6px;
+  padding-left: 10px;
+}
+
+.menu-group.open .menu-group-content {
+  display: flex;
+}
+
+/* ===== LINKS ===== */
+
+.menu-group-content a {
+  background: rgba(255,255,255,0.14);
+  color: #fff;
+  text-decoration: none;
+  padding: 8px 16px;
+  border-radius: 999px;
+  font-size: 0.9rem;
+  width: fit-content;
+}
+
+.menu-group-content a:hover {
+  background: rgba(255,255,255,0.26);
+}
+
+/* ===== SEPARADORES ===== */
+
+.menu-group-content hr {
+  width: 100%;
+  border: none;
+  border-top: 1px solid rgba(255,255,255,0.25);
+  margin: 6px 0;
+}
+
+/* ===== LOGOUT ===== */
+
+#logout-btn {
+  background: rgba(255,255,255,0.25);
+  border: none;
+  border-radius: 999px;
+  padding: 10px 18px;
+  color: #fff;
+  cursor: pointer;
+  width: fit-content;
+}
+
+#logout-btn:hover {
+  background: rgba(255,255,255,0.4);
+}
+
+/* =====================================================
+   DESKTOP
+===================================================== */
+
+@media (min-width: 900px) {
+  .app-menu-inner {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .menu-group {
+    position: relative;
+  }
+
+  .menu-group-content {
+    position: absolute;
+    top: 42px;
+    left: 0;
+    background: rgba(0,0,0,0.25);
+    padding: 10px;
+    border-radius: 16px;
+    min-width: 220px;
+    z-index: 100;
+  }
+}
