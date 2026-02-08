@@ -4,25 +4,60 @@ import {
   addDoc, updateDoc, doc, Timestamp
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
+import {
+  onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+/* =========================
+   ESTADO
+========================= */
+let userUID = null;
+let currentDate = new Date();
+let currentHour = null;
+let editingId = null;
+
+/* =========================
+   DOM
+========================= */
 const agenda = document.getElementById("agenda");
 const modal = document.getElementById("modal");
 
-let currentDate = new Date();
-let currentSlotHour = null;
-let editingId = null;
-
-/* ===== FECHA ===== */
+/* =========================
+   FECHA
+========================= */
 function renderDate(){
   dayLabel.textContent =
-    currentDate.toLocaleDateString("es-ES",{weekday:"long",day:"numeric",month:"long"});
+    currentDate.toLocaleDateString("es-ES",{
+      weekday:"long",
+      day:"numeric",
+      month:"long",
+      year:"numeric"
+    });
 }
 
-prevDay.onclick = ()=>{ currentDate.setDate(currentDate.getDate()-1); load(); };
-nextDay.onclick = ()=>{ currentDate.setDate(currentDate.getDate()+1); load(); };
-today.onclick   = ()=>{ currentDate=new Date(); load(); };
+prevDay.onclick = ()=>{ currentDate.setDate(currentDate.getDate()-1); loadDay(); };
+nextDay.onclick = ()=>{ currentDate.setDate(currentDate.getDate()+1); loadDay(); };
+today.onclick   = ()=>{ currentDate=new Date(); loadDay(); };
 
-/* ===== LOAD ===== */
-async function load(){
+/* =========================
+   AUTENTICACIÓN SEGURA
+========================= */
+onAuthStateChanged(auth, async (user)=>{
+  if(!user){
+    console.warn("Usuario no autenticado");
+    return;
+  }
+
+  userUID = user.uid;
+  await loadDay();
+});
+
+/* =========================
+   CARGAR AGENDA
+========================= */
+async function loadDay(){
+  if(!userUID) return;
+
   renderDate();
   agenda.innerHTML = "";
 
@@ -34,95 +69,111 @@ async function load(){
 
   const snap = await getDocs(query(
     collection(db,"appointments"),
-    where("therapistId","==",auth.currentUser.uid),
+    where("therapistId","==",userUID),
     where("start",">=",Timestamp.fromDate(start)),
     where("start","<",Timestamp.fromDate(end))
   ));
 
   const byHour = {};
   snap.forEach(d=>{
-    byHour[d.data().start.toDate().getHours()] = {...d.data(), id:d.id};
+    byHour[d.data().start.toDate().getHours()] = {
+      ...d.data(),
+      id:d.id
+    };
   });
 
-  for(let h=9;h<21;h++){
-    const div=document.createElement("div");
-    div.className="slot "+(byHour[h]?"busy":"free");
-    div.innerHTML=`
+  for(let h=9; h<21; h++){
+    const slot = document.createElement("div");
+    const app = byHour[h];
+
+    slot.className = "slot " + (app ? "busy":"free");
+    slot.innerHTML = `
       <div class="time">${h}:00</div>
-      <div>${byHour[h]?.patientName || "Libre"}</div>
+      <div>${app ? app.patientName : "Libre"}</div>
     `;
-    div.onclick=()=>openModal(h, byHour[h] || null);
-    agenda.appendChild(div);
+
+    slot.onclick = ()=>openModal(h, app || null);
+    agenda.appendChild(slot);
   }
 }
 
-load();
-
-/* ===== MODAL ===== */
+/* =========================
+   MODAL
+========================= */
 window.closeModal = ()=>{
   modal.style.display="none";
   editingId=null;
 };
 
 function openModal(hour, data){
-  currentSlotHour = hour;
+  currentHour = hour;
   modal.style.display="block";
 
   pSearch.value="";
   pName.value="";
   modality.value="";
   completed.checked=false;
+  editingId=null;
 
   if(data){
-    editingId=data.id;
-    pName.value=data.patientName;
-    modality.value=data.modality;
-    completed.checked=data.status==="completed";
+    editingId = data.id;
+    pName.value = data.patientName;
+    modality.value = data.modality;
+    completed.checked = data.status === "completed";
   }
 }
 
-/* ===== AUTOCOMPLETE ===== */
+/* =========================
+   AUTOCOMPLETE EN TIEMPO REAL
+========================= */
 pSearch.oninput = async ()=>{
   const q = pSearch.value.trim().toLowerCase();
-  if(q.length<2) return;
+  if(q.length < 2) return;
 
   const snap = await getDocs(collection(db,"patients"));
-  snap.forEach(d=>{
-    const name=(d.data().fullName||"").toLowerCase();
+  for(const d of snap.docs){
+    const name = (d.data().fullName || "").toLowerCase();
     if(name.includes(q)){
-      pName.value=d.data().fullName;
+      pName.value = d.data().fullName;
+      break;
     }
-  });
+  }
 };
 
-/* ===== SAVE ===== */
+/* =========================
+   GUARDAR CITA
+========================= */
 save.onclick = async ()=>{
-  const base = new Date(currentDate);
-  base.setHours(currentSlotHour,0,0,0);
+  if(!userUID) return;
 
-  const data = {
-    therapistId: auth.currentUser.uid,
-    patientName: pName.value,
+  const base = new Date(currentDate);
+  base.setHours(currentHour,0,0,0);
+
+  const payload = {
+    therapistId: userUID,
+    patientName: pName.value.trim(),
     modality: modality.value,
     start: Timestamp.fromDate(base),
     end: Timestamp.fromDate(new Date(base.getTime()+3600000)),
-    status: completed.checked?"completed":"scheduled"
+    status: completed.checked ? "completed" : "scheduled"
   };
 
   if(editingId){
-    await updateDoc(doc(db,"appointments",editingId), data);
+    await updateDoc(doc(db,"appointments",editingId), payload);
   }else{
-    await addDoc(collection(db,"appointments"), data);
+    await addDoc(collection(db,"appointments"), payload);
   }
 
   closeModal();
-  load();
+  loadDay();
 };
 
-/* ===== WHATSAPP ===== */
+/* =========================
+   WHATSAPP (SIN COSTE)
+========================= */
 whatsapp.onclick = ()=>{
   const msg = encodeURIComponent(
-    `Hola ${pName.value}, tu cita es el ${currentDate.toLocaleDateString()} a las ${currentSlotHour}:00`
+    `Hola ${pName.value}, tu cita es el ${currentDate.toLocaleDateString()} a las ${currentHour}:00`
   );
   window.open(`https://wa.me/?text=${msg}`);
 };
