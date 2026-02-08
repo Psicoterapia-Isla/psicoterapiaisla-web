@@ -346,3 +346,14 @@ select {
     z-index: 100;
   }
 }
+.modal-card {
+  max-height: 85vh;
+  overflow-y: auto;
+}
+
+@media (max-width: 768px) {
+  .modal-card {
+    margin: 5vh auto;
+    width: calc(100% - 24px);
+  }
+}
