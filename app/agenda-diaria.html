@@ -79,9 +79,7 @@
   border-radius:14px;
 }
 
-.modal-row {
-  margin-bottom:.75rem;
-}
+.modal-row { margin-bottom:.75rem; }
 
 .modal-row.inline {
   display:flex;
@@ -116,7 +114,6 @@
       <button id="prevDay" class="btn-secondary">←</button>
       <button id="todayBtn" class="btn-secondary">Hoy</button>
       <button id="nextDay" class="btn-secondary">→</button>
-      <button id="btnNew" class="btn-primary">＋ Nueva cita</button>
     </div>
   </div>
 
@@ -190,53 +187,78 @@ await requireAuth();
 await loadMenu();
 
 /* =========================
-   FECHA (CONTROLADA POR URL)
+   FECHA CONTROLADA POR URL
 ========================= */
+function toISO(d){
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+}
+
 const params = new URLSearchParams(location.search);
-const currentDate =
-  params.get("date") || new Date().toISOString().split("T")[0];
+let currentDateISO =
+  params.get("date") || new Date().toISOString().slice(0,10);
 
 function go(dateISO){
   location.href = `agenda-diaria.html?date=${dateISO}`;
 }
 
 prevDay.onclick = () => {
-  const d = new Date(currentDate);
-  d.setDate(d.getDate()-1);
+  const d = new Date(currentDateISO);
+  d.setDate(d.getDate() - 1);
   go(toISO(d));
 };
 
 nextDay.onclick = () => {
-  const d = new Date(currentDate);
-  d.setDate(d.getDate()+1);
+  const d = new Date(currentDateISO);
+  d.setDate(d.getDate() + 1);
   go(toISO(d));
 };
 
 todayBtn.onclick = () =>
-  go(new Date().toISOString().split("T")[0]);
+  go(new Date().toISOString().slice(0,10));
 
-const baseDate = new Date(currentDate);
+/* =========================
+   FECHA BASE
+========================= */
+const baseDate = new Date(currentDateISO);
 baseDate.setHours(0,0,0,0);
 
 dayNumber.textContent = baseDate.getDate();
 dayName.textContent =
-  baseDate.toLocaleDateString("es-ES",{weekday:"long"});
+  baseDate.toLocaleDateString("es-ES",{ weekday:"long" });
 dayMonth.textContent =
-  baseDate.toLocaleDateString("es-ES",{month:"long",year:"numeric"});
+  baseDate.toLocaleDateString("es-ES",{ month:"long", year:"numeric" });
 
 /* =========================
-   DATA
+   CARGA CITAS
 ========================= */
 const therapistId = auth.currentUser.uid;
 const agendaList = document.getElementById("agendaList");
 
-let currentAppointment = null;
+const snap = await getDocs(query(
+  collection(db,"appointments"),
+  where("therapistId","==",therapistId),
+  where("start",">=",Timestamp.fromDate(baseDate)),
+  where(
+    "start","<",
+    Timestamp.fromDate(new Date(baseDate.getTime() + 86400000))
+  ),
+  orderBy("start")
+));
+
+const byHour = {};
+snap.forEach(d=>{
+  const app = d.data();
+  byHour[app.start.toDate().getHours()] =
+    { ...app, id:d.id };
+});
 
 /* =========================
    MODAL
 ========================= */
+let currentAppointment = null;
+
 window.closeAppointmentModal = () =>
-  appointmentModal.style.display="none";
+  appointmentModal.style.display = "none";
 
 function openAppointmentModal(app){
   currentAppointment = app;
@@ -244,7 +266,7 @@ function openAppointmentModal(app){
   const s = app.start.toDate();
   const e = app.end.toDate();
 
-  amPatient.textContent = app.patientName;
+  amPatient.textContent = app.patientName || "";
   amDateTime.textContent =
     `${s.getHours()}:00 – ${e.getHours()}:00`;
   amModality.textContent = `Modalidad: ${app.modality}`;
@@ -252,31 +274,28 @@ function openAppointmentModal(app){
   amCompleted.checked = app.status === "completed";
   amIssued.checked = !!app.invoiceId;
   amPaid.checked = false;
+  amAmount.value = 60;
+  amPaymentMethod.value = "";
 
   appointmentModal.style.display = "block";
 }
 
 /* =========================
-   GUARDAR
+   GUARDAR / FACTURA
 ========================= */
 amSaveBtn.onclick = async () => {
   if (amCompleted.checked && currentAppointment.status !== "completed") {
     await markAppointmentCompleted(currentAppointment);
   }
-
   if (amPaid.checked && currentAppointment.invoiceId) {
     await markInvoicePaid(
       currentAppointment.invoiceId,
       amPaymentMethod.value
     );
   }
-
   location.reload();
 };
 
-/* =========================
-   FACTURA
-========================= */
 amInvoiceBtn.onclick = async () => {
   if (!currentAppointment.invoiceId) {
     await invoiceAppointment(
@@ -292,57 +311,29 @@ amInvoiceBtn.onclick = async () => {
 };
 
 /* =========================
-   RENDER
+   RENDER DÍA
 ========================= */
-const snap = await getDocs(query(
-  collection(db,"appointments"),
-  where("therapistId","==",therapistId),
-  where("start",">=",Timestamp.fromDate(baseDate)),
-  where("start","<",
-    Timestamp.fromDate(new Date(baseDate.getTime()+86400000))
-  ),
-  orderBy("start")
-));
-
-const byHour = {};
-snap.forEach(d=>{
-  byHour[d.data().start.toDate().getHours()] =
-    {...d.data(), id:d.id};
-});
-
-for(let h=9; h<21; h++){
+for (let h = 9; h < 21; h++) {
   const slot = document.createElement("div");
 
   if (byHour[h]) {
     const app = byHour[h];
-    slot.className="slot slot-green";
-    slot.innerHTML=`
+    slot.className = "slot slot-green";
+    slot.innerHTML = `
       <div class="slot-time">${h}:00</div>
       <div>
         <strong>${app.patientName}</strong><br>
         <span class="slot-status">${app.modality}</span>
       </div>`;
     slot.onclick = () => openAppointmentModal(app);
-  }
-  else {
-    slot.className="slot slot-grey";
-    slot.innerHTML=`
+  } else {
+    slot.className = "slot slot-grey";
+    slot.innerHTML = `
       <div class="slot-time">${h}:00</div>
       <div>Libre</div>`;
-    slot.onclick = () => {
-      location.href =
-        `crear-cita.html?date=${currentDate}&hour=${h}`;
-    };
   }
 
   agendaList.appendChild(slot);
-}
-
-/* =========================
-   HELPERS
-========================= */
-function toISO(d){
-  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
 }
 </script>
 </body>
