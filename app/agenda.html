@@ -1,333 +1,79 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Agenda | Psicoterapia Isla</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <link rel="stylesheet" href="assets/css/app.css">
+  <link rel="stylesheet" href="assets/css/app.css" />
 
   <style>
-    .agenda-wrapper {
-      max-width: 1100px;
-      margin: 0 auto;
-      padding: 1.5rem;
-    }
-
-    .agenda-header {
-      display: flex;
-      align-items: center;
-      gap: .5rem;
-      margin-bottom: 1rem;
-    }
-
-    .agenda-header h1 {
-      flex: 1;
-      margin: 0;
-    }
-
-    .agenda-grid {
-      display: grid;
-      grid-template-columns: 80px 1fr;
-      gap: .5rem;
-    }
-
-    .hour {
-      font-size: .8rem;
-      color: #555;
-      text-align: right;
-      padding-right: .5rem;
-    }
-
-    .slot {
-      background: #f3f4f6;
-      border-radius: 8px;
-      padding: .5rem;
-      cursor: pointer;
-    }
-
-    .slot.busy {
-      background: #c7ead7;
-    }
-
-    /* MODAL */
-    .modal {
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,.35);
-      display: none;
-      align-items: center;
-      justify-content: center;
-      z-index: 1000;
-    }
-
-    .modal.open {
-      display: flex;
-    }
-
-    .modal-content {
-      background: #fff;
-      border-radius: 12px;
-      padding: 1rem;
-      width: 100%;
-      max-width: 420px;
-    }
-
-    .modal-content h2 {
-      margin-top: 0;
-    }
-
-    .modal-content label {
-      font-size: .8rem;
-      margin-top: .5rem;
-      display: block;
-    }
-
-    .modal-content input,
-    .modal-content select {
-      width: 100%;
-      padding: .4rem;
-      margin-top: .2rem;
-    }
-
-    .modal-actions {
-      display: flex;
-      justify-content: flex-end;
-      gap: .5rem;
-      margin-top: 1rem;
-    }
-
-    .autocomplete {
-      position: relative;
-    }
-
-    .autocomplete-list {
-      position: absolute;
-      top: 100%;
-      left: 0;
-      right: 0;
-      background: white;
-      border: 1px solid #ccc;
-      z-index: 10;
-    }
-
-    .autocomplete-item {
-      padding: .4rem;
-      cursor: pointer;
-    }
-
-    .autocomplete-item:hover {
-      background: #eee;
-    }
+    .wrapper { max-width: 1100px; margin: 0 auto; padding: 1.5rem; }
+    .topbar { display:flex; gap:.5rem; align-items:center; margin-bottom:1rem; }
+    .hours { display:grid; grid-template-columns:80px 1fr; gap:.5rem; }
+    .hour { padding:.4rem; font-weight:600; }
+    .slot { background:#eef2f7; padding:.5rem; border-radius:8px; cursor:pointer; }
+    .slot.busy { background:#cfe9dc; }
+    .modal { position:fixed; inset:0; background:rgba(0,0,0,.4); display:none; align-items:center; justify-content:center; }
+    .modal.open { display:flex; }
+    .modal-box { background:#fff; padding:1rem; border-radius:12px; width:360px; }
+    .modal-box input, .modal-box select { width:100%; margin-bottom:.5rem; }
+    .actions { display:flex; justify-content:space-between; margin-top:.5rem; }
+    .suggestions { background:#fff; border:1px solid #ccc; max-height:120px; overflow:auto; }
+    .suggestions div { padding:.3rem; cursor:pointer; }
+    .suggestions div:hover { background:#eee; }
   </style>
 </head>
 
 <body class="app-body">
-
 <header class="app-menu"></header>
 
-<main class="agenda-wrapper">
+<main class="wrapper">
 
-  <div class="agenda-header">
-    <h1>Agenda</h1>
+  <h1>Agenda</h1>
+
+  <div class="topbar">
     <button id="prevDay">←</button>
     <button id="today">Hoy</button>
     <button id="nextDay">→</button>
     <button id="newCita">+ Cita</button>
+    <span id="dateLabel"></span>
   </div>
 
-  <div id="currentDate"></div>
-
-  <div id="agenda" class="agenda-grid"></div>
+  <div id="agenda" class="hours"></div>
 
 </main>
 
-<!-- MODAL CITA -->
+<!-- MODAL -->
 <div id="modal" class="modal">
-  <div class="modal-content">
-    <h2>Cita</h2>
+  <div class="modal-box">
+    <h3>Cita</h3>
 
-    <label>Teléfono</label>
-    <div class="autocomplete">
-      <input id="phone">
-      <div id="phoneList" class="autocomplete-list"></div>
-    </div>
+    <input id="phone" placeholder="Teléfono" autocomplete="off" />
+    <div id="phoneSug" class="suggestions"></div>
 
-    <label>Nombre</label>
-    <div class="autocomplete">
-      <input id="name">
-      <div id="nameList" class="autocomplete-list"></div>
-    </div>
+    <input id="name" placeholder="Nombre" autocomplete="off" />
+    <div id="nameSug" class="suggestions"></div>
 
-    <label>Servicio</label>
-    <input id="service" value="Visita Psicología">
-
-    <label>Modalidad</label>
     <select id="modality">
       <option value="viladecans">Viladecans</option>
       <option value="badalona">Badalona</option>
       <option value="online">Online</option>
     </select>
 
-    <label>Inicio</label>
-    <input type="time" id="start">
+    <input id="start" type="time" />
+    <input id="end" type="time" />
 
-    <label>Fin</label>
-    <input type="time" id="end">
+    <input id="amount" type="number" placeholder="Importe (€)" />
+    <label><input type="checkbox" id="paid" /> Pagada</label>
 
-    <label>Importe (€)</label>
-    <input type="number" id="amount" value="70">
-
-    <label>
-      <input type="checkbox" id="paid">
-      Pagada
-    </label>
-
-    <div class="modal-actions">
-      <button id="closeModal">Cerrar</button>
-      <button id="saveCita">Guardar</button>
+    <div class="actions">
+      <button id="save">Guardar</button>
+      <button id="close">Cerrar</button>
     </div>
   </div>
 </div>
 
-<script type="module">
-  import { requireAuth } from "./assets/js/auth.js";
-  import { loadMenu } from "./assets/js/menu.js";
-  import { auth, db } from "./assets/js/firebase.js";
-
-  import {
-    collection,
-    addDoc,
-    query,
-    where,
-    getDocs,
-    Timestamp
-  } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
-  await requireAuth();
-  await loadMenu();
-
-  const agenda = document.getElementById("agenda");
-  const modal = document.getElementById("modal");
-
-  const phoneInput = document.getElementById("phone");
-  const nameInput = document.getElementById("name");
-  const phoneList = document.getElementById("phoneList");
-  const nameList = document.getElementById("nameList");
-
-  let current = new Date();
-  current.setHours(0,0,0,0);
-
-  function renderDate() {
-    document.getElementById("currentDate").textContent =
-      current.toLocaleDateString("es-ES", { weekday:"long", year:"numeric", month:"long", day:"numeric" });
-  }
-
-  function renderAgenda() {
-    agenda.innerHTML = "";
-    for (let h = 9; h <= 20; h++) {
-      const hour = document.createElement("div");
-      hour.className = "hour";
-      hour.textContent = `${h}:00`;
-
-      const slot = document.createElement("div");
-      slot.className = "slot";
-      slot.dataset.hour = h;
-
-      slot.addEventListener("click", () => openModal(h));
-
-      agenda.appendChild(hour);
-      agenda.appendChild(slot);
-    }
-  }
-
-  function openModal(hour) {
-    modal.classList.add("open");
-    document.getElementById("start").value = `${hour.toString().padStart(2,"0")}:00`;
-    document.getElementById("end").value = `${(hour+1).toString().padStart(2,"0")}:00`;
-  }
-
-  document.getElementById("closeModal").addEventListener("click", () => {
-    modal.classList.remove("open");
-  });
-
-  document.getElementById("newCita").addEventListener("click", () => {
-    openModal(9);
-  });
-
-  async function autocomplete(input, list, field) {
-    const q = input.value.trim().toLowerCase();
-    list.innerHTML = "";
-    if (q.length < 1) return;
-
-    const snap = await getDocs(collection(db, "patients"));
-    snap.forEach(docu => {
-      const d = docu.data();
-      if (d[field]?.toLowerCase().includes(q)) {
-        const item = document.createElement("div");
-        item.className = "autocomplete-item";
-        item.textContent = `${d.name} — ${d.phone}`;
-        item.onclick = () => {
-          phoneInput.value = d.phone || "";
-          nameInput.value = d.name || "";
-          list.innerHTML = "";
-        };
-        list.appendChild(item);
-      }
-    });
-  }
-
-  phoneInput.addEventListener("input", () => autocomplete(phoneInput, phoneList, "phone"));
-  nameInput.addEventListener("input", () => autocomplete(nameInput, nameList, "name"));
-
-  document.getElementById("saveCita").addEventListener("click", async () => {
-    const user = auth.currentUser;
-    if (!user) return;
-
-    const start = new Date(current);
-    const [sh, sm] = document.getElementById("start").value.split(":");
-    start.setHours(sh, sm, 0, 0);
-
-    const end = new Date(current);
-    const [eh, em] = document.getElementById("end").value.split(":");
-    end.setHours(eh, em, 0, 0);
-
-    await addDoc(collection(db, "appointments"), {
-      therapistId: user.uid,
-      phone: phoneInput.value,
-      name: nameInput.value,
-      service: document.getElementById("service").value,
-      modality: document.getElementById("modality").value,
-      start: Timestamp.fromDate(start),
-      end: Timestamp.fromDate(end),
-      amount: Number(document.getElementById("amount").value),
-      paid: document.getElementById("paid").checked,
-      createdAt: Timestamp.now()
-    });
-
-    modal.classList.remove("open");
-    alert("Cita guardada");
-  });
-
-  document.getElementById("prevDay").addEventListener("click", () => {
-    current.setDate(current.getDate() - 1);
-    renderDate();
-  });
-
-  document.getElementById("nextDay").addEventListener("click", () => {
-    current.setDate(current.getDate() + 1);
-    renderDate();
-  });
-
-  document.getElementById("today").addEventListener("click", () => {
-    current = new Date();
-    current.setHours(0,0,0,0);
-    renderDate();
-  });
-
-  renderDate();
-  renderAgenda();
-</script>
-
+<script type="module" src="assets/js/agenda.js"></script>
 </body>
 </html>
