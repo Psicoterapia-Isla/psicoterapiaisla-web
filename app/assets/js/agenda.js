@@ -1,202 +1,148 @@
+import { requireAuth } from "./auth.js";
+import { loadMenu } from "./menu.js";
 import { auth, db } from "./firebase.js";
+
 import {
-  collection, getDocs, addDoc, updateDoc, doc,
-  query, where, Timestamp
+  collection, query, where, getDocs,
+  addDoc, updateDoc, doc, Timestamp
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-import { onAuthStateChanged } from
-  "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-const { jsPDF } = window.jspdf;
+await requireAuth();
+await loadMenu();
 
-/* ========= STATE ========= */
-let uid = null;
 let currentDate = new Date();
-let currentHour = null;
 let editingId = null;
 
-/* ========= DOM ========= */
-const agenda = document.getElementById("agenda");
-const dayLabel = document.getElementById("dayLabel");
+const hoursEl = document.getElementById("hours");
+const dateLabel = document.getElementById("dateLabel");
+
 const modal = document.getElementById("modal");
+const suggestions = document.getElementById("suggestions");
 
-/* botones navegación (ESTO ARREGLA EL ERROR) */
-const btnPrev = document.getElementById("prev");
-const btnNext = document.getElementById("next");
-const btnToday = document.getElementById("today");
-const btnNew = document.getElementById("new");
-
-/* modal */
-const search = document.getElementById("search");
-const nameI = document.getElementById("name");
 const phone = document.getElementById("phone");
+const name = document.getElementById("name");
+const service = document.getElementById("service");
 const modality = document.getElementById("modality");
-const done = document.getElementById("done");
+const start = document.getElementById("start");
+const end = document.getElementById("end");
+const completed = document.getElementById("completed");
 const paid = document.getElementById("paid");
 const amount = document.getElementById("amount");
 
-const btnSave = document.getElementById("save");
-const btnClose = document.getElementById("close");
-const btnPdf = document.getElementById("pdf");
-const btnWhatsapp = document.getElementById("whatsapp");
+function formatDate(d) {
+  return d.toISOString().slice(0, 10);
+}
 
-/* ========= AUTH SAFE ========= */
-onAuthStateChanged(auth, user => {
-  if (!user) return;
-  uid = user.uid;
-  loadDay();
-});
-
-/* ========= NAV ========= */
-btnPrev.addEventListener("click", () => {
-  currentDate.setDate(currentDate.getDate() - 1);
-  loadDay();
-});
-
-btnNext.addEventListener("click", () => {
-  currentDate.setDate(currentDate.getDate() + 1);
-  loadDay();
-});
-
-btnToday.addEventListener("click", () => {
-  currentDate = new Date();
-  loadDay();
-});
-
-btnNew.addEventListener("click", () => openModal());
-
-/* ========= LOAD DAY ========= */
-async function loadDay() {
-  if (!uid) return;
-
-  agenda.innerHTML = "";
-  dayLabel.textContent = currentDate.toLocaleDateString("es-ES", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    year: "numeric"
+function renderDay() {
+  hoursEl.innerHTML = "";
+  dateLabel.textContent = currentDate.toLocaleDateString("es-ES", {
+    weekday: "long", year: "numeric", month: "long", day: "numeric"
   });
 
-  const start = new Date(currentDate);
-  start.setHours(0, 0, 0, 0);
-  const end = new Date(start);
-  end.setDate(end.getDate() + 1);
-
-  const snap = await getDocs(query(
-    collection(db, "appointments"),
-    where("therapistId", "==", uid),
-    where("start", ">=", Timestamp.fromDate(start)),
-    where("start", "<", Timestamp.fromDate(end))
-  ));
-
-  const byHour = {};
-  snap.forEach(d => {
-    const data = d.data();
-    const h = data.start.toDate().getHours();
-    byHour[h] = { ...data, id: d.id };
-  });
-
-  for (let h = 9; h < 21; h++) {
-    const row = document.createElement("div");
-    row.className = "slot " + (byHour[h] ? "busy" : "free");
-    row.innerHTML = `
-      <div class="time">${h}:00</div>
-      <div>${byHour[h]?.patientName || "Libre"}</div>
-    `;
-    row.addEventListener("click", () => openModal(h, byHour[h]));
-    agenda.appendChild(row);
+  for (let h = 9; h <= 20; h++) {
+    const div = document.createElement("div");
+    div.className = "hour-row";
+    div.textContent = `${h}:00`;
+    div.addEventListener("click", () => openModal(`${h}:00`, `${h + 1}:00`));
+    hoursEl.appendChild(div);
   }
 }
 
-/* ========= MODAL ========= */
-function openModal(hour = null, data = null) {
-  currentHour = hour;
-  editingId = data?.id || null;
-
-  modal.style.display = "block";
-  search.value = "";
-  nameI.value = data?.patientName || "";
-  phone.value = data?.patientId || "";
-  modality.value = data?.modality || "";
-  done.checked = data?.status === "completed";
-  paid.checked = !!data?.invoiceId;
+function openModal(s, e) {
+  editingId = null;
+  modal.classList.remove("hidden");
+  phone.value = "";
+  name.value = "";
+  start.value = s;
+  end.value = e;
   amount.value = "";
+  completed.checked = false;
+  paid.checked = false;
+  suggestions.innerHTML = "";
 }
 
-btnClose.addEventListener("click", () => {
-  modal.style.display = "none";
-});
+function closeModal() {
+  modal.classList.add("hidden");
+}
 
-/* ========= AUTOCOMPLETE ========= */
-search.addEventListener("input", async () => {
-  const q = search.value.toLowerCase();
-  if (q.length < 2) return;
+async function searchPatients(term) {
+  if (!term || term.length < 1) {
+    suggestions.innerHTML = "";
+    return;
+  }
 
-  const snap = await getDocs(collection(db, "patients"));
+  const q = query(
+    collection(db, "patients_normalized"),
+    where("keywords", "array-contains", term.toLowerCase())
+  );
+
+  const snap = await getDocs(q);
+  suggestions.innerHTML = "";
+
   snap.forEach(d => {
     const p = d.data();
-    if (
-      p.fullName?.toLowerCase().includes(q) ||
-      p.phone?.includes(q)
-    ) {
-      nameI.value = p.fullName;
+    const div = document.createElement("div");
+    div.textContent = `${p.name} · ${p.phone}`;
+    div.addEventListener("click", () => {
       phone.value = p.phone;
-    }
+      name.value = p.name;
+      suggestions.innerHTML = "";
+    });
+    suggestions.appendChild(div);
   });
-});
+}
 
-/* ========= SAVE ========= */
-btnSave.addEventListener("click", async () => {
-  const base = new Date(currentDate);
-  base.setHours(currentHour ?? 9, 0, 0, 0);
+phone.addEventListener("input", e => searchPatients(e.target.value));
+name.addEventListener("input", e => searchPatients(e.target.value));
 
-  const payload = {
-    therapistId: uid,
-    patientName: nameI.value,
-    patientId: phone.value,
+document.getElementById("save").addEventListener("click", async () => {
+  const user = auth.currentUser;
+
+  const data = {
+    therapistId: user.uid,
+    date: formatDate(currentDate),
+    phone: phone.value,
+    name: name.value,
+    service: service.value,
     modality: modality.value,
-    start: Timestamp.fromDate(base),
-    end: Timestamp.fromDate(new Date(base.getTime() + 3600000)),
-    status: done.checked ? "completed" : "scheduled"
+    start: start.value,
+    end: end.value,
+    completed: completed.checked,
+    paid: paid.checked,
+    amount: Number(amount.value || 0),
+    updatedAt: Timestamp.now()
   };
 
-  let id = editingId;
-
-  if (id) {
-    await updateDoc(doc(db, "appointments", id), payload);
+  if (editingId) {
+    await updateDoc(doc(db, "appointments", editingId), data);
   } else {
-    const ref = await addDoc(collection(db, "appointments"), payload);
-    id = ref.id;
-  }
-
-  if (paid.checked) {
-    const inv = await addDoc(collection(db, "invoices"), {
-      therapistId: uid,
-      appointmentId: id,
-      patientName: nameI.value,
-      amount: Number(amount.value || 0),
-      issued: true,
-      issuedAt: Timestamp.now()
+    await addDoc(collection(db, "appointments"), {
+      ...data,
+      createdAt: Timestamp.now()
     });
-    await updateDoc(doc(db, "appointments", id), { invoiceId: inv.id });
   }
 
-  modal.style.display = "none";
-  loadDay();
+  closeModal();
 });
 
-/* ========= PDF ========= */
-btnPdf.addEventListener("click", () => {
-  const pdf = new jsPDF();
-  pdf.text("Factura", 10, 10);
-  pdf.text(`Paciente: ${nameI.value}`, 10, 20);
-  pdf.text(`Importe: ${amount.value} €`, 10, 30);
-  pdf.save("factura.pdf");
+document.getElementById("close").addEventListener("click", closeModal);
+
+document.getElementById("prevDay").addEventListener("click", () => {
+  currentDate.setDate(currentDate.getDate() - 1);
+  renderDay();
 });
 
-/* ========= WHATSAPP ========= */
-btnWhatsapp.addEventListener("click", () => {
-  const msg = encodeURIComponent(
-    `Hola ${nameI.value}, tu cita es el ${currentDate.toLocaleDateString()} a las ${currentHour}:00`
-  );
-  window.open(`https://wa.me/${phone.value}?text=${msg}`, "_blank");
+document.getElementById("nextDay").addEventListener("click", () => {
+  currentDate.setDate(currentDate.getDate() + 1);
+  renderDay();
 });
+
+document.getElementById("today").addEventListener("click", () => {
+  currentDate = new Date();
+  renderDay();
+});
+
+document.getElementById("newAppointment")
+  .addEventListener("click", () => openModal("09:00", "10:00"));
+
+renderDay();
