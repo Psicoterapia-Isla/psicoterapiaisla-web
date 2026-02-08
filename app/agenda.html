@@ -4,53 +4,91 @@
 <meta charset="UTF-8">
 <title>Agenda | Psicoterapia Isla</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <link rel="stylesheet" href="assets/css/app.css">
 
 <style>
 .wrapper { max-width:1100px; margin:0 auto; padding:1.5rem; }
-.header { display:flex; align-items:center; gap:.5rem; }
-.header h1 { flex:1; }
-.hours { display:grid; grid-template-columns:80px 1fr; gap:.5rem; margin-top:1rem; }
-.hour { font-weight:600; color:#555; }
-.slot { background:#f3f4f6; border-radius:10px; padding:.5rem; cursor:pointer; }
-.slot.busy { background:#d1fae5; }
-.modal { position:fixed; inset:0; background:rgba(0,0,0,.4); display:none; }
-.modal-card { background:#fff; max-width:420px; margin:10vh auto; padding:1rem; border-radius:14px; }
-.suggestions { background:#fff; border:1px solid #ddd; max-height:120px; overflow:auto; }
-.suggestions div { padding:.4rem; cursor:pointer; }
-.suggestions div:hover { background:#e5e7eb; }
-.actions { display:flex; gap:.5rem; justify-content:flex-end; margin-top:1rem; }
+.header { display:flex; justify-content:space-between; align-items:center; gap:1rem; }
+.nav { display:flex; gap:.5rem; }
+.hours { margin-top:1.5rem; }
+.slot {
+  display:flex;
+  align-items:center;
+  gap:1rem;
+  padding:.75rem;
+  border-bottom:1px solid #e5e7eb;
+  cursor:pointer;
+}
+.slot.free { color:#777; }
+.slot.busy { background:#eef6f1; border-radius:8px; }
+.modal {
+  position:fixed; inset:0;
+  background:rgba(0,0,0,.4);
+  display:none; align-items:center; justify-content:center;
+}
+.modal-content {
+  background:#fff;
+  padding:1.5rem;
+  border-radius:12px;
+  width:100%; max-width:420px;
+}
+.modal-content h3 { margin-top:0; }
+input, select {
+  width:100%;
+  padding:.5rem;
+  margin-bottom:.5rem;
+}
+.actions { display:flex; gap:.5rem; justify-content:flex-end; }
+.suggestions {
+  background:#fff;
+  border:1px solid #ddd;
+  border-radius:6px;
+  max-height:150px;
+  overflow:auto;
+}
+.suggestions div {
+  padding:.4rem;
+  cursor:pointer;
+}
+.suggestions div:hover { background:#f0f0f0; }
 </style>
 </head>
 
 <body class="app-body">
+
 <header class="app-menu"></header>
 
 <main class="wrapper">
+
   <div class="header">
     <h1>Agenda</h1>
-    <button id="prev">←</button>
-    <button id="today">Hoy</button>
-    <button id="next">→</button>
-    <button id="new">+ Cita</button>
+    <div class="nav">
+      <button id="prev">←</button>
+      <button id="today">Hoy</button>
+      <button id="next">→</button>
+      <button id="new">+ Cita</button>
+    </div>
   </div>
 
   <div id="dateLabel"></div>
-  <div id="list" class="hours"></div>
+
+  <div id="hours" class="hours"></div>
+
 </main>
 
 <!-- MODAL -->
 <div id="modal" class="modal">
-  <div class="modal-card">
+  <div class="modal-content">
     <h3>Cita</h3>
 
     <label>Teléfono</label>
     <input id="phone">
-    <div id="phoneSug" class="suggestions"></div>
+    <div id="phoneResults" class="suggestions"></div>
 
     <label>Nombre</label>
     <input id="name">
-    <div id="nameSug" class="suggestions"></div>
+    <div id="nameResults" class="suggestions"></div>
 
     <label>Servicio</label>
     <input id="service" value="Visita Psicología">
@@ -68,13 +106,15 @@
     <label>Fin</label>
     <input type="time" id="end">
 
-    <label><input type="checkbox" id="done"> Sesión realizada</label>
-    <label>Importe (€)</label>
-    <input id="amount" value="70">
+    <label>
+      <input type="checkbox" id="done"> Sesión realizada
+    </label>
 
-    <label><input type="checkbox" id="paid"> Pagada</label>
+    <label>Importe (€)</label>
+    <input type="number" id="amount">
 
     <div class="actions">
+      <button id="invoice">Generar factura</button>
       <button id="save">Guardar</button>
       <button id="close">Cerrar</button>
     </div>
@@ -85,128 +125,88 @@
 import { requireAuth } from "./assets/js/auth.js";
 import { loadMenu } from "./assets/js/menu.js";
 import { auth, db } from "./assets/js/firebase.js";
+
 import {
-  collection, query, where, getDocs, addDoc, updateDoc,
-  Timestamp, doc
+  collection, query, where, getDocs,
+  addDoc, updateDoc, doc, Timestamp
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 await requireAuth();
 await loadMenu();
 
-/* ===== DATE ===== */
-let current = new Date();
-current.setHours(0,0,0,0);
+const hoursEl = document.getElementById("hours");
+const dateLabel = document.getElementById("dateLabel");
+const modal = document.getElementById("modal");
 
-const list = document.getElementById("list");
-const label = document.getElementById("dateLabel");
+let currentDate = new Date();
+let currentAppointment = null;
 
-/* ===== NAV ===== */
-prev.onclick = ()=>move(-1);
-next.onclick = ()=>move(1);
-today.onclick = ()=>{ current=new Date(); render(); };
+function iso(d){ return d.toISOString().slice(0,10); }
 
-function move(n){
-  current.setDate(current.getDate()+n);
-  render();
+function renderDate(){
+  dateLabel.textContent = currentDate.toLocaleDateString("es-ES",{
+    weekday:"long", day:"numeric", month:"long", year:"numeric"
+  });
 }
 
-/* ===== LOAD ===== */
-async function render(){
-  label.textContent = current.toLocaleDateString("es-ES",{weekday:"long",day:"numeric",month:"long"});
-  list.innerHTML="";
+async function load(){
+  hoursEl.innerHTML = "";
+  renderDate();
 
-  const start = Timestamp.fromDate(current);
-  const end = Timestamp.fromDate(new Date(current.getTime()+86400000));
+  const base = new Date(currentDate);
+  base.setHours(0,0,0,0);
 
   const snap = await getDocs(query(
     collection(db,"appointments"),
     where("therapistId","==",auth.currentUser.uid),
-    where("start",">=",start),
-    where("start","<",end)
+    where("start",">=",Timestamp.fromDate(base)),
+    where("start","<",Timestamp.fromDate(new Date(base.getTime()+86400000)))
   ));
 
   const byHour = {};
   snap.forEach(d=>{
-    byHour[d.data().start.toDate().getHours()]={...d.data(),id:d.id};
+    byHour[d.data().start.toDate().getHours()] = { ...d.data(), id:d.id };
   });
 
-  for(let h=9;h<21;h++){
-    list.insertAdjacentHTML("beforeend",`
-      <div class="hour">${h}:00</div>
-      <div class="slot ${byHour[h]?"busy":""}" data-hour="${h}">
-        ${byHour[h]?byHour[h].patientName:"Libre"}
-      </div>
-    `);
+  for(let h=9;h<=20;h++){
+    const div=document.createElement("div");
+    if(byHour[h]){
+      div.className="slot busy";
+      div.textContent = `${h}:00 · ${byHour[h].patientName}`;
+      div.onclick=()=>openModal(byHour[h]);
+    } else {
+      div.className="slot free";
+      div.textContent = `${h}:00 · Libre`;
+      div.onclick=()=>openModal({ hour:h });
+    }
+    hoursEl.appendChild(div);
   }
-
-  document.querySelectorAll(".slot").forEach(s=>{
-    s.addEventListener("click",()=>openModal(byHour[s.dataset.hour],s.dataset.hour));
-  });
 }
 
-/* ===== MODAL ===== */
-let editing=null;
+function openModal(a){
+  currentAppointment = a.id ? a : null;
+  modal.style.display="flex";
 
-function reset(){
-  editing=null;
-  phone.value=name.value="";
-  start.value=end.value="";
-  done.checked=paid.checked=false;
-}
-
-function openModal(app,h){
-  reset();
-  modal.style.display="block";
-  start.value=`${h}:00`;
-  end.value=`${Number(h)+1}:00`;
-
-  if(app){
-    editing=app;
-    phone.value=app.patientId;
-    name.value=app.patientName;
-    start.value=app.start.toDate().toTimeString().slice(0,5);
-    end.value=app.end.toDate().toTimeString().slice(0,5);
-    done.checked=app.status==="completed";
-  }
+  phone.value = a.patientId || "";
+  name.value = a.patientName || "";
+  service.value = a.service || "Visita Psicología";
+  modality.value = a.modality || "viladecans";
+  start.value = a.start ? a.start.toDate().toISOString().slice(11,16) : `${a.hour}:00`;
+  end.value = a.end ? a.end.toDate().toISOString().slice(11,16) : `${a.hour+1}:00`;
+  done.checked = a.status === "completed";
+  amount.value = a.amount || "";
 }
 
 close.onclick=()=>modal.style.display="none";
 
-/* ===== AUTOCOMPLETE PROGRESIVO ===== */
-async function searchPatients(field,val,box){
-  box.innerHTML="";
-  if(val.length<2) return;
-
-  const snap = await getDocs(query(
-    collection(db,"patients_normalized"),
-    where(field,">=",val),
-    where(field,"<",val+"\uf8ff")
-  ));
-
-  snap.forEach(d=>{
-    const r=d.data();
-    const div=document.createElement("div");
-    div.textContent=`${r.fullName} (${r.phone})`;
-    div.onclick=()=>{
-      phone.value=r.phone;
-      name.value=r.fullName;
-      box.innerHTML="";
-    };
-    box.appendChild(div);
-  });
-}
-
-phone.addEventListener("input",e=>searchPatients("phone",e.target.value,phoneSug));
-name.addEventListener("input",e=>searchPatients("name",e.target.value.toLowerCase(),nameSug));
-
-/* ===== SAVE ===== */
 save.onclick=async()=>{
-  const base=new Date(current);
-  const [sh]=start.value.split(":");
-  const [eh]=end.value.split(":");
+  const base = new Date(currentDate);
+  base.setHours(0,0,0,0);
+  const [sh,sm]=start.value.split(":");
+  const [eh,em]=end.value.split(":");
 
-  const s=new Date(base); s.setHours(sh,0,0,0);
-  const e=new Date(base); e.setHours(eh,0,0,0);
+  const s=new Date(base); s.setHours(sh,sm);
+  const e=new Date(base); e.setHours(eh,em);
 
   const data={
     therapistId:auth.currentUser.uid,
@@ -217,21 +217,42 @@ save.onclick=async()=>{
     start:Timestamp.fromDate(s),
     end:Timestamp.fromDate(e),
     status:done.checked?"completed":"scheduled",
-    paid:paid.checked
+    amount:+amount.value||null
   };
 
-  if(editing){
-    await updateDoc(doc(db,"appointments",editing.id),data);
+  if(currentAppointment){
+    await updateDoc(doc(db,"appointments",currentAppointment.id),data);
   } else {
-    await addDoc(collection(db,"appointments"),data);
+    await addDoc(collection(db,"appointments"),{
+      ...data,
+      createdAt:Timestamp.now()
+    });
   }
 
   modal.style.display="none";
-  render();
+  load();
 };
 
-/* INIT */
-render();
+/* FACTURA */
+invoice.onclick=async()=>{
+  if(!currentAppointment) return alert("Guarda la cita primero");
+
+  await fetch("/emit-invoice",{
+    method:"POST",
+    headers:{ "Content-Type":"application/json" },
+    body:JSON.stringify({ appointmentId: currentAppointment.id })
+  });
+
+  alert("Factura emitida y enviada por WhatsApp");
+};
+
+prev.onclick=()=>{ currentDate.setDate(currentDate.getDate()-1); load(); };
+next.onclick=()=>{ currentDate.setDate(currentDate.getDate()+1); load(); };
+today.onclick=()=>{ currentDate=new Date(); load(); };
+new.onclick=()=>openModal({ hour:9 });
+
+load();
 </script>
+
 </body>
 </html>
