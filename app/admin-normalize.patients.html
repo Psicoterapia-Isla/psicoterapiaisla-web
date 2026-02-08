@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Normalizar pacientes</title>
+</head>
+<body>
+  <h1>Normalizando patients_normalized…</h1>
+  <pre id="log"></pre>
+
+  <script type="module">
+    import { db } from "./assets/js/firebase.js";
+    import {
+      collection,
+      getDocs,
+      updateDoc,
+      doc
+    } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+    const log = msg => {
+      document.getElementById("log").textContent += msg + "\n";
+      console.log(msg);
+    };
+
+    function prefixes(str) {
+      const out = [];
+      for (let i = 1; i <= str.length; i++) {
+        out.push(str.slice(0, i));
+      }
+      return out;
+    }
+
+    function buildKeywords(p) {
+      const out = new Set();
+
+      const add = v => {
+        if (!v) return;
+        v = v.toLowerCase().trim();
+        prefixes(v).forEach(k => out.add(k));
+      };
+
+      if (p.nombre) add(p.nombre);
+      if (p.apellidos) add(p.apellidos);
+
+      if (p.nombre && p.apellidos) {
+        add(`${p.nombre} ${p.apellidos}`);
+      }
+
+      if (p.telefono) {
+        const t = p.telefono.replace(/\s+/g, "").replace("+34", "");
+        prefixes(t).forEach(k => out.add(k));
+      }
+
+      if (p.email) add(p.email);
+
+      return Array.from(out);
+    }
+
+    const snap = await getDocs(collection(db, "patients_normalized"));
+
+    for (const d of snap.docs) {
+      const data = d.data();
+
+      const keywords = buildKeywords(data);
+
+      await updateDoc(doc(db, "patients_normalized", d.id), {
+        keywords
+      });
+
+      log(`✓ ${d.id} → ${keywords.length} keywords`);
+    }
+
+    log("✅ Normalización completada");
+  </script>
+</body>
+</html>
