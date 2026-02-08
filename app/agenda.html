@@ -11,7 +11,6 @@ body { background:#f7f6f3; }
 .wrapper { max-width:1100px; margin:0 auto; padding:1.5rem; }
 .header { display:flex; align-items:center; gap:1rem; }
 .header h1 { flex:1; }
-.nav button { margin-right:.25rem; }
 .grid { display:grid; grid-template-columns:80px 1fr; gap:.5rem; margin-top:1rem; }
 .hour { color:#666; font-weight:600; }
 .slot { background:#fff; border-radius:10px; padding:.5rem; cursor:pointer; }
@@ -27,10 +26,7 @@ body { background:#f7f6f3; }
   border-radius:14px;
 }
 .modal-card label { font-size:.8rem; display:block; margin-top:.5rem; }
-.modal-card input, select {
-  width:100%;
-  padding:.4rem;
-}
+.modal-card input, select { width:100%; padding:.4rem; }
 .actions { margin-top:1rem; display:flex; gap:.5rem; justify-content:flex-end; }
 .autocomplete {
   position:absolute;
@@ -38,10 +34,7 @@ body { background:#f7f6f3; }
   border:1px solid #ccc;
   z-index:10;
 }
-.autocomplete div {
-  padding:.4rem;
-  cursor:pointer;
-}
+.autocomplete div { padding:.4rem; cursor:pointer; }
 .autocomplete div:hover { background:#eee; }
 </style>
 </head>
@@ -52,12 +45,10 @@ body { background:#f7f6f3; }
 <main class="wrapper">
   <div class="header">
     <h1>Agenda</h1>
-    <div class="nav">
-      <button id="prev">←</button>
-      <button id="today">Hoy</button>
-      <button id="next">→</button>
-      <button id="new">+ Cita</button>
-    </div>
+    <button id="prev">←</button>
+    <button id="today">Hoy</button>
+    <button id="next">→</button>
+    <button id="new">+ Cita</button>
   </div>
 
   <div id="dateLabel"></div>
@@ -103,7 +94,7 @@ body { background:#f7f6f3; }
       <button id="wa">WhatsApp</button>
       <button id="pdf">Factura PDF</button>
       <button id="save">Guardar</button>
-      <button onclick="closeModal()">Cerrar</button>
+      <button id="close">Cerrar</button>
     </div>
   </div>
 </div>
@@ -111,100 +102,107 @@ body { background:#f7f6f3; }
 <script type="module">
 import { requireAuth } from "./assets/js/auth.js";
 import { loadMenu } from "./assets/js/menu.js";
-await requireAuth();
-await loadMenu();
-</script>
-
-<script type="module">
 import { auth, db } from "./assets/js/firebase.js";
 import {
   collection, query, where, getDocs,
   addDoc, updateDoc, doc, Timestamp
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
+await requireAuth();
+await loadMenu();
+
+/* =======================
+   ESTADO
+======================= */
 let currentDate = new Date();
 let editing = null;
 
 const grid = document.getElementById("grid");
 const dateLabel = document.getElementById("dateLabel");
+const modal = document.getElementById("modal");
 
+/* =======================
+   FECHA
+======================= */
 function renderDate(){
   dateLabel.textContent =
     currentDate.toLocaleDateString("es-ES",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
 }
 
-function dayBounds(){
-  const d = new Date(currentDate);
-  d.setHours(0,0,0,0);
-  return [
-    Timestamp.fromDate(d),
-    Timestamp.fromDate(new Date(d.getTime()+86400000))
-  ];
-}
-
+/* =======================
+   CARGA AGENDA
+======================= */
 async function load(){
   renderDate();
   grid.innerHTML="";
-  const [start,end] = dayBounds();
+  const startDay = new Date(currentDate); startDay.setHours(0,0,0,0);
+  const endDay = new Date(startDay.getTime()+86400000);
 
   const snap = await getDocs(query(
     collection(db,"appointments"),
     where("therapistId","==",auth.currentUser.uid),
-    where("start",">=",start),
-    where("start","<",end)
+    where("start",">=",Timestamp.fromDate(startDay)),
+    where("start","<",Timestamp.fromDate(endDay))
   ));
 
   const byHour = {};
   snap.forEach(d=>{
-    const h = d.data().start.toDate().getHours();
-    byHour[h] = { id:d.id, ...d.data() };
+    byHour[d.data().start.toDate().getHours()] = { id:d.id, ...d.data() };
   });
 
   for(let h=9;h<21;h++){
-    grid.innerHTML += `<div class="hour">${h}:00</div>`;
+    grid.appendChild(Object.assign(document.createElement("div"),{
+      className:"hour", textContent:`${h}:00`
+    }));
+
+    const cell = document.createElement("div");
+    cell.className="slot";
+
     if(byHour[h]){
       const a = byHour[h];
-      const cls =
-        a.invoiceId ? "paid" :
-        a.status==="completed" ? "done" : "busy";
-      const div = document.createElement("div");
-      div.className = `slot ${cls}`;
-      div.textContent = a.patientName;
-      div.onclick = ()=>openModal(a);
-      grid.appendChild(div);
+      cell.textContent = a.patientName;
+      cell.classList.add(a.invoiceId?"paid":a.status==="completed"?"done":"busy");
+      cell.addEventListener("click",()=>openModal(a));
     } else {
-      const div = document.createElement("div");
-      div.className="slot";
-      div.textContent="Libre";
-      div.onclick=()=>openModal(null,h);
-      grid.appendChild(div);
+      cell.textContent="Libre";
+      cell.addEventListener("click",()=>openModal(null,h));
     }
+    grid.appendChild(cell);
   }
 }
 
-prev.onclick=()=>{ currentDate.setDate(currentDate.getDate()-1); load(); };
-next.onclick=()=>{ currentDate.setDate(currentDate.getDate()+1); load(); };
-today.onclick=()=>{ currentDate=new Date(); load(); };
-new.onclick=()=>openModal();
-
-const modal = document.getElementById("modal");
+/* =======================
+   MODAL
+======================= */
+function openModal(a,h){
+  editing=a;
+  modal.style.display="block";
+  phone.value=a?.patientId||"";
+  name.value=a?.patientName||"";
+  start.value=a?a.start.toDate().toTimeString().slice(0,5):`${h||9}:00`;
+  end.value=a?a.end.toDate().toTimeString().slice(0,5):`${(h||9)+1}:00`;
+  done.checked=a?.status==="completed";
+  paid.checked=!!a?.invoiceId;
+}
 function closeModal(){ modal.style.display="none"; }
 
-function openModal(a,h){
-  editing = a;
-  modal.style.display="block";
-  phone.value = a?.patientId || "";
-  name.value = a?.patientName || "";
-  start.value = a ? a.start.toDate().toTimeString().slice(0,5) : `${h||9}:00`;
-  end.value   = a ? a.end.toDate().toTimeString().slice(0,5)   : `${(h||9)+1}:00`;
-  done.checked = a?.status==="completed";
-  paid.checked = !!a?.invoiceId;
-}
+/* =======================
+   EVENTOS
+======================= */
+prev.addEventListener("click",()=>{ currentDate.setDate(currentDate.getDate()-1); load(); });
+next.addEventListener("click",()=>{ currentDate.setDate(currentDate.getDate()+1); load(); });
+today.addEventListener("click",()=>{ currentDate=new Date(); load(); });
+new.addEventListener("click",()=>openModal());
+close.addEventListener("click",closeModal);
 
-save.onclick = async()=>{
-  const base = new Date(currentDate); base.setHours(0,0,0,0);
+/* =======================
+   GUARDAR
+======================= */
+save.addEventListener("click",async()=>{
+  const base=new Date(currentDate); base.setHours(0,0,0,0);
   const [sh,sm]=start.value.split(":");
   const [eh,em]=end.value.split(":");
+
   const s=new Date(base); s.setHours(sh,sm);
   const e=new Date(base); e.setHours(eh,em);
 
@@ -225,21 +223,26 @@ save.onclick = async()=>{
   } else {
     await addDoc(collection(db,"appointments"),data);
   }
-  closeModal();
-  load();
-};
+  closeModal(); load();
+});
 
-wa.onclick=()=>{
-  const msg = encodeURIComponent(
-    `Hola ${name.value} 😊\nTu cita en Psicoterapia Isla:\n📅 ${dateLabel.textContent}\n🕘 ${start.value}-${end.value}`
+/* =======================
+   WHATSAPP
+======================= */
+wa.addEventListener("click",()=>{
+  const msg=encodeURIComponent(
+    `Hola ${name.value} 😊\nTu cita:\n📅 ${dateLabel.textContent}\n🕘 ${start.value}-${end.value}`
   );
   window.open(`https://wa.me/34${phone.value}?text=${msg}`);
-};
+});
 
-pdf.onclick=()=>{
+/* =======================
+   PDF SIMPLE
+======================= */
+pdf.addEventListener("click",()=>{
   const w=window.open("");
   w.document.write(`<h1>Factura</h1><p>${name.value}</p><p>${amount.value} €</p>`);
-};
+});
 
 load();
 </script>
