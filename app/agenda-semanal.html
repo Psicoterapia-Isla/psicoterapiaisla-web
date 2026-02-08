@@ -70,9 +70,9 @@
     <h1>Agenda semanal</h1>
 
     <div class="week-nav">
-      <button id="prevWeek" class="btn-secondary">←</button>
-      <button id="todayWeek" class="btn-secondary">Hoy</button>
-      <button id="nextWeek" class="btn-secondary">→</button>
+      <button id="prevWeek" class="btn-secondary" type="button">←</button>
+      <button id="todayWeek" class="btn-secondary" type="button">Hoy</button>
+      <button id="nextWeek" class="btn-secondary" type="button">→</button>
     </div>
   </div>
 
@@ -100,7 +100,7 @@ const END_HOUR = 21;
 const DAYS = ["mon","tue","wed","thu","fri","sat","sun"];
 
 /* =========================
-   SEMANA CONTROLADA POR URL
+   SEMANA CONTROLADA (MISMO SISTEMA QUE DISPONIBILIDAD)
 ========================= */
 function mondayOf(date) {
   const d = new Date(date);
@@ -120,7 +120,8 @@ const weekKey = monday.toISOString().slice(0,10);
 function go(offsetWeeks) {
   const d = new Date(monday);
   d.setDate(d.getDate() + offsetWeeks * 7);
-  location.href = `agenda-semanal.html?week=${d.toISOString().slice(0,10)}`;
+  location.href =
+    `agenda-semanal.html?week=${d.toISOString().slice(0,10)}`;
 }
 
 document.getElementById("prevWeek").onclick = () => go(-1);
@@ -129,7 +130,7 @@ document.getElementById("todayWeek").onclick = () =>
   location.href = "agenda-semanal.html";
 
 /* =========================
-   DISPONIBILIDAD
+   DISPONIBILIDAD (MISMA KEY QUE DISPONIBILIDAD.HTML)
 ========================= */
 const availabilitySnap = await getDoc(
   doc(db,"availability",`${therapistId}_${weekKey}`)
@@ -165,7 +166,9 @@ appointmentsSnap.forEach(d=>{
 /* =========================
    CABECERAS
 ========================= */
+grid.innerHTML = "";
 grid.appendChild(document.createElement("div"));
+
 for(let d=0; d<7; d++){
   const day = new Date(monday);
   day.setDate(monday.getDate() + d);
@@ -193,7 +196,7 @@ for(let hour=START_HOUR; hour<END_HOUR; hour++){
     if (appointmentsByKey[key]) {
       const app = appointmentsByKey[key];
       cell.className =
-        `week-slot ${app.status==="completed"?"done":"reserved"}`;
+        `week-slot ${app.status==="completed" ? "done" : "reserved"}`;
       cell.textContent = app.patientName || "";
       cell.onclick = () =>
         location.href =
