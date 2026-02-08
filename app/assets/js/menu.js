@@ -20,7 +20,7 @@ export async function loadMenu() {
 
   const auth = getAuth();
 
-  // 🔒 evitar múltiples listeners
+  // 🔒 Evitar múltiples listeners
   if (unsubscribeAuth) return;
 
   unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
@@ -67,6 +67,9 @@ export async function loadMenu() {
 
         ${
           !isTherapist ? `
+        <!-- ======================
+             PACIENTE
+        ====================== -->
         <div class="menu-group">
           <button class="menu-group-toggle">Mi espacio</button>
           <div class="menu-group-content">
@@ -83,22 +86,36 @@ export async function loadMenu() {
 
         ${
           isTherapist ? `
+        <!-- ======================
+             TERAPEUTA
+        ====================== -->
         <div class="menu-group">
           <button class="menu-group-toggle">Espacio terapeuta</button>
           <div class="menu-group-content">
-            <a href="agenda-semanal.html">Agenda semanal</a>
-            <a href="agenda-diaria.html">Agenda diaria</a>
-            <a href="disponibilidad.html">Definir disponibilidad</a>
+
+            <!-- AGENDA ÚNICA -->
+            <a href="agenda.html">Agenda</a>
+
             <hr>
+
+            <!-- GESTIÓN CLÍNICA -->
             <a href="patients-admin.html">Pacientes</a>
             <a href="diario-terapeuta.html">Diarios pacientes</a>
             <a href="entries-by-patient.html">Registros por paciente</a>
+
             <hr>
+
+            <!-- FACTURACIÓN -->
             <a href="patient-invoices.html">Facturación</a>
-            ${isAdmin ? `
+
+            ${
+              isAdmin ? `
               <hr>
+              <!-- ADMIN -->
               <a href="exercises-admin.html">Gestionar ejercicios</a>
-            ` : ""}
+              ` : ""
+            }
+
           </div>
         </div>
         ` : ""}
