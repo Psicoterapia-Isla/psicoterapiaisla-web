@@ -1,100 +1,41 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <title>Reservar cita | Psicoterapia Isla</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
-  <!-- CSS GLOBAL -->
+  <meta charset="UTF-8">
+  <title>Mis citas | Psicoterapia Isla</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="assets/css/app.css">
 </head>
 
 <body class="app-body">
-
-<!-- ======================
-     MENÚ (NUNCA SE TOCA)
-====================== -->
 <header class="app-menu"></header>
 
-<!-- ======================
-     CONTENIDO
-====================== -->
-<main class="app-container">
+<main class="wrapper">
 
-  <section class="card">
-
-    <h1>Reservar cita</h1>
-
-    <!-- ======================
-         SELECCIÓN TERAPEUTA
-    ====================== -->
-    <label>
-      Terapeuta
-      <select id="therapistId" required>
-        <option value="">Selecciona terapeuta</option>
-      </select>
-    </label>
-
-    <!-- ======================
-         NAVEGACIÓN SEMANAL
-    ====================== -->
-    <div class="week-navigation">
-      <button id="prevWeek" class="btn-secondary">← Semana anterior</button>
-      <div id="currentWeekLabel" class="week-label"></div>
-      <button id="nextWeek" class="btn-secondary">Semana siguiente →</button>
+  <div class="header">
+    <h1>Mis citas</h1>
+    <div class="nav">
+      <button id="prevWeek" class="btn-secondary">←</button>
+      <button id="today" class="btn-secondary">Hoy</button>
+      <button id="nextWeek" class="btn-secondary">→</button>
     </div>
+  </div>
 
-    <!-- ======================
-         CALENDARIO SEMANAL
-    ====================== -->
-    <div id="weeklyCalendar" class="weekly-calendar">
+  <h3 id="weekLabel"></h3>
 
-      <!-- DÍAS -->
-      <div class="calendar-header">
-        <div class="time-column"></div>
-        <div>Lunes</div>
-        <div>Martes</div>
-        <div>Miércoles</div>
-        <div>Jueves</div>
-        <div>Viernes</div>
-      </div>
-
-      <!-- HORAS (JS INYECTA FILAS) -->
-      <div id="calendarBody" class="calendar-body">
-        <!--
-          JS genera filas:
-          09:00 | [slot] [slot] [slot] [slot] [slot]
-        -->
-      </div>
-
-    </div>
-
-    <!-- ======================
-         INFO / FEEDBACK
-    ====================== -->
-    <div id="calendarMessage" class="calendar-message">
-      Selecciona un terapeuta para ver disponibilidad.
-    </div>
-
-  </section>
+  <div class="agenda-scroll">
+    <div id="agendaGrid" class="agenda-grid"></div>
+  </div>
 
 </main>
 
-<!-- ======================
-     AUTH + MENÚ
-====================== -->
 <script type="module">
   import { requireAuth } from "./assets/js/auth.js";
   import { loadMenu } from "./assets/js/menu.js";
-
   await requireAuth();
   await loadMenu();
 </script>
 
-<!-- ======================
-     LÓGICA RESERVA
-====================== -->
 <script type="module" src="assets/js/reservar.js"></script>
-
 </body>
 </html>
