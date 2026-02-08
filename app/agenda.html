@@ -1,28 +1,63 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <title>Agenda | Psicoterapia Isla</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta charset="UTF-8" />
+<title>Agenda | Psicoterapia Isla</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link rel="stylesheet" href="assets/css/app.css">
 
-  <link rel="stylesheet" href="assets/css/app.css" />
+<style>
+.wrapper { max-width:900px; margin:0 auto; padding:1.5rem; }
+.header { display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; }
+.nav { display:flex; gap:.5rem; }
 
-  <style>
-    .wrapper { max-width: 1100px; margin: 0 auto; padding: 1.5rem; }
-    .topbar { display:flex; gap:.5rem; align-items:center; margin-bottom:1rem; }
-    .hours { display:grid; grid-template-columns:80px 1fr; gap:.5rem; }
-    .hour { padding:.4rem; font-weight:600; }
-    .slot { background:#eef2f7; padding:.5rem; border-radius:8px; cursor:pointer; }
-    .slot.busy { background:#cfe9dc; }
-    .modal { position:fixed; inset:0; background:rgba(0,0,0,.4); display:none; align-items:center; justify-content:center; }
-    .modal.open { display:flex; }
-    .modal-box { background:#fff; padding:1rem; border-radius:12px; width:360px; }
-    .modal-box input, .modal-box select { width:100%; margin-bottom:.5rem; }
-    .actions { display:flex; justify-content:space-between; margin-top:.5rem; }
-    .suggestions { background:#fff; border:1px solid #ccc; max-height:120px; overflow:auto; }
-    .suggestions div { padding:.3rem; cursor:pointer; }
-    .suggestions div:hover { background:#eee; }
-  </style>
+.day {
+  font-size:1.1rem;
+  font-weight:600;
+}
+
+.slot {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:.75rem;
+  border-radius:12px;
+  margin-bottom:.5rem;
+}
+
+.slot.free { background:#e5e7eb; cursor:pointer; }
+.slot.busy { background:#e6f4d7; cursor:pointer; }
+
+.time { width:60px; font-weight:600; }
+
+.modal {
+  display:none;
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.4);
+  z-index:999;
+}
+
+.modal-card {
+  background:#fff;
+  max-width:420px;
+  margin:10vh auto;
+  padding:1rem;
+  border-radius:16px;
+}
+
+.field { margin-bottom:.5rem; }
+.field input, .field select {
+  width:100%;
+  padding:.4rem;
+}
+
+.actions {
+  display:flex;
+  justify-content:space-between;
+  margin-top:1rem;
+}
+</style>
 </head>
 
 <body class="app-body">
@@ -30,47 +65,52 @@
 
 <main class="wrapper">
 
-  <h1>Agenda</h1>
-
-  <div class="topbar">
-    <button id="prevDay">←</button>
-    <button id="today">Hoy</button>
-    <button id="nextDay">→</button>
-    <button id="newCita">+ Cita</button>
-    <span id="dateLabel"></span>
+  <div class="header">
+    <div class="day" id="dayLabel"></div>
+    <div class="nav">
+      <button id="prevDay" class="btn-secondary">←</button>
+      <button id="today" class="btn-secondary">Hoy</button>
+      <button id="nextDay" class="btn-secondary">→</button>
+    </div>
   </div>
 
-  <div id="agenda" class="hours"></div>
-
+  <div id="agenda"></div>
 </main>
 
 <!-- MODAL -->
 <div id="modal" class="modal">
-  <div class="modal-box">
-    <h3>Cita</h3>
+  <div class="modal-card">
 
-    <input id="phone" placeholder="Teléfono" autocomplete="off" />
-    <div id="phoneSug" class="suggestions"></div>
+    <div class="field">
+      <input id="pSearch" placeholder="Teléfono / nombre / apellidos">
+    </div>
 
-    <input id="name" placeholder="Nombre" autocomplete="off" />
-    <div id="nameSug" class="suggestions"></div>
+    <div class="field">
+      <input id="pName" placeholder="Nombre completo">
+    </div>
 
-    <select id="modality">
-      <option value="viladecans">Viladecans</option>
-      <option value="badalona">Badalona</option>
-      <option value="online">Online</option>
-    </select>
+    <div class="field">
+      <select id="modality">
+        <option value="">Modalidad</option>
+        <option value="viladecans">Viladecans</option>
+        <option value="badalona">Badalona</option>
+        <option value="online">Online</option>
+      </select>
+    </div>
 
-    <input id="start" type="time" />
-    <input id="end" type="time" />
-
-    <input id="amount" type="number" placeholder="Importe (€)" />
-    <label><input type="checkbox" id="paid" /> Pagada</label>
+    <div class="field">
+      <label>
+        <input type="checkbox" id="completed">
+        Sesión realizada
+      </label>
+    </div>
 
     <div class="actions">
-      <button id="save">Guardar</button>
-      <button id="close">Cerrar</button>
+      <button id="whatsapp" class="btn-secondary">WhatsApp</button>
+      <button id="save" class="btn-primary">Guardar</button>
+      <button onclick="closeModal()">Cerrar</button>
     </div>
+
   </div>
 </div>
 
