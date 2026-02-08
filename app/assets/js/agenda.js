@@ -17,7 +17,7 @@ await loadMenu();
 let currentDate = new Date();
 let editingId = null;
 
-const agendaEl = document.getElementById("agenda");
+const agendaEl = document.getElementById("hours"); // 🔧 CORREGIDO
 const dateLabel = document.getElementById("dateLabel");
 
 const modal = document.getElementById("modal");
@@ -87,6 +87,14 @@ async function renderDay() {
   snap.forEach(d => {
     appointments.push({ id: d.id, ...d.data() });
   });
+
+  if (!appointments.length) {
+    const empty = document.createElement("div");
+    empty.className = "agenda-empty";
+    empty.textContent = "No hay citas este día";
+    agendaEl.appendChild(empty);
+    return;
+  }
 
   appointments.sort((a, b) => a.start.localeCompare(b.start));
 
