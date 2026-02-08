@@ -171,9 +171,6 @@ name.oninput = e => {
   searchPatients(e.target.value);
 };
 
-/* =========================
-   SAVE
-========================= */
 document.getElementById("save").onclick = async () => {
   const user = auth.currentUser;
   if (!user || !currentSlot) return;
@@ -191,18 +188,24 @@ document.getElementById("save").onclick = async () => {
     completed: completed.checked,
     paid: paid.checked,
     amount: Number(amount.value || 0),
-    invoiceId: null, // preparado para facturación
     updatedAt: Timestamp.now()
   };
 
+  let appointmentId;
+
   if (editingId) {
+    appointmentId = editingId;
     await updateDoc(doc(db, "appointments", editingId), data);
   } else {
-    await addDoc(collection(db, "appointments"), {
+    const ref = await addDoc(collection(db, "appointments"), {
       ...data,
+      invoiceId: null,
       createdAt: Timestamp.now()
     });
+    appointmentId = ref.id;
   }
+
+  await createInvoiceIfNeeded(appointmentId, data);
 
   modal.classList.remove("show");
   renderWeek();
