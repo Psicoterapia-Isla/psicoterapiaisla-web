@@ -7,102 +7,86 @@
 <link rel="stylesheet" href="assets/css/app.css">
 
 <style>
-.agenda-wrapper {
-  max-width: 720px;
-  margin: 0 auto;
-  padding: 1rem;
+.wrapper {
+  max-width:720px;
+  margin:0 auto;
+  padding:1.5rem;
 }
 
-.day-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1rem;
+.header {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:1rem;
 }
 
-.day-left {
-  display: flex;
-  gap: .75rem;
-  align-items: center;
+.date-info {
+  display:flex;
+  gap:.75rem;
+  align-items:center;
 }
 
-.day-circle {
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  background: #1f6b4e;
-  color: #fff;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.circle {
+  width:44px;
+  height:44px;
+  border-radius:50%;
+  background:#1f6b4e;
+  color:#fff;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-weight:600;
 }
 
-.nav-buttons {
-  display: flex;
-  gap: .4rem;
+.nav {
+  display:flex;
+  gap:.5rem;
 }
 
 .slot {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: .9rem;
-  border-radius: 14px;
-  margin-bottom: .6rem;
-  cursor: pointer;
-  transition: transform .1s ease;
+  display:flex;
+  align-items:center;
+  gap:1rem;
+  padding:.75rem;
+  border-radius:12px;
+  margin-bottom:.5rem;
+  cursor:pointer;
 }
 
-.slot:hover {
-  transform: scale(0.99);
+.slot.free {
+  background:#e5e7eb;
 }
 
-.slot-green {
-  background: #e6f4d7;
+.slot.busy {
+  background:#e6f4d7;
 }
 
-.slot-grey {
-  background: #e5e7eb;
-  color: #555;
+.time {
+  width:60px;
+  font-weight:600;
 }
 
-.slot-left {
-  display: flex;
-  gap: .75rem;
-  align-items: center;
-}
-
-.slot-time {
-  width: 56px;
-  font-weight: 600;
-}
-
-.slot-meta {
-  font-size: .7rem;
-  opacity: .75;
-}
-
-.slot-actions {
-  font-size: .7rem;
-  opacity: .6;
-}
-
-/* MODAL */
 .modal {
-  display: none;
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,.4);
-  z-index: 999;
+  display:none;
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.4);
+  z-index:999;
 }
 
 .modal-card {
-  background: #fff;
-  max-width: 420px;
-  margin: 10vh auto;
-  padding: 1rem;
-  border-radius: 16px;
+  background:#fff;
+  max-width:420px;
+  margin:10vh auto;
+  padding:1rem;
+  border-radius:16px;
+}
+
+.actions {
+  display:flex;
+  justify-content:flex-end;
+  gap:.5rem;
+  margin-top:1rem;
 }
 </style>
 </head>
@@ -110,42 +94,41 @@
 <body class="app-body">
 <header class="app-menu"></header>
 
-<main class="agenda-wrapper">
+<main class="wrapper">
 
-  <div class="day-header">
-    <div class="day-left">
-      <div class="day-circle" id="dayNumber"></div>
+  <div class="header">
+    <div class="date-info">
+      <div class="circle" id="dayNum"></div>
       <div>
         <div id="dayName"></div>
         <div id="dayMonth"></div>
       </div>
     </div>
 
-    <div class="nav-buttons">
-      <button id="prevDay" class="btn-secondary">←</button>
-      <button id="todayBtn" class="btn-secondary">Hoy</button>
-      <button id="nextDay" class="btn-secondary">→</button>
-      <button id="btnNew" class="btn-primary">＋</button>
+    <div class="nav">
+      <button id="prev" class="btn-secondary">←</button>
+      <button id="today" class="btn-secondary">Hoy</button>
+      <button id="next" class="btn-secondary">→</button>
     </div>
   </div>
 
-  <div id="agendaList"></div>
+  <div id="list"></div>
 </main>
 
 <!-- MODAL -->
-<div id="appointmentModal" class="modal">
+<div id="modal" class="modal">
   <div class="modal-card">
-    <h3 id="amPatient"></h3>
-    <p id="amDateTime"></p>
-    <p id="amModality"></p>
+    <h3 id="mPatient"></h3>
+    <p id="mTime"></p>
 
     <label>
-      <input type="checkbox" id="amCompleted"> Sesión realizada
+      <input type="checkbox" id="mDone">
+      Sesión realizada
     </label>
 
-    <div style="margin-top:1rem;text-align:right;">
-      <button id="amSaveBtn" class="btn-primary">Guardar</button>
-      <button onclick="closeAppointmentModal()">Cerrar</button>
+    <div class="actions">
+      <button id="mSave" class="btn-primary">Guardar</button>
+      <button onclick="closeModal()">Cerrar</button>
     </div>
   </div>
 </div>
@@ -153,98 +136,10 @@
 <script type="module">
 import { requireAuth } from "./assets/js/auth.js";
 import { loadMenu } from "./assets/js/menu.js";
-import { auth, db } from "./assets/js/firebase.js";
-import { markAppointmentCompleted } from "./assets/js/appointment-manager.js";
-
-import {
-  collection, getDocs, query, where, orderBy, Timestamp
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
 await requireAuth();
 await loadMenu();
-
-let currentDate =
-  new URLSearchParams(location.search).get("date")
-  || new Date().toISOString().split("T")[0];
-
-function go(d){ location.href=`agenda-diaria.html?date=${d}`; }
-
-prevDay.onclick = () => {
-  const d=new Date(currentDate); d.setDate(d.getDate()-1); go(toISO(d));
-};
-nextDay.onclick = () => {
-  const d=new Date(currentDate); d.setDate(d.getDate()+1); go(toISO(d));
-};
-todayBtn.onclick = () => go(new Date().toISOString().split("T")[0]);
-
-const baseDate=new Date(currentDate); baseDate.setHours(0,0,0,0);
-dayNumber.textContent=baseDate.getDate();
-dayName.textContent=baseDate.toLocaleDateString("es-ES",{weekday:"long"});
-dayMonth.textContent=baseDate.toLocaleDateString("es-ES",{month:"long",year:"numeric"});
-
-const therapistId=auth.currentUser.uid;
-const agendaList=document.getElementById("agendaList");
-let currentAppointment=null;
-
-window.closeAppointmentModal=()=>appointmentModal.style.display="none";
-
-function openModal(app){
-  currentAppointment=app;
-  const s=app.start.toDate(), e=app.end.toDate();
-  amPatient.textContent=app.patientName;
-  amDateTime.textContent=`${s.getHours()}:00 – ${e.getHours()}:00`;
-  amModality.textContent=app.modality;
-  amCompleted.checked=app.status==="completed";
-  appointmentModal.style.display="block";
-}
-
-amSaveBtn.onclick=async()=>{
-  if(amCompleted.checked){
-    await markAppointmentCompleted(currentAppointment);
-  }
-  location.reload();
-};
-
-const snap=await getDocs(query(
-  collection(db,"appointments"),
-  where("therapistId","==",therapistId),
-  where("start",">=",Timestamp.fromDate(baseDate)),
-  where("start","<",Timestamp.fromDate(new Date(baseDate.getTime()+86400000))),
-  orderBy("start")
-));
-
-const byHour={};
-snap.forEach(d=>byHour[d.data().start.toDate().getHours()]={...d.data(),id:d.id});
-
-for(let h=9;h<21;h++){
-  const slot=document.createElement("div");
-  if(byHour[h]){
-    const a=byHour[h];
-    slot.className="slot slot-green";
-    slot.innerHTML=`
-      <div class="slot-left">
-        <div class="slot-time">${h}:00</div>
-        <div>
-          <strong>${a.patientName}</strong>
-          <div class="slot-meta">${a.modality}</div>
-        </div>
-      </div>
-      <div class="slot-actions">Gestionar</div>`;
-    slot.onclick=()=>openModal(a);
-  } else {
-    slot.className="slot slot-grey";
-    slot.innerHTML=`
-      <div class="slot-left">
-        <div class="slot-time">${h}:00</div>
-        <div>Libre</div>
-      </div>`;
-  }
-  agendaList.appendChild(slot);
-}
-
-function toISO(d){
-  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
-}
 </script>
+
+<script type="module" src="assets/js/agenda-diaria.js"></script>
 </body>
 </html>
