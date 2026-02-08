@@ -7,7 +7,9 @@
 <link rel="stylesheet" href="assets/css/app.css">
 
 <style>
-/* ===== LAYOUT ===== */
+/* ======================
+   LAYOUT
+====================== */
 .wrapper {
   max-width: 1100px;
   margin: 0 auto;
@@ -15,105 +17,107 @@
 }
 
 .header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1rem;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:1rem;
+}
+
+.header h1 {
+  margin:0;
 }
 
 .nav {
-  display: flex;
-  gap: .5rem;
+  display:flex;
+  gap:.5rem;
 }
 
-/* ===== DATE ===== */
-.date-box {
-  display: flex;
-  align-items: center;
-  gap: .75rem;
+.day-info {
+  margin-bottom:1rem;
+  font-size:.9rem;
+  color:#555;
 }
 
-.circle {
-  width: 46px;
-  height: 46px;
-  border-radius: 50%;
-  background: #1f6b4e;
-  color: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 600;
-}
-
-/* ===== GRID ===== */
-.grid {
-  display: grid;
-  grid-template-columns: 70px repeat(7, 1fr);
-  gap: .4rem;
-  margin-top: 1rem;
-}
-
-.hour {
-  text-align: right;
-  font-size: .75rem;
-  color: #666;
-  padding-right: 6px;
-}
-
-.day {
-  text-align: center;
-  font-weight: 600;
-  font-size: .75rem;
-}
-
+/* ======================
+   AGENDA
+====================== */
 .slot {
-  height: 52px;
-  border-radius: 12px;
-  font-size: .7rem;
-  padding: .4rem;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:.75rem;
+  border-radius:12px;
+  margin-bottom:.5rem;
+  cursor:pointer;
 }
 
-.free { background: #e5e7eb; }
-.busy { background: #e6f4d7; }
-.done { background: #e6f0ff; }
+.slot.free { background:#e5e7eb; }
+.slot.busy { background:#e6f4d7; }
 
-/* ===== MODAL ===== */
+.time {
+  width:60px;
+  font-weight:600;
+}
+
+.meta {
+  flex:1;
+}
+
+.actions {
+  display:flex;
+  gap:.4rem;
+}
+
+.badge {
+  font-size:.65rem;
+  padding:.2rem .5rem;
+  border-radius:6px;
+}
+
+.done { background:#dbeafe; }
+.paid { background:#dcfce7; }
+.invoice { background:#fde68a; }
+
+/* ======================
+   MODAL
+====================== */
 .modal {
-  display: none;
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,.4);
-  z-index: 999;
+  display:none;
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.4);
+  z-index:999;
 }
 
 .modal-card {
-  background: #fff;
-  max-width: 420px;
-  margin: 8vh auto;
-  padding: 1.2rem;
-  border-radius: 16px;
+  background:#fff;
+  max-width:420px;
+  margin:8vh auto;
+  padding:1rem;
+  border-radius:16px;
 }
 
-.modal-row {
-  margin-bottom: .75rem;
+.modal-card h3 {
+  margin-top:0;
 }
 
-.modal-row label {
-  font-size: .7rem;
-  display: block;
-  margin-bottom: .25rem;
+.row {
+  margin-bottom:.75rem;
+}
+
+.row label {
+  font-size:.8rem;
+}
+
+.row input,
+.row select {
+  width:100%;
 }
 
 .modal-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: .5rem;
-  margin-top: 1rem;
+  display:flex;
+  justify-content:flex-end;
+  gap:.5rem;
 }
 </style>
 </head>
@@ -124,43 +128,41 @@
 <main class="wrapper">
 
   <div class="header">
-    <div class="date-box">
-      <div class="circle" id="dayNum"></div>
-      <div>
-        <div id="dayName"></div>
-        <div id="dayMonth"></div>
-      </div>
-    </div>
-
+    <h1>Agenda</h1>
     <div class="nav">
-      <button id="prevDay" class="btn-secondary">←</button>
-      <button id="todayBtn" class="btn-secondary">Hoy</button>
-      <button id="nextDay" class="btn-secondary">→</button>
+      <button id="prev" class="btn-secondary">←</button>
+      <button id="today" class="btn-secondary">Hoy</button>
+      <button id="next" class="btn-secondary">→</button>
+      <button id="new" class="btn-primary">＋ Cita</button>
     </div>
   </div>
 
-  <div id="agendaGrid" class="grid"></div>
+  <div class="day-info" id="dayInfo"></div>
+
+  <div id="list"></div>
 </main>
 
-<!-- ===== MODAL CITA ===== -->
+<!-- ======================
+     MODAL CITA
+====================== -->
 <div id="modal" class="modal">
   <div class="modal-card">
 
-    <h3 id="mTitle">Cita</h3>
+    <h3 id="mTitle"></h3>
 
-    <div class="modal-row">
-      <label>Teléfono</label>
-      <input id="pPhone" type="text" placeholder="600000000">
+    <div class="row">
+      <label>Paciente (teléfono)</label>
+      <input id="mPhone" type="text">
     </div>
 
-    <div class="modal-row">
+    <div class="row">
       <label>Nombre</label>
-      <input id="pName" type="text">
+      <input id="mName" type="text">
     </div>
 
-    <div class="modal-row">
+    <div class="row">
       <label>Modalidad</label>
-      <select id="pModality">
+      <select id="mModality">
         <option value="">—</option>
         <option value="viladecans">Viladecans</option>
         <option value="badalona">Badalona</option>
@@ -168,191 +170,155 @@
       </select>
     </div>
 
-    <div class="modal-row">
+    <div class="row">
       <label>
-        <input type="checkbox" id="pDone">
+        <input type="checkbox" id="mDone">
         Sesión realizada
       </label>
     </div>
 
+    <div class="row">
+      <label>
+        <input type="checkbox" id="mPaid">
+        Pagada
+      </label>
+    </div>
+
     <div class="modal-actions">
-      <button id="saveBtn" class="btn-primary">Guardar</button>
+      <button id="save" class="btn-primary">Guardar</button>
       <button onclick="closeModal()">Cerrar</button>
     </div>
 
   </div>
 </div>
 
+<!-- ======================
+     AUTH + MENU
+====================== -->
 <script type="module">
 import { requireAuth } from "./assets/js/auth.js";
 import { loadMenu } from "./assets/js/menu.js";
-import { auth, db } from "./assets/js/firebase.js";
-
-import {
-  collection, addDoc, getDocs, query, where,
-  Timestamp, doc, getDoc, updateDoc
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
 await requireAuth();
 await loadMenu();
+</script>
 
-const therapistId = auth.currentUser.uid;
+<!-- ======================
+     LÓGICA
+====================== -->
+<script type="module">
+import { auth, db } from "./assets/js/firebase.js";
+import {
+  collection, query, where, orderBy,
+  getDocs, addDoc, updateDoc, doc,
+  Timestamp, serverTimestamp
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 /* ===== FECHA ===== */
 let currentDate =
   new URLSearchParams(location.search).get("date")
-  || new Date().toISOString().slice(0,10);
+  || new Date().toISOString().split("T")[0];
 
 function toISO(d){
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
 }
 
-prevDay.onclick = () => {
-  const d=new Date(currentDate);d.setDate(d.getDate()-1);
-  location.href=`agenda.html?date=${toISO(d)}`;
-};
-nextDay.onclick = () => {
-  const d=new Date(currentDate);d.setDate(d.getDate()+1);
-  location.href=`agenda.html?date=${toISO(d)}`;
-};
-todayBtn.onclick = () => location.href="agenda.html";
+prev.onclick=()=>{ const d=new Date(currentDate); d.setDate(d.getDate()-1); location.href=`agenda.html?date=${toISO(d)}`; };
+next.onclick=()=>{ const d=new Date(currentDate); d.setDate(d.getDate()+1); location.href=`agenda.html?date=${toISO(d)}`; };
+today.onclick=()=> location.href="agenda.html";
 
-/* ===== HEADER ===== */
-const base = new Date(currentDate);
+const base=new Date(currentDate);
 base.setHours(0,0,0,0);
 
-dayNum.textContent = base.getDate();
-dayName.textContent =
-  base.toLocaleDateString("es-ES",{weekday:"long"});
-dayMonth.textContent =
-  base.toLocaleDateString("es-ES",{month:"long",year:"numeric"});
+dayInfo.textContent =
+  base.toLocaleDateString("es-ES",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
 
-/* ===== GRID ===== */
-const grid = document.getElementById("agendaGrid");
-const HOURS = [...Array(12)].map((_,i)=>i+9);
-
-grid.appendChild(document.createElement("div"));
-["L","M","X","J","V","S","D"].forEach(l=>{
-  const d=document.createElement("div");
-  d.className="day";d.textContent=l;
-  grid.appendChild(d);
-});
-
-/* ===== LOAD APPOINTMENTS ===== */
-const start = Timestamp.fromDate(base);
-const end   = Timestamp.fromDate(
-  new Date(base.getTime()+7*86400000)
-);
-
+/* ===== CARGA ===== */
+const therapistId = auth.currentUser.uid;
 const snap = await getDocs(query(
   collection(db,"appointments"),
   where("therapistId","==",therapistId),
-  where("start",">=",start),
-  where("start","<",end)
+  where("start",">=",Timestamp.fromDate(base)),
+  where("start","<",Timestamp.fromDate(new Date(base.getTime()+86400000))),
+  orderBy("start")
 ));
 
-const byKey = {};
+const byHour={};
 snap.forEach(d=>{
-  const a=d.data();
-  const s=a.start.toDate();
-  const key=`${s.toISOString().slice(0,10)}_${s.getHours()}`;
-  byKey[key]={...a,id:d.id};
+  byHour[d.data().start.toDate().getHours()]={...d.data(),id:d.id};
 });
+
+const list=document.getElementById("list");
 
 /* ===== RENDER ===== */
-let currentSlot = null;
+for(let h=9;h<21;h++){
+  const s=document.createElement("div");
 
-HOURS.forEach(h=>{
-  const hl=document.createElement("div");
-  hl.className="hour";hl.textContent=`${h}:00`;
-  grid.appendChild(hl);
-
-  for(let i=0;i<7;i++){
-    const d=new Date(base);
-    d.setDate(d.getDate()+i);
-    const iso=toISO(d);
-    const key=`${iso}_${h}`;
-    const c=document.createElement("div");
-
-    if(byKey[key]){
-      const a=byKey[key];
-      c.className=`slot ${a.status==="completed"?"done":"busy"}`;
-      c.textContent=a.patientName;
-      c.onclick=()=>openModal(a,iso,h);
-    } else {
-      c.className="slot free";
-      c.textContent="Libre";
-      c.onclick=()=>openModal(null,iso,h);
-    }
-
-    grid.appendChild(c);
-  }
-});
-
-/* ===== MODAL ===== */
-const modal=document.getElementById("modal");
-const pPhone=document.getElementById("pPhone");
-const pName=document.getElementById("pName");
-const pModality=document.getElementById("pModality");
-const pDone=document.getElementById("pDone");
-
-window.closeModal=()=>modal.style.display="none";
-
-function openModal(app, dateISO, hour){
-  currentSlot={app,dateISO,hour};
-  modal.style.display="block";
-
-  if(app){
-    pPhone.value=app.patientId||"";
-    pName.value=app.patientName||"";
-    pModality.value=app.modality||"";
-    pDone.checked=app.status==="completed";
+  if(byHour[h]){
+    const a=byHour[h];
+    s.className="slot busy";
+    s.innerHTML=`
+      <div class="time">${h}:00</div>
+      <div class="meta">
+        <strong>${a.patientName}</strong><br>
+        <small>${a.modality}</small>
+        <div class="actions">
+          ${a.status==="completed"?'<span class="badge done">Realizada</span>':''}
+          ${a.invoiceId?'<span class="badge invoice">Factura</span>':''}
+        </div>
+      </div>
+    `;
+    s.onclick=()=>openModal(a);
   } else {
-    pPhone.value="";
-    pName.value="";
-    pModality.value="";
-    pDone.checked=false;
+    s.className="slot free";
+    s.innerHTML=`
+      <div class="time">${h}:00</div>
+      <div class="meta">Libre</div>
+    `;
+    s.onclick=()=>openModal({ hour:h });
   }
+
+  list.appendChild(s);
 }
 
-/* ===== AUTOCOMPLETE ===== */
-pPhone.addEventListener("input", async()=>{
-  const phone=pPhone.value.trim();
-  if(!/^\d{9}$/.test(phone)) return;
+/* ===== MODAL ===== */
+let current=null;
+window.closeModal=()=>modal.style.display="none";
 
-  let snap=await getDoc(doc(db,"patients",phone));
-  if(!snap.exists()){
-    snap=await getDoc(doc(db,"patients_normalized",phone));
-  }
-  if(snap.exists()){
-    const d=snap.data();
-    pName.value=d.fullName||[d.nombre,d.apellidos].filter(Boolean).join(" ");
-  }
-});
+function openModal(a){
+  current=a;
+  modal.style.display="block";
+  mTitle.textContent=a.patientName||"Nueva cita";
+  mPhone.value=a.patientId||"";
+  mName.value=a.patientName||"";
+  mModality.value=a.modality||"";
+  mDone.checked=a.status==="completed";
+  mPaid.checked=!!a.invoiceId;
+}
 
-/* ===== SAVE ===== */
-saveBtn.onclick=async()=>{
-  const {app,dateISO,hour}=currentSlot;
+save.onclick=async()=>{
+  const user=auth.currentUser;
+  if(!user) return;
 
-  const baseD=new Date(dateISO);
-  const startD=new Date(baseD);startD.setHours(hour,0,0,0);
-  const endD=new Date(baseD);endD.setHours(hour+1,0,0,0);
-
-  if(app){
-    await updateDoc(doc(db,"appointments",app.id),{
-      status:pDone.checked?"completed":"scheduled",
-      completedAt:pDone.checked?Timestamp.now():null
+  if(current.id){
+    await updateDoc(doc(db,"appointments",current.id),{
+      status: mDone.checked?"completed":"scheduled",
+      completedAt: mDone.checked?Timestamp.now():null
     });
   } else {
+    const start=new Date(base);
+    start.setHours(current.hour,0,0,0);
+    const end=new Date(start);
+    end.setHours(start.getHours()+1);
+
     await addDoc(collection(db,"appointments"),{
-      therapistId,
-      patientId:pPhone.value.trim(),
-      patientName:pName.value.trim(),
-      modality:pModality.value,
-      start:Timestamp.fromDate(startD),
-      end:Timestamp.fromDate(endD),
+      therapistId:user.uid,
+      patientId:mPhone.value,
+      patientName:mName.value,
+      modality:mModality.value,
+      start:Timestamp.fromDate(start),
+      end:Timestamp.fromDate(end),
       status:"scheduled",
-      createdAt:Timestamp.now()
+      createdAt:serverTimestamp()
     });
   }
 
