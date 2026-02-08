@@ -1,3 +1,5 @@
+// app/assets/js/create-appointment.js
+
 import { db, auth } from "./firebase.js";
 import {
   addDoc,
@@ -9,52 +11,59 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 /* =========================
-   MODAL
+   ESTADO
 ========================= */
-window.closeCreateModal = () => {
-  document.getElementById("createModal").style.display = "none";
-};
+let patientFound = false;
 
 /* =========================
-   AUTOCOMPLETE PACIENTE
+   DOM
 ========================= */
 const phoneInput = document.getElementById("cPatientPhone");
 const nameInput  = document.getElementById("cPatientName");
 
-let patientFound = false;
+const serviceInput  = document.getElementById("cService");
+const modalityInput = document.getElementById("cModality");
+const startInput    = document.getElementById("cStart");
+const endInput      = document.getElementById("cEnd");
 
+/* =========================
+   AUTOCOMPLETE PACIENTE
+========================= */
 if (phoneInput && nameInput) {
+
   phoneInput.addEventListener("input", async () => {
     const phone = phoneInput.value.trim();
 
     patientFound = false;
     nameInput.disabled = false;
+    nameInput.value = "";
 
     if (!/^\d{9}$/.test(phone)) {
-      nameInput.value = "";
       return;
     }
 
-    // 1️⃣ Intento directo
-    let snap = await getDoc(doc(db, "patients", phone));
+    try {
+      // 1️⃣ intento directo
+      let snap = await getDoc(doc(db, "patients", phone));
 
-    // 2️⃣ Fallback normalizado
-    if (!snap.exists()) {
-      snap = await getDoc(doc(db, "patients_normalized", phone));
-    }
+      // 2️⃣ fallback normalizado
+      if (!snap.exists()) {
+        snap = await getDoc(doc(db, "patients_normalized", phone));
+      }
 
-    if (snap.exists()) {
-      const d = snap.data();
+      if (snap.exists()) {
+        const d = snap.data();
 
-      nameInput.value =
-        d.fullName ||
-        [d.nombre, d.apellidos].filter(Boolean).join(" ");
+        nameInput.value =
+          d.fullName ||
+          [d.nombre, d.apellidos].filter(Boolean).join(" ");
 
-      nameInput.disabled = true;
-      patientFound = true;
-    } else {
-      nameInput.value = "";
-      nameInput.disabled = false;
+        nameInput.disabled = true;
+        patientFound = true;
+      }
+
+    } catch (err) {
+      console.warn("Autocomplete paciente error:", err);
     }
   });
 }
@@ -64,12 +73,12 @@ if (phoneInput && nameInput) {
 ========================= */
 window.createAppointment = async () => {
 
-  const phone    = phoneInput.value.trim();
-  const name     = nameInput.value.trim();
-  const service  = document.getElementById("cService").value.trim();
-  const modality = document.getElementById("cModality")?.value;
-  const startH   = document.getElementById("cStart").value;
-  const endH     = document.getElementById("cEnd").value;
+  const phone    = phoneInput?.value.trim();
+  const name     = nameInput?.value.trim();
+  const service  = serviceInput?.value.trim();
+  const modality = modalityInput?.value;
+  const startH   = startInput?.value;
+  const endH     = endInput?.value;
 
   /* ===== VALIDACIONES ===== */
   if (!/^\d{9}$/.test(phone)) {
@@ -83,7 +92,7 @@ window.createAppointment = async () => {
   }
 
   if (!modality) {
-    alert("Debes seleccionar modalidad");
+    alert("Selecciona modalidad");
     return;
   }
 
@@ -95,6 +104,11 @@ window.createAppointment = async () => {
   const user = auth.currentUser;
   if (!user) {
     alert("Usuario no autenticado");
+    return;
+  }
+
+  if (!window.__selectedDateISO) {
+    alert("Fecha no definida");
     return;
   }
 
@@ -111,26 +125,37 @@ window.createAppointment = async () => {
   const end = new Date(baseDate);
   end.setHours(eh, em, 0, 0);
 
+  if (end <= start) {
+    alert("La hora de fin debe ser posterior al inicio");
+    return;
+  }
+
   /* ===== CREAR CITA ===== */
-  await addDoc(collection(db, "appointments"), {
-    therapistId: user.uid,
+  try {
+    await addDoc(collection(db, "appointments"), {
+      therapistId: user.uid,
 
-    // ⚠️ Identificador administrativo (no auth)
-    patientId: phone,
-    patientName: name,
+      // identificador administrativo (no auth)
+      patientId: phone,
+      patientName: name,
 
-    service: service || "Sesión",
-    modality, // viladecans | badalona | online
+      service: service || "Sesión",
+      modality, // viladecans | badalona | online
 
-    start: Timestamp.fromDate(start),
-    end: Timestamp.fromDate(end),
+      start: Timestamp.fromDate(start),
+      end: Timestamp.fromDate(end),
 
-    status: "scheduled",
+      status: "scheduled",
 
-    createdBy: user.uid,
-    createdAt: serverTimestamp()
-  });
+      createdBy: user.uid,
+      createdAt: serverTimestamp()
+    });
 
-  closeCreateModal();
-  location.reload();
+    alert("Cita creada correctamente");
+    location.reload();
+
+  } catch (err) {
+    console.error("Error creando cita:", err);
+    alert("Error al crear la cita");
+  }
 };
