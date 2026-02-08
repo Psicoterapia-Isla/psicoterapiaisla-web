@@ -7,62 +7,37 @@
 <link rel="stylesheet" href="assets/css/app.css">
 
 <style>
-.wrapper {
-  max-width: 1000px;
-  margin: 0 auto;
-  padding: 1.5rem;
-}
-
+.wrapper { padding:1.5rem; }
 .header {
   display:flex;
   justify-content:space-between;
   align-items:center;
   margin-bottom:1rem;
 }
-
-.nav {
-  display:flex;
-  gap:.5rem;
-}
+.nav { display:flex; gap:.5rem; }
 
 .grid {
   display:grid;
   grid-template-columns:60px repeat(7,1fr);
-  gap:6px;
+  gap:.4rem;
 }
 
 .hour {
-  font-size:.75rem;
   text-align:right;
+  font-size:.75rem;
   padding-right:6px;
   color:#666;
 }
 
-.day {
-  text-align:center;
-  font-weight:600;
-}
+.day { text-align:center; font-weight:600; }
 
 .slot {
-  padding:.25rem;
+  height:40px;
   border-radius:8px;
   background:#e5e7eb;
-  display:flex;
-  gap:.25rem;
-  justify-content:center;
+  cursor:pointer;
 }
-
-.mode {
-  font-size:.65rem;
-  padding:.25rem .4rem;
-  border-radius:6px;
-  border:none;
-}
-
-.mode.on {
-  background:#1f6b4e;
-  color:#fff;
-}
+.slot.on { background:#e6f4d7; }
 </style>
 </head>
 
@@ -74,16 +49,16 @@
   <div class="header">
     <h1>Disponibilidad</h1>
     <div class="nav">
-      <button id="prevWeek" class="btn-secondary">←</button>
-      <button id="todayWeek" class="btn-secondary">Hoy</button>
-      <button id="nextWeek" class="btn-secondary">→</button>
+      <button id="prev" class="btn-secondary">←</button>
+      <button id="today" class="btn-secondary">Hoy</button>
+      <button id="next" class="btn-secondary">→</button>
     </div>
   </div>
 
   <div id="grid" class="grid"></div>
 
   <br>
-  <button id="save" class="btn-primary">Guardar disponibilidad</button>
+  <button id="save" class="btn-primary">Guardar</button>
 </main>
 
 <script type="module">
@@ -93,34 +68,77 @@ await requireAuth();
 await loadMenu();
 </script>
 
-<script>
+<script type="module">
+import { auth, db } from "./assets/js/firebase.js";
+import { doc, getDoc, setDoc, serverTimestamp }
+from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+const DAYS=["mon","tue","wed","thu","fri","sat","sun"];
+const HOURS=[9,10,11,12,13,14,15,16,17,18,19,20];
+const grid=document.getElementById("grid");
+const slots={};
+
 function mondayOf(d){
-  const x=new Date(d);
-  const day=(x.getDay()+6)%7;
-  x.setDate(x.getDate()-day);
-  x.setHours(0,0,0,0);
-  return x;
+  const x=new Date(d);const n=(x.getDay()+6)%7;
+  x.setDate(x.getDate()-n);x.setHours(0,0,0,0);return x;
 }
 
 const p=new URLSearchParams(location.search);
 const base=p.get("week")?new Date(p.get("week")):new Date();
 const monday=mondayOf(base);
+const weekKey=monday.toISOString().slice(0,10);
 
-window.__weekKey=monday.toISOString().slice(0,10);
+prev.onclick=()=>go(-7);
+next.onclick=()=>go(7);
+today.onclick=()=>location.href="disponibilidad.html";
 
-document.getElementById("prevWeek").onclick=()=>{
-  const d=new Date(monday);d.setDate(d.getDate()-7);
+function go(o){
+  const d=new Date(monday);d.setDate(d.getDate()+o);
   location.href=`disponibilidad.html?week=${d.toISOString().slice(0,10)}`;
-};
-document.getElementById("nextWeek").onclick=()=>{
-  const d=new Date(monday);d.setDate(d.getDate()+7);
-  location.href=`disponibilidad.html?week=${d.toISOString().slice(0,10)}`;
-};
-document.getElementById("todayWeek").onclick=()=>{
-  location.href="disponibilidad.html";
+}
+
+const ref=doc(db,"availability",`${auth.currentUser.uid}_${weekKey}`);
+const snap=await getDoc(ref);
+if(snap.exists()) Object.assign(slots,snap.data().slots||{});
+
+/* header */
+grid.appendChild(document.createElement("div"));
+DAYS.forEach((_,i)=>{
+  const d=new Date(monday);d.setDate(d.getDate()+i);
+  const h=document.createElement("div");
+  h.className="day";
+  h.textContent=d.toLocaleDateString("es-ES",{weekday:"short",day:"numeric"});
+  grid.appendChild(h);
+});
+
+/* grid */
+HOURS.forEach(h=>{
+  const l=document.createElement("div");
+  l.className="hour";l.textContent=h+":00";
+  grid.appendChild(l);
+
+  DAYS.forEach(d=>{
+    const k=`${d}_${h}`;
+    slots[k]??=false;
+    const s=document.createElement("div");
+    s.className="slot"+(slots[k]?" on":"");
+    s.onclick=()=>{
+      slots[k]=!slots[k];
+      s.classList.toggle("on",slots[k]);
+    };
+    grid.appendChild(s);
+  });
+});
+
+save.onclick=async()=>{
+  await setDoc(ref,{
+    therapistId:auth.currentUser.uid,
+    weekStart:weekKey,
+    slots,
+    updatedAt:serverTimestamp()
+  });
+  alert("Disponibilidad guardada");
 };
 </script>
-
-<script type="module" src="assets/js/disponibilidad.js"></script>
 </body>
 </html>
