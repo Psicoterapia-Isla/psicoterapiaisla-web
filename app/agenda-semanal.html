@@ -70,9 +70,9 @@
     <h1>Agenda semanal</h1>
 
     <div class="week-nav">
-      <button id="prevWeek" class="btn-secondary" type="button">←</button>
-      <button id="todayWeek" class="btn-secondary" type="button">Hoy</button>
-      <button id="nextWeek" class="btn-secondary" type="button">→</button>
+      <button id="prevWeek" class="btn-secondary">←</button>
+      <button id="todayWeek" class="btn-secondary">Hoy</button>
+      <button id="nextWeek" class="btn-secondary">→</button>
     </div>
   </div>
 
@@ -92,6 +92,9 @@ import {
 await requireAuth();
 await loadMenu();
 
+/* =========================
+   AUTH / BASE
+========================= */
 const therapistId = auth.currentUser.uid;
 const grid = document.getElementById("weekGrid");
 
@@ -100,7 +103,7 @@ const END_HOUR = 21;
 const DAYS = ["mon","tue","wed","thu","fri","sat","sun"];
 
 /* =========================
-   SEMANA CONTROLADA (MISMO SISTEMA QUE DISPONIBILIDAD)
+   SEMANA CONTROLADA POR URL
 ========================= */
 function mondayOf(date) {
   const d = new Date(date);
@@ -117,11 +120,11 @@ const baseDate = paramWeek ? new Date(paramWeek) : new Date();
 const monday = mondayOf(baseDate);
 const weekKey = monday.toISOString().slice(0,10);
 
+/* navegación */
 function go(offsetWeeks) {
   const d = new Date(monday);
   d.setDate(d.getDate() + offsetWeeks * 7);
-  location.href =
-    `agenda-semanal.html?week=${d.toISOString().slice(0,10)}`;
+  location.href = `agenda-semanal.html?week=${d.toISOString().slice(0,10)}`;
 }
 
 document.getElementById("prevWeek").onclick = () => go(-1);
@@ -130,11 +133,12 @@ document.getElementById("todayWeek").onclick = () =>
   location.href = "agenda-semanal.html";
 
 /* =========================
-   DISPONIBILIDAD (MISMA KEY QUE DISPONIBILIDAD.HTML)
+   DISPONIBILIDAD
 ========================= */
 const availabilitySnap = await getDoc(
-  doc(db,"availability",`${therapistId}_${weekKey}`)
+  doc(db, "availability", `${therapistId}_${weekKey}`)
 );
+
 const availabilitySlots =
   availabilitySnap.exists()
     ? availabilitySnap.data().slots || {}
@@ -149,54 +153,57 @@ const end = Timestamp.fromDate(
 );
 
 const appointmentsSnap = await getDocs(query(
-  collection(db,"appointments"),
-  where("therapistId","==",therapistId),
-  where("start",">=",start),
-  where("start","<",end)
+  collection(db, "appointments"),
+  where("therapistId", "==", therapistId),
+  where("start", ">=", start),
+  where("start", "<", end)
 ));
 
 const appointmentsByKey = {};
-appointmentsSnap.forEach(d=>{
+appointmentsSnap.forEach(d => {
   const a = d.data();
   const s = a.start.toDate();
   const key = `${DAYS[(s.getDay()+6)%7]}_${s.getHours()}`;
-  appointmentsByKey[key] = { ...a, id:d.id };
+  appointmentsByKey[key] = { ...a, id: d.id };
 });
 
 /* =========================
    CABECERAS
 ========================= */
-grid.innerHTML = "";
 grid.appendChild(document.createElement("div"));
 
-for(let d=0; d<7; d++){
+for (let d = 0; d < 7; d++) {
   const day = new Date(monday);
   day.setDate(monday.getDate() + d);
 
   const h = document.createElement("div");
   h.className = "day-header";
   h.textContent =
-    day.toLocaleDateString("es-ES",{weekday:"short",day:"numeric"});
+    day.toLocaleDateString("es-ES", {
+      weekday: "short",
+      day: "numeric"
+    });
+
   grid.appendChild(h);
 }
 
 /* =========================
    GRID
 ========================= */
-for(let hour=START_HOUR; hour<END_HOUR; hour++){
+for (let hour = START_HOUR; hour < END_HOUR; hour++) {
   const hc = document.createElement("div");
   hc.className = "week-hour";
   hc.textContent = `${hour}:00`;
   grid.appendChild(hc);
 
-  for(let d=0; d<7; d++){
+  for (let d = 0; d < 7; d++) {
     const key = `${DAYS[d]}_${hour}`;
     const cell = document.createElement("div");
 
     if (appointmentsByKey[key]) {
       const app = appointmentsByKey[key];
       cell.className =
-        `week-slot ${app.status==="completed" ? "done" : "reserved"}`;
+        `week-slot ${app.status === "completed" ? "done" : "reserved"}`;
       cell.textContent = app.patientName || "";
       cell.onclick = () =>
         location.href =
@@ -223,9 +230,10 @@ for(let hour=START_HOUR; hour<END_HOUR; hour++){
 /* =========================
    HELPERS
 ========================= */
-function toISO(d){
+function toISO(d) {
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
 }
 </script>
+
 </body>
 </html>
