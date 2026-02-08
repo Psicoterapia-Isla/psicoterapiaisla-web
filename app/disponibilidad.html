@@ -1,141 +1,85 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8" />
-<title>Disponibilidad | Psicoterapia Isla</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<link rel="stylesheet" href="assets/css/app.css">
-
-<style>
-.wrapper { padding:1.5rem; }
-.header {
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  margin-bottom:1rem;
-}
-.nav { display:flex; gap:.5rem; }
-
-.grid {
-  display:grid;
-  grid-template-columns:60px repeat(7,1fr);
-  gap:.4rem;
-}
-
-.hour {
-  text-align:right;
-  font-size:.75rem;
-  padding-right:6px;
-  color:#666;
-}
-
-.day { text-align:center; font-weight:600; }
-
-.slot {
-  height:40px;
-  border-radius:8px;
-  background:#e5e7eb;
-  cursor:pointer;
-}
-.slot.on { background:#e6f4d7; }
-</style>
+  <meta charset="UTF-8">
+  <title>Disponibilidad | Psicoterapia Isla</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="assets/css/app.css">
 </head>
 
 <body class="app-body">
 <header class="app-menu"></header>
 
-<main class="wrapper">
-
-  <div class="header">
-    <h1>Disponibilidad</h1>
-    <div class="nav">
-      <button id="prev" class="btn-secondary">←</button>
-      <button id="today" class="btn-secondary">Hoy</button>
-      <button id="next" class="btn-secondary">→</button>
-    </div>
-  </div>
-
-  <div id="grid" class="grid"></div>
-
-  <br>
-  <button id="save" class="btn-primary">Guardar</button>
+<main class="availability-wrapper">
+  <h1>Disponibilidad</h1>
+  <button id="save">Guardar</button>
+  <div id="grid"></div>
 </main>
 
 <script type="module">
 import { requireAuth } from "./assets/js/auth.js";
 import { loadMenu } from "./assets/js/menu.js";
-await requireAuth();
+import { db } from "./assets/js/firebase.js";
+
+import {
+  doc, getDoc, setDoc
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+/* =========================
+   AUTH (CORRECTO)
+========================= */
+const user = await requireAuth();
 await loadMenu();
-</script>
+const therapistId = user.uid;
 
-<script type="module">
-import { auth, db } from "./assets/js/firebase.js";
-import { doc, getDoc, setDoc, serverTimestamp }
-from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+/* =========================
+   SEMANA
+========================= */
+const params = new URLSearchParams(location.search);
+const baseDate = params.get("week")
+  ? new Date(params.get("week"))
+  : new Date();
 
-const DAYS=["mon","tue","wed","thu","fri","sat","sun"];
-const HOURS=[9,10,11,12,13,14,15,16,17,18,19,20];
-const grid=document.getElementById("grid");
-const slots={};
-
-function mondayOf(d){
-  const x=new Date(d);const n=(x.getDay()+6)%7;
-  x.setDate(x.getDate()-n);x.setHours(0,0,0,0);return x;
+function mondayOf(date) {
+  const d = new Date(date);
+  const day = (d.getDay() + 6) % 7;
+  d.setDate(d.getDate() - day);
+  d.setHours(0,0,0,0);
+  return d;
 }
 
-const p=new URLSearchParams(location.search);
-const base=p.get("week")?new Date(p.get("week")):new Date();
-const monday=mondayOf(base);
-const weekKey=monday.toISOString().slice(0,10);
+const monday = mondayOf(baseDate);
+const weekKey = monday.toISOString().slice(0,10);
+const docId = `${therapistId}_${weekKey}`;
 
-prev.onclick=()=>go(-7);
-next.onclick=()=>go(7);
-today.onclick=()=>location.href="disponibilidad.html";
+/* =========================
+   LOAD
+========================= */
+const ref = doc(db, "availability", docId);
+const snap = await getDoc(ref);
+let slots = snap.exists() ? snap.data().slots : {};
 
-function go(o){
-  const d=new Date(monday);d.setDate(d.getDate()+o);
-  location.href=`disponibilidad.html?week=${d.toISOString().slice(0,10)}`;
+const grid = document.getElementById("grid");
+grid.innerHTML = "";
+
+for (let h = 9; h < 21; h++) {
+  const row = document.createElement("div");
+  row.textContent = `${h}:00`;
+  row.onclick = () => {
+    slots[`mon_${h}`] = !slots[`mon_${h}`];
+    row.style.background = slots[`mon_${h}`] ? "#cde" : "";
+  };
+  grid.appendChild(row);
 }
 
-const ref=doc(db,"availability",`${auth.currentUser.uid}_${weekKey}`);
-const snap=await getDoc(ref);
-if(snap.exists()) Object.assign(slots,snap.data().slots||{});
-
-/* header */
-grid.appendChild(document.createElement("div"));
-DAYS.forEach((_,i)=>{
-  const d=new Date(monday);d.setDate(d.getDate()+i);
-  const h=document.createElement("div");
-  h.className="day";
-  h.textContent=d.toLocaleDateString("es-ES",{weekday:"short",day:"numeric"});
-  grid.appendChild(h);
-});
-
-/* grid */
-HOURS.forEach(h=>{
-  const l=document.createElement("div");
-  l.className="hour";l.textContent=h+":00";
-  grid.appendChild(l);
-
-  DAYS.forEach(d=>{
-    const k=`${d}_${h}`;
-    slots[k]??=false;
-    const s=document.createElement("div");
-    s.className="slot"+(slots[k]?" on":"");
-    s.onclick=()=>{
-      slots[k]=!slots[k];
-      s.classList.toggle("on",slots[k]);
-    };
-    grid.appendChild(s);
-  });
-});
-
-save.onclick=async()=>{
-  await setDoc(ref,{
-    therapistId:auth.currentUser.uid,
-    weekStart:weekKey,
-    slots,
-    updatedAt:serverTimestamp()
+/* =========================
+   SAVE
+========================= */
+document.getElementById("save").onclick = async () => {
+  await setDoc(ref, {
+    therapistId,
+    week: weekKey,
+    slots
   });
   alert("Disponibilidad guardada");
 };
