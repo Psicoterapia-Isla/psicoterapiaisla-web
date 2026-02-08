@@ -7,158 +7,357 @@
 <link rel="stylesheet" href="assets/css/app.css">
 
 <style>
+/* ===== LAYOUT ===== */
 .wrapper {
-  max-width: 760px;
+  max-width: 1100px;
   margin: 0 auto;
   padding: 1.5rem;
 }
 
 .header {
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  margin-bottom:1rem;
-}
-
-.date {
-  font-size:1.25rem;
-  font-weight:600;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
 }
 
 .nav {
-  display:flex;
-  gap:.5rem;
+  display: flex;
+  gap: .5rem;
+}
+
+/* ===== DATE ===== */
+.date-box {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+}
+
+.circle {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: #1f6b4e;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+}
+
+/* ===== GRID ===== */
+.grid {
+  display: grid;
+  grid-template-columns: 70px repeat(7, 1fr);
+  gap: .4rem;
+  margin-top: 1rem;
+}
+
+.hour {
+  text-align: right;
+  font-size: .75rem;
+  color: #666;
+  padding-right: 6px;
+}
+
+.day {
+  text-align: center;
+  font-weight: 600;
+  font-size: .75rem;
 }
 
 .slot {
-  display:flex;
-  align-items:center;
-  gap:1rem;
-  padding:.75rem;
-  border-radius:12px;
-  margin-bottom:.5rem;
-  cursor:pointer;
+  height: 52px;
+  border-radius: 12px;
+  font-size: .7rem;
+  padding: .4rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
 }
 
-.slot.free { background:#e5e7eb; }
-.slot.scheduled { background:#e6f4d7; }
-.slot.completed { background:#e6f0ff; }
-.slot.paid { background:#d1fae5; }
-.slot.invoiced { background:#bbf7d0; }
+.free { background: #e5e7eb; }
+.busy { background: #e6f4d7; }
+.done { background: #e6f0ff; }
 
-.time {
-  width:60px;
-  font-weight:600;
-}
-
+/* ===== MODAL ===== */
 .modal {
-  display:none;
-  position:fixed;
-  inset:0;
-  background:rgba(0,0,0,.4);
-  z-index:999;
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.4);
+  z-index: 999;
 }
 
 .modal-card {
-  background:#fff;
-  max-width:420px;
-  margin:10vh auto;
-  padding:1rem;
-  border-radius:16px;
+  background: #fff;
+  max-width: 420px;
+  margin: 8vh auto;
+  padding: 1.2rem;
+  border-radius: 16px;
 }
 
-.actions {
-  display:flex;
-  justify-content:flex-end;
-  gap:.5rem;
-  margin-top:1rem;
+.modal-row {
+  margin-bottom: .75rem;
 }
 
-.fab {
-  position:fixed;
-  bottom:20px;
-  right:20px;
-  width:56px;
-  height:56px;
-  border-radius:50%;
-  background:#1f6b4e;
-  color:#fff;
-  font-size:32px;
-  border:none;
+.modal-row label {
+  font-size: .7rem;
+  display: block;
+  margin-bottom: .25rem;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: .5rem;
+  margin-top: 1rem;
 }
 </style>
 </head>
 
 <body class="app-body">
-
 <header class="app-menu"></header>
 
 <main class="wrapper">
 
   <div class="header">
-    <div class="date" id="dateLabel"></div>
+    <div class="date-box">
+      <div class="circle" id="dayNum"></div>
+      <div>
+        <div id="dayName"></div>
+        <div id="dayMonth"></div>
+      </div>
+    </div>
+
     <div class="nav">
-      <button id="prev" class="btn-secondary">←</button>
-      <button id="today" class="btn-secondary">Hoy</button>
-      <button id="next" class="btn-secondary">→</button>
+      <button id="prevDay" class="btn-secondary">←</button>
+      <button id="todayBtn" class="btn-secondary">Hoy</button>
+      <button id="nextDay" class="btn-secondary">→</button>
     </div>
   </div>
 
-  <div id="slots"></div>
+  <div id="agendaGrid" class="grid"></div>
 </main>
 
-<button class="fab" onclick="openCreate()">+</button>
-
-<!-- MODAL -->
+<!-- ===== MODAL CITA ===== -->
 <div id="modal" class="modal">
   <div class="modal-card">
-    <h3 id="modalTitle">Cita</h3>
 
-    <label>Teléfono</label>
-    <input id="mPhone" />
+    <h3 id="mTitle">Cita</h3>
 
-    <label>Nombre</label>
-    <input id="mName" />
+    <div class="modal-row">
+      <label>Teléfono</label>
+      <input id="pPhone" type="text" placeholder="600000000">
+    </div>
 
-    <label>Inicio</label>
-    <input type="time" id="mStart" />
+    <div class="modal-row">
+      <label>Nombre</label>
+      <input id="pName" type="text">
+    </div>
 
-    <label>Fin</label>
-    <input type="time" id="mEnd" />
+    <div class="modal-row">
+      <label>Modalidad</label>
+      <select id="pModality">
+        <option value="">—</option>
+        <option value="viladecans">Viladecans</option>
+        <option value="badalona">Badalona</option>
+        <option value="online">Online</option>
+      </select>
+    </div>
 
-    <label>Modalidad</label>
-    <select id="mModality">
-      <option value="">--</option>
-      <option value="viladecans">Viladecans</option>
-      <option value="badalona">Badalona</option>
-      <option value="online">Online</option>
-    </select>
+    <div class="modal-row">
+      <label>
+        <input type="checkbox" id="pDone">
+        Sesión realizada
+      </label>
+    </div>
 
-    <label>Estado</label>
-    <select id="mStatus">
-      <option value="scheduled">Programada</option>
-      <option value="completed">Realizada</option>
-      <option value="paid">Pagada</option>
-      <option value="invoiced">Facturada</option>
-    </select>
-
-    <label>Importe (€)</label>
-    <input type="number" id="mAmount" />
-
-    <div class="actions">
-      <button onclick="save()" class="btn-primary">Guardar</button>
+    <div class="modal-actions">
+      <button id="saveBtn" class="btn-primary">Guardar</button>
       <button onclick="closeModal()">Cerrar</button>
     </div>
+
   </div>
 </div>
 
 <script type="module">
 import { requireAuth } from "./assets/js/auth.js";
 import { loadMenu } from "./assets/js/menu.js";
+import { auth, db } from "./assets/js/firebase.js";
+
+import {
+  collection, addDoc, getDocs, query, where,
+  Timestamp, doc, getDoc, updateDoc
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
 await requireAuth();
 await loadMenu();
-</script>
 
-<script type="module" src="assets/js/agenda.js"></script>
+const therapistId = auth.currentUser.uid;
+
+/* ===== FECHA ===== */
+let currentDate =
+  new URLSearchParams(location.search).get("date")
+  || new Date().toISOString().slice(0,10);
+
+function toISO(d){
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+}
+
+prevDay.onclick = () => {
+  const d=new Date(currentDate);d.setDate(d.getDate()-1);
+  location.href=`agenda.html?date=${toISO(d)}`;
+};
+nextDay.onclick = () => {
+  const d=new Date(currentDate);d.setDate(d.getDate()+1);
+  location.href=`agenda.html?date=${toISO(d)}`;
+};
+todayBtn.onclick = () => location.href="agenda.html";
+
+/* ===== HEADER ===== */
+const base = new Date(currentDate);
+base.setHours(0,0,0,0);
+
+dayNum.textContent = base.getDate();
+dayName.textContent =
+  base.toLocaleDateString("es-ES",{weekday:"long"});
+dayMonth.textContent =
+  base.toLocaleDateString("es-ES",{month:"long",year:"numeric"});
+
+/* ===== GRID ===== */
+const grid = document.getElementById("agendaGrid");
+const HOURS = [...Array(12)].map((_,i)=>i+9);
+
+grid.appendChild(document.createElement("div"));
+["L","M","X","J","V","S","D"].forEach(l=>{
+  const d=document.createElement("div");
+  d.className="day";d.textContent=l;
+  grid.appendChild(d);
+});
+
+/* ===== LOAD APPOINTMENTS ===== */
+const start = Timestamp.fromDate(base);
+const end   = Timestamp.fromDate(
+  new Date(base.getTime()+7*86400000)
+);
+
+const snap = await getDocs(query(
+  collection(db,"appointments"),
+  where("therapistId","==",therapistId),
+  where("start",">=",start),
+  where("start","<",end)
+));
+
+const byKey = {};
+snap.forEach(d=>{
+  const a=d.data();
+  const s=a.start.toDate();
+  const key=`${s.toISOString().slice(0,10)}_${s.getHours()}`;
+  byKey[key]={...a,id:d.id};
+});
+
+/* ===== RENDER ===== */
+let currentSlot = null;
+
+HOURS.forEach(h=>{
+  const hl=document.createElement("div");
+  hl.className="hour";hl.textContent=`${h}:00`;
+  grid.appendChild(hl);
+
+  for(let i=0;i<7;i++){
+    const d=new Date(base);
+    d.setDate(d.getDate()+i);
+    const iso=toISO(d);
+    const key=`${iso}_${h}`;
+    const c=document.createElement("div");
+
+    if(byKey[key]){
+      const a=byKey[key];
+      c.className=`slot ${a.status==="completed"?"done":"busy"}`;
+      c.textContent=a.patientName;
+      c.onclick=()=>openModal(a,iso,h);
+    } else {
+      c.className="slot free";
+      c.textContent="Libre";
+      c.onclick=()=>openModal(null,iso,h);
+    }
+
+    grid.appendChild(c);
+  }
+});
+
+/* ===== MODAL ===== */
+const modal=document.getElementById("modal");
+const pPhone=document.getElementById("pPhone");
+const pName=document.getElementById("pName");
+const pModality=document.getElementById("pModality");
+const pDone=document.getElementById("pDone");
+
+window.closeModal=()=>modal.style.display="none";
+
+function openModal(app, dateISO, hour){
+  currentSlot={app,dateISO,hour};
+  modal.style.display="block";
+
+  if(app){
+    pPhone.value=app.patientId||"";
+    pName.value=app.patientName||"";
+    pModality.value=app.modality||"";
+    pDone.checked=app.status==="completed";
+  } else {
+    pPhone.value="";
+    pName.value="";
+    pModality.value="";
+    pDone.checked=false;
+  }
+}
+
+/* ===== AUTOCOMPLETE ===== */
+pPhone.addEventListener("input", async()=>{
+  const phone=pPhone.value.trim();
+  if(!/^\d{9}$/.test(phone)) return;
+
+  let snap=await getDoc(doc(db,"patients",phone));
+  if(!snap.exists()){
+    snap=await getDoc(doc(db,"patients_normalized",phone));
+  }
+  if(snap.exists()){
+    const d=snap.data();
+    pName.value=d.fullName||[d.nombre,d.apellidos].filter(Boolean).join(" ");
+  }
+});
+
+/* ===== SAVE ===== */
+saveBtn.onclick=async()=>{
+  const {app,dateISO,hour}=currentSlot;
+
+  const baseD=new Date(dateISO);
+  const startD=new Date(baseD);startD.setHours(hour,0,0,0);
+  const endD=new Date(baseD);endD.setHours(hour+1,0,0,0);
+
+  if(app){
+    await updateDoc(doc(db,"appointments",app.id),{
+      status:pDone.checked?"completed":"scheduled",
+      completedAt:pDone.checked?Timestamp.now():null
+    });
+  } else {
+    await addDoc(collection(db,"appointments"),{
+      therapistId,
+      patientId:pPhone.value.trim(),
+      patientName:pName.value.trim(),
+      modality:pModality.value,
+      start:Timestamp.fromDate(startD),
+      end:Timestamp.fromDate(endD),
+      status:"scheduled",
+      createdAt:Timestamp.now()
+    });
+  }
+
+  location.reload();
+};
+</script>
 </body>
 </html>
