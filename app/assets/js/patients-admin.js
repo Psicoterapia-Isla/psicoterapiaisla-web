@@ -83,18 +83,27 @@ function renderPatients(patients) {
     const email = p.email || "-";
     const hasUser = !!p.linkedUserUid;
 
+    const typeBadge =
+      p.patientType === "mutual"
+        ? `<span class="badge badge-mutual">Mutua</span>`
+        : `<span class="badge badge-private">Privado</span>`;
+
     return `
-      <div class="patient-row ${hasUser ? "linked" : "historical"}"
+      <div class="patient-row clickable ${hasUser ? "linked" : "historical"}"
            data-id="${p.id}">
         <div class="patient-header">
           <strong>${nombre} ${apellidos}</strong>
-          <span class="badge ${hasUser ? "badge-linked" : "badge-historical"}">
-            ${hasUser ? "Con cuenta" : "Histórico"}
-          </span>
+          <div class="badges">
+            ${typeBadge}
+            <span class="badge ${hasUser ? "badge-linked" : "badge-historical"}">
+              ${hasUser ? "Con cuenta" : "Histórico"}
+            </span>
+          </div>
         </div>
         <small>
           DNI: ${dni} · Email: ${email}
         </small>
+        <div class="edit-hint">Editar paciente</div>
       </div>
     `;
   }).join("");
