@@ -11,7 +11,8 @@ import {
   updateDoc,
   doc,
   Timestamp,
-  runTransaction
+  runTransaction,
+  getDoc
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 /* =========================
@@ -26,6 +27,7 @@ await loadMenu();
 let baseDate = new Date();
 let editingId = null;
 let selectedPatientId = null;
+let selectedPatientDuration = 60;
 let currentSlot = null;
 
 const HOURS = Array.from({ length: 12 }, (_, i) => i + 9);
@@ -50,9 +52,10 @@ const amount = document.getElementById("amount");
 const suggestions = document.getElementById("suggestions");
 
 /* =========================
-   DATE HELPERS
+   HELPERS
 ========================= */
 const formatDate = d => d.toISOString().slice(0, 10);
+const pad = n => String(n).padStart(2, "0");
 
 function mondayOf(d) {
   const x = new Date(d);
@@ -75,12 +78,20 @@ function dayFromKey(monday, key) {
   return d;
 }
 
+function addMinutes(time, minutes) {
+  const [h, m] = time.split(":").map(Number);
+  const d = new Date();
+  d.setHours(h, m + minutes, 0, 0);
+  return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
 /* =========================
    MODAL
 ========================= */
 function resetModal() {
   editingId = null;
   selectedPatientId = null;
+  selectedPatientDuration = 60;
   currentSlot = null;
 
   phone.value = "";
@@ -95,18 +106,13 @@ function resetModal() {
   suggestions.innerHTML = "";
 }
 
-/* ===== FIX CLAVE ===== */
-function pad(n) {
-  return String(n).padStart(2, "0");
-}
-
 function openNew(slot) {
   resetModal();
   currentSlot = slot;
 
-  // ⛑️ FIX: input[type="time"] exige HH:MM
-  start.value = `${pad(slot.hour)}:00`;
-  end.value = `${pad(slot.hour + 1)}:00`;
+  const startTime = `${pad(slot.hour)}:00`;
+  start.value = startTime;
+  end.value = addMinutes(startTime, selectedPatientDuration);
 
   modal.classList.add("show");
 }
@@ -115,6 +121,7 @@ function openEdit(a) {
   resetModal();
   editingId = a.id;
   selectedPatientId = a.patientId || null;
+  selectedPatientDuration = a.sessionDuration || 60;
   currentSlot = { date: a.date, hour: Number(a.start.split(":")[0]) };
 
   phone.value = a.phone || "";
@@ -134,7 +141,7 @@ document.getElementById("close").onclick = () =>
   modal.classList.remove("show");
 
 /* =========================
-   AUTOCOMPLETE
+   AUTOCOMPLETE + DURACIÓN
 ========================= */
 async function searchPatients(term) {
   if (!term || term.length < 2) {
@@ -156,112 +163,23 @@ async function searchPatients(term) {
     div.textContent = `${p.nombre || ""} ${p.apellidos || ""} · ${p.telefono || ""}`;
     div.onclick = () => {
       selectedPatientId = d.id;
+      selectedPatientDuration = p.sessionDuration || 60;
+
       phone.value = p.telefono || "";
       name.value = `${p.nombre || ""} ${p.apellidos || ""}`.trim();
+
+      if (start.value) {
+        end.value = addMinutes(start.value, selectedPatientDuration);
+      }
+
       suggestions.innerHTML = "";
     };
     suggestions.appendChild(div);
   });
 }
 
-phone.oninput = e => {
-  selectedPatientId = null;
-  searchPatients(e.target.value);
-};
-name.oninput = e => {
-  selectedPatientId = null;
-  searchPatients(e.target.value);
-};
-
-/* =========================
-   INVOICE NUMBER
-========================= */
-async function getNextInvoiceNumber(therapistId) {
-  const year = new Date().getFullYear();
-  const ref = doc(db, "invoice_counters", `${therapistId}_${year}`);
-
-  return await runTransaction(db, async (tx) => {
-    const snap = await tx.get(ref);
-    let next = 1;
-
-    if (snap.exists()) {
-      next = snap.data().lastNumber + 1;
-      tx.update(ref, { lastNumber: next, updatedAt: Timestamp.now() });
-    } else {
-      tx.set(ref, {
-        therapistId,
-        year,
-        lastNumber: 1,
-        createdAt: Timestamp.now()
-      });
-    }
-
-    return `PI-${year}-${String(next).padStart(4, "0")}`;
-  });
-}
-
-/* =========================
-   FACTURA AUTOMÁTICA
-========================= */
-async function maybeCreateInvoice(appointmentId, data) {
-  if (!data.completed || !data.paid) return;
-  if (!data.amount || data.amount <= 0) return;
-
-  const invoiceNumber = await getNextInvoiceNumber(data.therapistId);
-
-  const ref = await addDoc(collection(db, "invoices"), {
-    therapistId: data.therapistId,
-    appointmentId,
-    invoiceNumber,
-    issueDate: Timestamp.now(),
-    patientId: data.patientId || null,
-    patientName: data.name || null,
-    concept: data.service,
-    baseAmount: data.amount,
-    vatRate: 0,
-    vatExemptReason: "Exento IVA – Art. 20.3 Ley 37/1992",
-    totalAmount: data.amount,
-    status: "paid",
-    createdAt: Timestamp.now()
-  });
-
-  await updateDoc(doc(db, "appointments", appointmentId), {
-    invoiceId: ref.id
-  });
-}
-
-/* =========================
-   WHATSAPP
-========================= */
-function openWhatsAppNotification({ phone, name, date, start, end, modality }) {
-  if (!phone) return;
-
-  let cleanPhone = phone.replace(/\s+/g, "");
-  if (!cleanPhone.startsWith("+")) {
-    if (cleanPhone.startsWith("6") || cleanPhone.startsWith("7")) {
-      cleanPhone = "34" + cleanPhone;
-    }
-  }
-
-  const modalityText = modality === "online" ? "online" : "presencial";
-
-  const message = `
-Hola ${name || ""} 😊
-
-Te confirmo tu cita en *Psicoterapia Isla*:
-
-📅 ${date}
-⏰ ${start} – ${end}
-📍 Modalidad: ${modalityText}
-
-Cualquier cosa me dices.
-`.trim();
-
-  window.open(
-    "https://wa.me/" + cleanPhone + "?text=" + encodeURIComponent(message),
-    "_blank"
-  );
-}
+phone.oninput = e => searchPatients(e.target.value);
+name.oninput = e => searchPatients(e.target.value);
 
 /* =========================
    SAVE
@@ -270,14 +188,10 @@ document.getElementById("save").onclick = async () => {
   const user = auth.currentUser;
   if (!user || !currentSlot) return;
 
-  if (!start.value || !end.value) {
-    alert("La hora de inicio y fin es obligatoria");
-    return;
-  }
-
   const data = {
     therapistId: user.uid,
     patientId: selectedPatientId || null,
+    sessionDuration: selectedPatientDuration,
     date: currentSlot.date,
     phone: phone.value,
     name: name.value,
@@ -292,35 +206,20 @@ document.getElementById("save").onclick = async () => {
   };
 
   try {
-    let appointmentId;
-
     if (editingId) {
       await updateDoc(doc(db, "appointments", editingId), data);
-      appointmentId = editingId;
     } else {
-      const ref = await addDoc(collection(db, "appointments"), {
+      await addDoc(collection(db, "appointments"), {
         ...data,
         createdAt: Timestamp.now()
       });
-      appointmentId = ref.id;
     }
-
-    await maybeCreateInvoice(appointmentId, data);
 
     modal.classList.remove("show");
     await renderWeek();
 
-    openWhatsAppNotification({
-      phone: data.phone,
-      name: data.name,
-      date: data.date,
-      start: data.start,
-      end: data.end,
-      modality: data.modality
-    });
-
   } catch (err) {
-    console.error("Error guardando cita:", err);
+    console.error(err);
     alert("No se pudo guardar la cita");
   }
 };
@@ -348,21 +247,18 @@ async function renderWeek() {
   const availability = {};
   availSnap.forEach(d => Object.assign(availability, d.data().slots || {}));
 
-  const from = formatDate(monday);
-  const to = formatDate(new Date(monday.getTime() + 6 * 86400000));
-
   const apptSnap = await getDocs(
     query(
       collection(db, "appointments"),
       where("therapistId", "==", user.uid),
-      where("date", ">=", from),
-      where("date", "<=", to)
+      where("date", ">=", formatDate(monday)),
+      where("date", "<=", formatDate(new Date(monday.getTime() + 6 * 86400000)))
     )
   );
 
   const bySlot = {};
   apptSnap.forEach(d => {
-    const a = { id: d.id, ...d.data() };
+    const a = d.data();
     bySlot[`${a.date}_${a.start}`] = a;
   });
 
@@ -377,30 +273,27 @@ async function renderWeek() {
   });
 
   HOURS.forEach(hour => {
-    const hl = document.createElement("div");
-    hl.className = "hour-label";
-    hl.textContent = `${hour}:00`;
-    grid.appendChild(hl);
+    grid.appendChild(Object.assign(document.createElement("div"), {
+      className: "hour-label",
+      textContent: `${hour}:00`
+    }));
 
     DAYS.forEach(day => {
       const date = formatDate(dayFromKey(monday, day));
-      const slotKey = `${day}_${hour}`;
-      const apptKey = `${date}_${pad(hour)}:00`;
+      const key = `${date}_${pad(hour)}:00`;
 
       const cell = document.createElement("div");
       cell.className = "slot";
 
-      if (bySlot[apptKey]) {
-        const a = bySlot[apptKey];
-        cell.classList.add(a.paid ? "paid" : a.completed ? "done" : "busy");
-        cell.innerHTML = `<strong>${a.name || "—"}</strong><span>${a.start}–${a.end}</span>`;
-        cell.onclick = () => openEdit(a);
-      } else if (availability[slotKey]) {
+      if (bySlot[key]) {
+        const a = bySlot[key];
+        cell.classList.add("busy");
+        cell.innerHTML = `<strong>${a.name}</strong><span>${a.start}–${a.end}</span>`;
+        cell.onclick = () => openEdit({ id: a.id, ...a });
+      } else {
         cell.classList.add("available");
         cell.textContent = "Disponible";
         cell.onclick = () => openNew({ date, hour });
-      } else {
-        cell.classList.add("disabled");
       }
 
       grid.appendChild(cell);
