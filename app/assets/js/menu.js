@@ -7,169 +7,111 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
 import { db } from "./firebase.js";
-import {
-  doc,
-  getDoc
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { doc, getDoc } from
+  "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-let unsubscribeAuth = null;
+let authListener = null;
 
 export async function loadMenu() {
-  const menu = document.querySelector(".app-menu");
-  if (!menu) return;
+  const container = document.querySelector(".app-menu");
+  if (!container) return;
 
   const auth = getAuth();
+  if (authListener) return;
 
-  // 🔒 Evitar múltiples listeners
-  if (unsubscribeAuth) return;
-
-  unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
+  authListener = onAuthStateChanged(auth, async (user) => {
     if (!user) {
-      menu.innerHTML = "";
+      container.innerHTML = "";
       return;
     }
 
-    /* ======================
-       ROL REAL (ROBUSTO)
-    ====================== */
+    /* ===== ROL ===== */
     let role = "patient";
-
     try {
       const snap = await getDoc(doc(db, "users", user.uid));
-      if (snap.exists() && snap.data().role) {
-        role = snap.data().role;
-      }
-    } catch (err) {
-      console.warn("menu.js → no se pudo leer rol, usando patient");
-    }
+      if (snap.exists()) role = snap.data().role || "patient";
+    } catch (_) {}
 
     const isAdmin = role === "admin";
     const isTherapist = role === "therapist" || isAdmin;
 
-    /* ======================
-       MENU
-    ====================== */
-    menu.innerHTML = `
-      <div class="app-menu-inner">
+    /* ===== MENU HTML ===== */
+    container.innerHTML = `
+      <nav class="menu-bar">
 
-        <!-- INICIO -->
-        <button class="menu-group-toggle" data-link="index.html">
-          Inicio
-        </button>
+        <div class="menu-left">
+          <button id="menu-toggle" class="menu-toggle">☰</button>
+          <span class="menu-logo">Psicoterapia Isla</span>
+        </div>
 
-        <!-- FORO -->
-        <div class="menu-group">
-          <button class="menu-group-toggle">Foro</button>
-          <div class="menu-group-content">
-            <a href="foro.html">Foro</a>
-          </div>
+        <div class="menu-right">
+          <button id="logout-btn" class="menu-logout">Salir</button>
+        </div>
+
+      </nav>
+
+      <aside class="menu-drawer" id="menu-drawer">
+        <div class="menu-section">
+          <a href="index.html">Inicio</a>
+        </div>
+
+        <div class="menu-section">
+          <a href="foro.html">Foro</a>
         </div>
 
         ${
           !isTherapist ? `
-        <!-- ======================
-             PACIENTE
-        ====================== -->
-        <div class="menu-group">
-          <button class="menu-group-toggle">Mi espacio</button>
-          <div class="menu-group-content">
+          <div class="menu-section">
+            <h4>Mi espacio</h4>
             <a href="espacio.html">Espacio personal</a>
-            <a href="diario.html">Escribir diario</a>
-            <a href="mi-diario.html">Mi diario</a>
-            <a href="exercises-list.html">Ejercicios</a>
-            <hr>
-            <a href="reservar.html">Reservar cita</a>
             <a href="agenda-paciente.html">Mis citas</a>
+            <a href="reservar.html">Reservar cita</a>
+            <a href="diario.html">Diario</a>
+            <a href="exercises-list.html">Ejercicios</a>
           </div>
-        </div>
         ` : ""}
 
         ${
           isTherapist ? `
-        <!-- ======================
-             TERAPEUTA
-        ====================== -->
-        <div class="menu-group">
-          <button class="menu-group-toggle">Espacio terapeuta</button>
-          <div class="menu-group-content">
-
-            <!-- AGENDA ÚNICA -->
+          <div class="menu-section">
+            <h4>Espacio terapeuta</h4>
             <a href="agenda.html">Agenda</a>
-
-            <hr>
-
-            <!-- GESTIÓN CLÍNICA -->
+            <a href="disponibilidad.html">Disponibilidad</a>
             <a href="patients-admin.html">Pacientes</a>
-            <a href="diario-terapeuta.html">Diarios pacientes</a>
-            <a href="entries-by-patient.html">Registros por paciente</a>
-
-            <hr>
-
-            <!-- FACTURACIÓN -->
             <a href="patient-invoices.html">Facturación</a>
-
-            ${
-              isAdmin ? `
-              <hr>
-              <!-- ADMIN -->
-              <a href="exercises-admin.html">Gestionar ejercicios</a>
-              ` : ""
-            }
-
           </div>
-        </div>
         ` : ""}
 
-        <!-- SALIR -->
-        <button class="menu-group-toggle" id="logout-btn">
-          Salir
-        </button>
+        ${
+          isAdmin ? `
+          <div class="menu-section">
+            <h4>Administración</h4>
+            <a href="exercises-admin.html">Gestionar ejercicios</a>
+          </div>
+        ` : ""}
+      </aside>
 
-      </div>
+      <div class="menu-overlay" id="menu-overlay"></div>
     `;
 
-    /* ======================
-       NAVEGACIÓN DIRECTA
-    ====================== */
-    menu.querySelectorAll("[data-link]").forEach(btn => {
-      btn.addEventListener("click", () => {
-        window.location.href = btn.dataset.link;
-      });
-    });
+    /* ===== INTERACCIÓN ===== */
+    const drawer = document.getElementById("menu-drawer");
+    const overlay = document.getElementById("menu-overlay");
+    const toggle = document.getElementById("menu-toggle");
 
-    /* ======================
-       DESPLEGABLES (ESTABLE)
-    ====================== */
-    menu.querySelectorAll(".menu-group > .menu-group-toggle")
-      .forEach(btn => {
-        btn.addEventListener("click", (e) => {
-          e.stopPropagation();
-          const group = btn.parentElement;
+    toggle.onclick = () => {
+      drawer.classList.toggle("open");
+      overlay.classList.toggle("show");
+    };
 
-          menu.querySelectorAll(".menu-group.open")
-            .forEach(g => {
-              if (g !== group) g.classList.remove("open");
-            });
+    overlay.onclick = () => {
+      drawer.classList.remove("open");
+      overlay.classList.remove("show");
+    };
 
-          group.classList.toggle("open");
-        });
-      });
-
-    // cerrar al clicar fuera
-    document.addEventListener("click", () => {
-      menu.querySelectorAll(".menu-group.open")
-        .forEach(g => g.classList.remove("open"));
-    });
-
-    /* ======================
-       LOGOUT
-    ====================== */
-    const logoutBtn = document.getElementById("logout-btn");
-    if (logoutBtn) {
-      logoutBtn.addEventListener("click", async () => {
-        await signOut(auth);
-        window.location.href = "login.html";
-      });
-    }
+    document.getElementById("logout-btn").onclick = async () => {
+      await signOut(auth);
+      location.href = "login.html";
+    };
   });
 }
