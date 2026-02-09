@@ -7,8 +7,10 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
 import { db } from "./firebase.js";
-import { doc, getDoc } from
-  "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import {
+  doc,
+  getDoc
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 let authListener = null;
 
@@ -17,6 +19,8 @@ export async function loadMenu() {
   if (!container) return;
 
   const auth = getAuth();
+
+  // Evitar múltiples listeners
   if (authListener) return;
 
   authListener = onAuthStateChanged(auth, async (user) => {
@@ -25,37 +29,38 @@ export async function loadMenu() {
       return;
     }
 
-    /* ===== ROL ===== */
+    /* ======================
+       ROL
+    ====================== */
     let role = "patient";
     try {
       const snap = await getDoc(doc(db, "users", user.uid));
-      if (snap.exists()) role = snap.data().role || "patient";
+      if (snap.exists() && snap.data().role) {
+        role = snap.data().role;
+      }
     } catch (_) {}
 
     const isAdmin = role === "admin";
     const isTherapist = role === "therapist" || isAdmin;
 
-    /* ===== MENU HTML ===== */
+    /* ======================
+       MENU HTML
+    ====================== */
     container.innerHTML = `
       <nav class="menu-bar">
-
         <div class="menu-left">
-          <button id="menu-toggle" class="menu-toggle">☰</button>
+          <button id="menu-toggle" class="menu-toggle" aria-label="Abrir menú">☰</button>
           <span class="menu-logo">Psicoterapia Isla</span>
         </div>
 
         <div class="menu-right">
           <button id="logout-btn" class="menu-logout">Salir</button>
         </div>
-
       </nav>
 
       <aside class="menu-drawer" id="menu-drawer">
         <div class="menu-section">
           <a href="index.html">Inicio</a>
-        </div>
-
-        <div class="menu-section">
           <a href="foro.html">Foro</a>
         </div>
 
@@ -94,24 +99,37 @@ export async function loadMenu() {
       <div class="menu-overlay" id="menu-overlay"></div>
     `;
 
-    /* ===== INTERACCIÓN ===== */
+    /* ======================
+       INTERACCIÓN
+    ====================== */
     const drawer = document.getElementById("menu-drawer");
     const overlay = document.getElementById("menu-overlay");
     const toggle = document.getElementById("menu-toggle");
+    const logoutBtn = document.getElementById("logout-btn");
 
-    toggle.onclick = () => {
+    // abrir / cerrar menú
+    toggle.addEventListener("click", () => {
       drawer.classList.toggle("open");
       overlay.classList.toggle("show");
-    };
+    });
 
-    overlay.onclick = () => {
+    overlay.addEventListener("click", () => {
       drawer.classList.remove("open");
       overlay.classList.remove("show");
-    };
+    });
 
-    document.getElementById("logout-btn").onclick = async () => {
+    // cerrar menú al navegar (CLAVE PARA MÓVIL)
+    drawer.querySelectorAll("a").forEach(link => {
+      link.addEventListener("click", () => {
+        drawer.classList.remove("open");
+        overlay.classList.remove("show");
+      });
+    });
+
+    // logout
+    logoutBtn.addEventListener("click", async () => {
       await signOut(auth);
-      location.href = "login.html";
-    };
+      window.location.href = "login.html";
+    });
   });
 }
