@@ -529,7 +529,52 @@ select {
 
   z-index: 1000; /* 👈 POR DEBAJO DEL DRAWER */
 }
+/* ===== MENU DESKTOP ===== */
+@media (min-width: 900px) {
 
+  .menu-toggle {
+    display: none;
+  }
+
+  .menu-drawer {
+    position: static;
+    transform: none !important;
+    width: auto;
+    height: auto;
+    background: transparent;
+    box-shadow: none;
+    display: flex;
+    gap: 24px;
+    padding: 0;
+  }
+
+  .menu-section {
+    border: none;
+    padding: 0;
+  }
+
+  .menu-section h4 {
+    display: none;
+  }
+
+  .menu-section a {
+    display: inline-block;
+    padding: 8px 14px;
+    border-radius: 999px;
+    background: rgba(255,255,255,.15);
+    color: #fff;
+    text-decoration: none;
+    font-size: .9rem;
+  }
+
+  .menu-section a:hover {
+    background: rgba(255,255,255,.3);
+  }
+
+  .menu-overlay {
+    display: none !important;
+  }
+}
 .menu-overlay.show {
   opacity: 1;
   pointer-events: auto;
