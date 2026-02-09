@@ -12,124 +12,164 @@ import {
   getDoc
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-let authListener = null;
+let unsubscribeAuth = null;
 
 export async function loadMenu() {
-  const container = document.querySelector(".app-menu");
-  if (!container) return;
+  const menu = document.querySelector(".app-menu");
+  if (!menu) return;
 
   const auth = getAuth();
 
-  // Evitar múltiples listeners
-  if (authListener) return;
+  // 🔒 Evitar múltiples listeners
+  if (unsubscribeAuth) return;
 
-  authListener = onAuthStateChanged(auth, async (user) => {
+  unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
     if (!user) {
-      container.innerHTML = "";
+      menu.innerHTML = "";
       return;
     }
 
     /* ======================
-       ROL
+       ROL REAL (ROBUSTO)
     ====================== */
     let role = "patient";
+
     try {
       const snap = await getDoc(doc(db, "users", user.uid));
       if (snap.exists() && snap.data().role) {
         role = snap.data().role;
       }
-    } catch (_) {}
+    } catch (err) {
+      console.warn("menu.js → no se pudo leer rol, usando patient");
+    }
 
     const isAdmin = role === "admin";
     const isTherapist = role === "therapist" || isAdmin;
 
     /* ======================
-       MENU HTML
+       MENU
     ====================== */
-    container.innerHTML = `
-      <nav class="menu-bar">
-        <div class="menu-left">
-          <button id="menu-toggle" class="menu-toggle" aria-label="Abrir menú">☰</button>
-          <span class="menu-logo">Psicoterapia Isla</span>
-        </div>
+    menu.innerHTML = `
+      <div class="app-menu-inner">
 
-        <div class="menu-right">
-          <button id="logout-btn" class="menu-logout">Salir</button>
-        </div>
-      </nav>
+        <!-- INICIO -->
+        <button class="menu-group-toggle" data-link="index.html">
+          Inicio
+        </button>
 
-      <aside class="menu-drawer" id="menu-drawer">
-        <div class="menu-section">
-          <a href="index.html">Inicio</a>
-          <a href="foro.html">Foro</a>
+        <!-- FORO -->
+        <div class="menu-group">
+          <button class="menu-group-toggle">Foro</button>
+          <div class="menu-group-content">
+            <a href="foro.html">Foro</a>
+          </div>
         </div>
 
         ${
           !isTherapist ? `
-          <div class="menu-section">
-            <h4>Mi espacio</h4>
+        <!-- ======================
+             PACIENTE
+        ====================== -->
+        <div class="menu-group">
+          <button class="menu-group-toggle">Mi espacio</button>
+          <div class="menu-group-content">
             <a href="espacio.html">Espacio personal</a>
-            <a href="agenda-paciente.html">Mis citas</a>
-            <a href="reservar.html">Reservar cita</a>
-            <a href="diario.html">Diario</a>
+            <a href="diario.html">Escribir diario</a>
+            <a href="mi-diario.html">Mi diario</a>
             <a href="exercises-list.html">Ejercicios</a>
+            <hr>
+            <a href="reservar.html">Reservar cita</a>
+            <a href="agenda-paciente.html">Mis citas</a>
           </div>
+        </div>
         ` : ""}
 
         ${
           isTherapist ? `
-          <div class="menu-section">
-            <h4>Espacio terapeuta</h4>
+        <!-- ======================
+             TERAPEUTA
+        ====================== -->
+        <div class="menu-group">
+          <button class="menu-group-toggle">Espacio terapeuta</button>
+          <div class="menu-group-content">
+
+            <!-- AGENDA ÚNICA -->
             <a href="agenda.html">Agenda</a>
-            <a href="disponibilidad.html">Disponibilidad</a>
+
+            <hr>
+
+            <!-- GESTIÓN CLÍNICA -->
             <a href="patients-admin.html">Pacientes</a>
+            <a href="diario-terapeuta.html">Diarios pacientes</a>
+            <a href="entries-by-patient.html">Registros por paciente</a>
+
+            <hr>
+
+            <!-- FACTURACIÓN -->
             <a href="patient-invoices.html">Facturación</a>
+
+            ${
+              isAdmin ? `
+              <hr>
+              <!-- ADMIN -->
+              <a href="exercises-admin.html">Gestionar ejercicios</a>
+              ` : ""
+            }
+
           </div>
+        </div>
         ` : ""}
 
-        ${
-          isAdmin ? `
-          <div class="menu-section">
-            <h4>Administración</h4>
-            <a href="exercises-admin.html">Gestionar ejercicios</a>
-          </div>
-        ` : ""}
-      </aside>
+        <!-- SALIR -->
+        <button class="menu-group-toggle" id="logout-btn">
+          Salir
+        </button>
 
-      <div class="menu-overlay" id="menu-overlay"></div>
+      </div>
     `;
 
     /* ======================
-       INTERACCIÓN
+       NAVEGACIÓN DIRECTA
     ====================== */
-    const drawer = document.getElementById("menu-drawer");
-    const overlay = document.getElementById("menu-overlay");
-    const toggle = document.getElementById("menu-toggle");
-    const logoutBtn = document.getElementById("logout-btn");
-
-    // abrir / cerrar menú
-    toggle.addEventListener("click", () => {
-      drawer.classList.toggle("open");
-      overlay.classList.toggle("show");
-    });
-
-    overlay.addEventListener("click", () => {
-      drawer.classList.remove("open");
-      overlay.classList.remove("show");
-    });
-
-    // cerrar menú al navegar (CLAVE PARA MÓVIL)
-    drawer.querySelectorAll("a").forEach(link => {
-      link.addEventListener("click", () => {
-        drawer.classList.remove("open");
-        overlay.classList.remove("show");
+    menu.querySelectorAll("[data-link]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        window.location.href = btn.dataset.link;
       });
     });
 
-    // logout
-    logoutBtn.addEventListener("click", async () => {
-      await signOut(auth);
-      window.location.href = "login.html";
+    /* ======================
+       DESPLEGABLES (ESTABLE)
+    ====================== */
+    menu.querySelectorAll(".menu-group > .menu-group-toggle")
+      .forEach(btn => {
+        btn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          const group = btn.parentElement;
+
+          menu.querySelectorAll(".menu-group.open")
+            .forEach(g => {
+              if (g !== group) g.classList.remove("open");
+            });
+
+          group.classList.toggle("open");
+        });
+      });
+
+    // cerrar al clicar fuera
+    document.addEventListener("click", () => {
+      menu.querySelectorAll(".menu-group.open")
+        .forEach(g => g.classList.remove("open"));
     });
+
+    /* ======================
+       LOGOUT
+    ====================== */
+    const logoutBtn = document.getElementById("logout-btn");
+    if (logoutBtn) {
+      logoutBtn.addEventListener("click", async () => {
+        await signOut(auth);
+        window.location.href = "login.html";
+      });
+    }
   });
 }
