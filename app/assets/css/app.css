@@ -346,3 +346,51 @@ select {
     z-index: 100;
   }
 }
+.patient-row {
+  padding: 12px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.patient-row.clickable {
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.patient-row.clickable:hover {
+  background: #f3f4f6;
+}
+
+.patient-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.badges {
+  display: flex;
+  gap: 6px;
+}
+
+.badge {
+  font-size: 0.7rem;
+  padding: 2px 6px;
+  border-radius: 6px;
+  font-weight: 500;
+}
+
+.badge-mutual {
+  background: #fde68a;
+  color: #92400e;
+}
+
+.badge-private {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.edit-hint {
+  font-size: 0.75rem;
+  color: #6b7280;
+  margin-top: 4px;
+}
