@@ -188,7 +188,7 @@ async function getNextInvoiceNumber(therapistId) {
       });
     }
 
-    return `PI-${year}-${String(next).padStart(4,"0")}`;
+    return `PI-${year}-${String(next).padStart(4, "0")}`;
   });
 }
 
@@ -256,7 +256,7 @@ Cualquier cosa me dices.
 }
 
 /* =========================
-   SAVE
+   SAVE (CORRECTO)
 ========================= */
 document.getElementById("save").onclick = async () => {
   const user = auth.currentUser;
@@ -278,32 +278,38 @@ document.getElementById("save").onclick = async () => {
     updatedAt: Timestamp.now()
   };
 
-  let appointmentId;
+  try {
+    let appointmentId;
 
-  if (editingId) {
-    await updateDoc(doc(db, "appointments", editingId), data);
-    appointmentId = editingId;
-  } else {
-    const ref = await addDoc(collection(db, "appointments"), {
-      ...data,
-      createdAt: Timestamp.now()
+    if (editingId) {
+      await updateDoc(doc(db, "appointments", editingId), data);
+      appointmentId = editingId;
+    } else {
+      const ref = await addDoc(collection(db, "appointments"), {
+        ...data,
+        createdAt: Timestamp.now()
+      });
+      appointmentId = ref.id;
+    }
+
+    await maybeCreateInvoice(appointmentId, data);
+
+    modal.classList.remove("show");
+    await renderWeek();
+
+    openWhatsAppNotification({
+      phone: data.phone,
+      name: data.name,
+      date: data.date,
+      start: data.start,
+      end: data.end,
+      modality: data.modality
     });
-    appointmentId = ref.id;
+
+  } catch (err) {
+    console.error("Error guardando cita:", err);
+    alert("No se pudo guardar la cita");
   }
-
-  await maybeCreateInvoice(appointmentId, data);
-
-  openWhatsAppNotification({
-    phone: data.phone,
-    name: data.name,
-    date: data.date,
-    start: data.start,
-    end: data.end,
-    modality: data.modality
-  });
-
-  modal.classList.remove("show");
-  renderWeek();
 };
 
 /* =========================
