@@ -500,3 +500,37 @@ select {
     display: none;
   }
 }
+.menu-drawer {
+  position: fixed;
+  top: 0;
+  left: -280px;
+  width: 260px;
+  height: 100vh;
+  background: #f7faf9;
+  box-shadow: 2px 0 12px rgba(0,0,0,.15);
+  padding: 1.25rem;
+  transition: left .25s ease;
+  overflow-y: auto;
+
+  z-index: 1100; /* 👈 MUY IMPORTANTE */
+}
+
+.menu-drawer.open {
+  left: 0;
+}
+
+.menu-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.35);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .25s ease;
+
+  z-index: 1000; /* 👈 POR DEBAJO DEL DRAWER */
+}
+
+.menu-overlay.show {
+  opacity: 1;
+  pointer-events: auto;
+}
