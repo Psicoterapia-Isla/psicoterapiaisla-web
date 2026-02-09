@@ -95,11 +95,19 @@ function resetModal() {
   suggestions.innerHTML = "";
 }
 
+/* ===== FIX CLAVE ===== */
+function pad(n) {
+  return String(n).padStart(2, "0");
+}
+
 function openNew(slot) {
   resetModal();
   currentSlot = slot;
-  start.value = `${slot.hour}:00`;
-  end.value = `${slot.hour + 1}:00`;
+
+  // ⛑️ FIX: input[type="time"] exige HH:MM
+  start.value = `${pad(slot.hour)}:00`;
+  end.value = `${pad(slot.hour + 1)}:00`;
+
   modal.classList.add("show");
 }
 
@@ -256,11 +264,16 @@ Cualquier cosa me dices.
 }
 
 /* =========================
-   SAVE (CORRECTO)
+   SAVE
 ========================= */
 document.getElementById("save").onclick = async () => {
   const user = auth.currentUser;
   if (!user || !currentSlot) return;
+
+  if (!start.value || !end.value) {
+    alert("La hora de inicio y fin es obligatoria");
+    return;
+  }
 
   const data = {
     therapistId: user.uid,
@@ -372,7 +385,7 @@ async function renderWeek() {
     DAYS.forEach(day => {
       const date = formatDate(dayFromKey(monday, day));
       const slotKey = `${day}_${hour}`;
-      const apptKey = `${date}_${hour}:00`;
+      const apptKey = `${date}_${pad(hour)}:00`;
 
       const cell = document.createElement("div");
       cell.className = "slot";
