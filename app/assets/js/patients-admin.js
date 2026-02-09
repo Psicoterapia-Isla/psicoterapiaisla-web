@@ -68,7 +68,7 @@ async function loadPatients() {
 }
 
 /* =========================
-   RENDER LISTADO
+   RENDER LISTADO (CLICKABLE)
 ========================= */
 function renderPatients(patients) {
   if (!patients.length) {
@@ -81,41 +81,36 @@ function renderPatients(patients) {
     const apellidos = p.apellidos || "";
     const dni = p.dni || "-";
     const email = p.email || "-";
-    const hasUser = !!p.linkedUserUid;
 
-    const typeBadge =
-      p.patientType === "mutual"
-        ? `<span class="badge badge-mutual">Mutua</span>`
-        : `<span class="badge badge-private">Privado</span>`;
+    const tipo = p.patientType === "mutual" ? "Mutua" : "Privado";
+    const duracion = p.sessionDuration === 30 ? "30 min" : "60 min";
 
     return `
-      <div class="patient-row clickable ${hasUser ? "linked" : "historical"}"
-           data-id="${p.id}">
-        <div class="patient-header">
+      <div class="patient-row clickable" data-id="${p.id}">
+        <div>
           <strong>${nombre} ${apellidos}</strong>
-          <div class="badges">
-            ${typeBadge}
-            <span class="badge ${hasUser ? "badge-linked" : "badge-historical"}">
-              ${hasUser ? "Con cuenta" : "Histórico"}
-            </span>
+          <div style="opacity:.7;font-size:.85rem">
+            ${tipo} · ${duracion}
           </div>
+          <small>DNI: ${dni} · Email: ${email}</small>
         </div>
-        <small>
-          DNI: ${dni} · Email: ${email}
-        </small>
         <div class="edit-hint">Editar paciente</div>
       </div>
     `;
   }).join("");
-
-  document.querySelectorAll(".patient-row").forEach(row => {
-    row.addEventListener("click", () => {
-      const id = row.dataset.id;
-      const patient = allPatients.find(p => p.id === id);
-      if (patient) openPatientEditor(patient);
-    });
-  });
 }
+
+/* =========================
+   CLICK GLOBAL (ROBUSTO)
+========================= */
+listContainer.addEventListener("click", (e) => {
+  const row = e.target.closest(".patient-row");
+  if (!row) return;
+
+  const id = row.dataset.id;
+  const patient = allPatients.find(p => p.id === id);
+  if (patient) openPatientEditor(patient);
+});
 
 /* =========================
    BUSCADOR
@@ -134,7 +129,7 @@ searchInput.addEventListener("input", () => {
 });
 
 /* =========================
-   MODAL EDICIÓN
+   MODAL EDICIÓN PACIENTE
 ========================= */
 function openPatientEditor(patient) {
   currentPatient = patient;
