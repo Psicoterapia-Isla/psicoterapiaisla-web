@@ -21,17 +21,12 @@
       flex-wrap: wrap;
     }
 
-    .agenda-header h1 {
-      margin: 0;
-    }
-
     .agenda-nav {
       display: flex;
       gap: .5rem;
       flex-wrap: wrap;
     }
 
-    /* ===== GRID SEMANAL ===== */
     .agenda-scroll {
       overflow-x: auto;
       padding-bottom: 12px;
@@ -75,29 +70,45 @@
     .slot.paid      { background: #d1fae5; }
     .slot.disabled  { background: #e5e7eb; cursor: default; }
 
-    .slot strong {
-      font-size: .8rem;
-    }
+    /* ================= MODAL ================= */
 
-    /* ===== MODAL ===== */
     .modal {
       position: fixed;
       inset: 0;
       background: rgba(0,0,0,.45);
       display: none;
-      z-index: 999;
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
     }
 
     .modal.show {
-      display: block;
+      display: flex;
     }
 
-    .modal-card {
+    .modal-content {
       background: #fff;
+      width: 100%;
       max-width: 420px;
-      margin: 10vh auto;
-      padding: 1.25rem;
+      max-height: 90vh;
+      display: flex;
+      flex-direction: column;
       border-radius: 16px;
+      overflow: hidden;
+    }
+
+    .modal-body {
+      padding: 1.25rem;
+      overflow-y: auto;
+    }
+
+    .modal-footer {
+      padding: 1rem;
+      border-top: 1px solid #eee;
+      display: flex;
+      gap: .5rem;
+      justify-content: flex-end;
+      background: #fff;
     }
 
     .suggestions {
@@ -118,11 +129,13 @@
       background: #f3f4f6;
     }
 
-    .modal-actions {
-      display: flex;
-      justify-content: flex-end;
-      gap: .5rem;
-      margin-top: 1rem;
+    /* ===== MÓVIL ===== */
+    @media (max-width: 600px) {
+      .modal-content {
+        height: 100vh;
+        max-height: 100vh;
+        border-radius: 16px 16px 0 0;
+      }
     }
   </style>
 </head>
@@ -151,47 +164,49 @@
 
 <!-- ================= MODAL CITA ================= -->
 <div id="modal" class="modal">
-  <div class="modal-card">
+  <div class="modal-content">
 
-    <h3>Cita</h3>
+    <div class="modal-body">
+      <h3>Cita</h3>
 
-    <label>Teléfono</label>
-    <input id="phone" autocomplete="off">
-    <div id="suggestions" class="suggestions"></div>
+      <label>Teléfono</label>
+      <input id="phone" autocomplete="off">
+      <div id="suggestions" class="suggestions"></div>
 
-    <label>Nombre</label>
-    <input id="name">
+      <label>Nombre</label>
+      <input id="name">
 
-    <label>Servicio</label>
-    <input id="service" value="Visita Psicología">
+      <label>Servicio</label>
+      <input id="service" value="Visita Psicología">
 
-    <label>Modalidad</label>
-    <select id="modality">
-      <option value="viladecans">Viladecans</option>
-      <option value="badalona">Badalona</option>
-      <option value="online">Online</option>
-    </select>
+      <label>Modalidad</label>
+      <select id="modality">
+        <option value="viladecans">Viladecans</option>
+        <option value="badalona">Badalona</option>
+        <option value="online">Online</option>
+      </select>
 
-    <label>Inicio</label>
-    <input id="start" type="time">
+      <label>Inicio</label>
+      <input id="start" type="time">
 
-    <label>Fin</label>
-    <input id="end" type="time">
+      <label>Fin</label>
+      <input id="end" type="time">
 
-    <label>
-      <input type="checkbox" id="completed">
-      Sesión realizada
-    </label>
+      <label>
+        <input type="checkbox" id="completed">
+        Sesión realizada
+      </label>
 
-    <label>
-      <input type="checkbox" id="paid">
-      Pagada
-    </label>
+      <label>
+        <input type="checkbox" id="paid">
+        Pagada
+      </label>
 
-    <label>Importe (€)</label>
-    <input id="amount" type="number">
+      <label>Importe (€)</label>
+      <input id="amount" type="number">
+    </div>
 
-    <div class="modal-actions">
+    <div class="modal-footer">
       <button id="save" class="btn-primary">Guardar</button>
       <button id="close" class="btn-secondary">Cerrar</button>
     </div>
