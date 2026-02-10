@@ -9,7 +9,6 @@ import {
   doc,
   getDoc,
   updateDoc,
-  addDoc,
   serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
@@ -47,54 +46,40 @@ onAuthStateChanged(auth, async (user) => {
 });
 
 /* =========================
-   LOAD PATIENTS
+   LOAD
 ========================= */
 async function loadPatients() {
   listContainer.innerHTML = "Cargando pacientes...";
 
   const snap = await getDocs(collection(db, "patients_normalized"));
-
-  allPatients = snap.docs.map(d => ({
-    id: d.id,
-    ...d.data()
-  }));
+  allPatients = snap.docs.map(d => ({ id: d.id, ...d.data() }));
 
   renderPatients(allPatients);
 }
 
 /* =========================
-   RENDER LIST
+   RENDER
 ========================= */
 function renderPatients(patients) {
-  if (!patients.length) {
-    listContainer.innerHTML = "No hay pacientes";
-    return;
-  }
-
   listContainer.innerHTML = patients.map(p => {
-    const tipo = p.patientType || "private";
-    const duracion = p.sessionDuration || 60;
+    const tipo = p.patientType === "mutual" ? "Mutua" : "Privado";
+    const dur = p.sessionDuration || 60;
 
     return `
-      <div class="patient-row clickable" data-id="${p.id}">
-        <div>
-          <strong>${p.nombre || ""} ${p.apellidos || ""}</strong><br>
-          <small>
-            ${tipo === "mutual" ? "Mutua" : "Privado"} · ${duracion} min
-            · DNI: ${p.dni || "-"}
-            · Email: ${p.email || "-"}
-          </small>
-        </div>
+      <div class="patient-row" data-id="${p.id}">
+        <strong>${p.nombre || ""} ${p.apellidos || ""}</strong>
+        <small>
+          ${tipo} · ${dur} min · DNI: ${p.dni || "-"} · ${p.email || "-"}
+        </small>
       </div>
     `;
   }).join("");
 
   document.querySelectorAll(".patient-row").forEach(row => {
-    row.addEventListener("click", () => {
-      const id = row.dataset.id;
-      const patient = allPatients.find(p => p.id === id);
+    row.onclick = () => {
+      const patient = allPatients.find(p => p.id === row.dataset.id);
       if (patient) openPatientEditor(patient);
-    });
+    };
   });
 }
 
@@ -102,24 +87,28 @@ function renderPatients(patients) {
    SEARCH
 ========================= */
 searchInput.addEventListener("input", () => {
-  const q = searchInput.value.toLowerCase().trim();
-
-  const filtered = allPatients.filter(p =>
-    (p.nombre || "").toLowerCase().includes(q) ||
-    (p.apellidos || "").toLowerCase().includes(q) ||
-    (p.email || "").toLowerCase().includes(q) ||
-    (p.dni || "").toLowerCase().includes(q)
+  const q = searchInput.value.toLowerCase();
+  renderPatients(
+    allPatients.filter(p =>
+      (p.nombre || "").toLowerCase().includes(q) ||
+      (p.apellidos || "").toLowerCase().includes(q) ||
+      (p.email || "").toLowerCase().includes(q) ||
+      (p.dni || "").toLowerCase().includes(q)
+    )
   );
-
-  renderPatients(filtered);
 });
 
 /* =========================
-   MODAL EDITOR
+   MODAL (ÚNICO)
 ========================= */
 function openPatientEditor(patient) {
+
+  // 🔥 BORRAR MODAL PREVIO SI EXISTE
+  document.getElementById("patient-modal")?.remove();
+
   const modal = document.createElement("div");
-  modal.className = "modal show";
+  modal.id = "patient-modal";
+  modal.className = "modal-overlay";
 
   modal.innerHTML = `
     <div class="modal-card">
@@ -146,8 +135,8 @@ function openPatientEditor(patient) {
       </div>
 
       <div class="modal-actions">
-        <button id="save" class="btn-primary">Guardar</button>
-        <button id="close" class="btn-secondary">Cerrar</button>
+        <button id="savePatient">Guardar</button>
+        <button id="closePatient">Cerrar</button>
       </div>
     </div>
   `;
@@ -171,22 +160,20 @@ function openPatientEditor(patient) {
     box.style.display = type.value === "mutual" ? "block" : "none";
   };
 
-  modal.querySelector("#close").onclick = () => modal.remove();
+  modal.querySelector("#closePatient").onclick = () => modal.remove();
 
-  modal.querySelector("#save").onclick = async () => {
-    const data = {
+  modal.querySelector("#savePatient").onclick = async () => {
+    await updateDoc(doc(db, "patients_normalized", patient.id), {
       patientType: type.value,
       sessionDuration: Number(duration.value),
-      updatedAt: serverTimestamp(),
       mutual: type.value === "mutual"
         ? {
-            name: modal.querySelector("#mutualName").value || "",
+            name: modal.querySelector("#mutualName").value,
             pricePerSession: Number(modal.querySelector("#mutualPrice").value || 0)
           }
-        : null
-    };
-
-    await updateDoc(doc(db, "patients_normalized", patient.id), data);
+        : null,
+      updatedAt: serverTimestamp()
+    });
 
     modal.remove();
     loadPatients();
