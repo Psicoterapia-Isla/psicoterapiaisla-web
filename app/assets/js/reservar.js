@@ -58,13 +58,13 @@ function formatWeekLabel(monday) {
 }
 
 /* =========================
-   AUTH + DATA BASE
+   AUTH + CARGA BASE
 ========================= */
 auth.onAuthStateChanged(async user => {
   if (!user) return;
   currentUser = user;
 
-  // perfil paciente
+  /* ===== PERFIL PACIENTE (FIX CLAVE) ===== */
   const pSnap = await getDocs(
     query(
       collection(db, "patients_normalized"),
@@ -77,9 +77,10 @@ auth.onAuthStateChanged(async user => {
     return;
   }
 
-  patientProfile = pSnap.docs[0].data();
+  const patientDoc = pSnap.docs[0];
+  patientProfile = { id: patientDoc.id, ...patientDoc.data() };
 
-  // terapeutas
+  /* ===== TERAPEUTAS ===== */
   const tSnap = await getDocs(collection(db, "therapists"));
   therapists = tSnap.docs.map(d => ({ id: d.id, ...d.data() }));
 
@@ -87,13 +88,16 @@ auth.onAuthStateChanged(async user => {
 });
 
 /* =========================
-   RENDER WEEK
+   RENDER SEMANA
 ========================= */
 async function renderWeek() {
+  if (!grid) return;
   grid.innerHTML = "";
 
   const monday = mondayOf(baseDate);
-  weekLabel.textContent = formatWeekLabel(monday);
+  if (weekLabel) {
+    weekLabel.textContent = formatWeekLabel(monday);
+  }
 
   const from = formatDate(monday);
   const to = formatDate(new Date(monday.getTime() + 6 * 86400000));
@@ -155,7 +159,7 @@ async function renderWeek() {
       const start = `${pad(hour)}:00`;
       const end = `${pad(hour + 1)}:00`;
 
-      let freeTherapists = [];
+      const freeTherapists = [];
 
       therapists.forEach(t => {
         const slotKey = `${day}_${hour}`;
@@ -189,17 +193,17 @@ async function renderWeek() {
 }
 
 /* =========================
-   CREAR CITA REAL
+   CREAR CITA
 ========================= */
 async function createAppointment({ date, start, end, freeTherapists }) {
 
   let therapistId = null;
 
-  // MUTUA → automático
+  /* ===== MUTUAS → ASIGNACIÓN AUTOMÁTICA ===== */
   if (patientProfile.patientType === "mutual") {
     therapistId = freeTherapists[0];
   } else {
-    // PRIVADO
+    /* ===== PRIVADOS → ELECCIÓN ===== */
     if (freeTherapists.length === 1) {
       therapistId = freeTherapists[0];
     } else {
@@ -214,7 +218,7 @@ async function createAppointment({ date, start, end, freeTherapists }) {
 
   await addDoc(collection(db, "appointments"), {
     therapistId,
-    patientId: patientProfile.id || null,
+    patientId: patientProfile.id,
     patientName: `${patientProfile.nombre || ""} ${patientProfile.apellidos || ""}`.trim(),
     modality: "viladecans",
     date,
@@ -232,17 +236,23 @@ async function createAppointment({ date, start, end, freeTherapists }) {
 /* =========================
    NAV
 ========================= */
-prevWeek.onclick = () => {
-  baseDate.setDate(baseDate.getDate() - 7);
-  renderWeek();
-};
+if (prevWeek) {
+  prevWeek.onclick = () => {
+    baseDate.setDate(baseDate.getDate() - 7);
+    renderWeek();
+  };
+}
 
-nextWeek.onclick = () => {
-  baseDate.setDate(baseDate.getDate() + 7);
-  renderWeek();
-};
+if (nextWeek) {
+  nextWeek.onclick = () => {
+    baseDate.setDate(baseDate.getDate() + 7);
+    renderWeek();
+  };
+}
 
-todayBtn.onclick = () => {
-  baseDate = new Date();
-  renderWeek();
-};
+if (todayBtn) {
+  todayBtn.onclick = () => {
+    baseDate = new Date();
+    renderWeek();
+  };
+}
