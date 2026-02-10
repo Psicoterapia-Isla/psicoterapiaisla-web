@@ -21,6 +21,10 @@ const listContainer = document.getElementById("patients-list");
 
 const modal = document.getElementById("patient-modal");
 const modalTitle = document.getElementById("modal-title");
+
+const nombreInput = document.getElementById("patientNombre");
+const apellidosInput = document.getElementById("patientApellidos");
+
 const typeSelect = document.getElementById("patientType");
 const durationSelect = document.getElementById("sessionDuration");
 const mutualBox = document.getElementById("mutualBox");
@@ -36,7 +40,6 @@ const closeBtn = document.getElementById("closePatient");
 const auth = getAuth();
 let allPatients = [];
 let currentPatient = null;
-let canEdit = false;
 
 onAuthStateChanged(auth, async (user) => {
   if (!user) {
@@ -52,9 +55,7 @@ onAuthStateChanged(auth, async (user) => {
   }
 
   const role = snap.data().role;
-  canEdit = role === "admin" || role === "therapist";
-
-  if (!canEdit) {
+  if (!["admin","therapist"].includes(role)) {
     alert("Acceso restringido");
     window.location.href = "index.html";
     return;
@@ -65,7 +66,7 @@ onAuthStateChanged(auth, async (user) => {
 });
 
 /* =========================
-   UI EXTRA (NO ROMPE NADA)
+   UI
 ========================= */
 function injectCreateButton() {
   if (document.getElementById("new-patient-btn")) return;
@@ -74,13 +75,9 @@ function injectCreateButton() {
   btn.id = "new-patient-btn";
   btn.className = "btn-primary";
   btn.textContent = "+ Nuevo paciente";
-
   btn.onclick = () => openEditor(null);
 
-  listContainer.parentElement.insertBefore(
-    btn,
-    listContainer
-  );
+  listContainer.parentElement.insertBefore(btn, listContainer);
 }
 
 /* =========================
@@ -110,8 +107,6 @@ function renderPatients(patients) {
       <small>
         ${p.patientType === "mutual" ? "Mutua" : "Privado"}
         · ${p.sessionDuration || 60} min
-        · DNI: ${p.dni || "-"}
-        · ${p.email || "-"}
       </small>
     </div>
   `).join("");
@@ -125,29 +120,15 @@ function renderPatients(patients) {
 }
 
 /* =========================
-   SEARCH
-========================= */
-searchInput.oninput = () => {
-  const q = searchInput.value.toLowerCase().trim();
-  renderPatients(
-    allPatients.filter(p =>
-      (p.nombre || "").toLowerCase().includes(q) ||
-      (p.apellidos || "").toLowerCase().includes(q) ||
-      (p.email || "").toLowerCase().includes(q) ||
-      (p.dni || "").toLowerCase().includes(q)
-    )
-  );
-};
-
-/* =========================
    MODAL
 ========================= */
 function openEditor(patient) {
   currentPatient = patient;
 
-  modalTitle.textContent = patient
-    ? `${patient.nombre || ""} ${patient.apellidos || ""}`
-    : "Nuevo paciente";
+  modalTitle.textContent = patient ? "Editar paciente" : "Nuevo paciente";
+
+  nombreInput.value = patient?.nombre || "";
+  apellidosInput.value = patient?.apellidos || "";
 
   typeSelect.value = patient?.patientType || "private";
   durationSelect.value = patient?.sessionDuration || 60;
@@ -178,16 +159,32 @@ closeBtn.onclick = () => {
    SAVE
 ========================= */
 saveBtn.onclick = async () => {
+  const nombre = nombreInput.value.trim();
+  const apellidos = apellidosInput.value.trim();
+
+  if (!nombre) {
+    alert("El nombre es obligatorio");
+    return;
+  }
+
+  const keywords = [
+    nombre.toLowerCase(),
+    apellidos.toLowerCase()
+  ].filter(Boolean);
+
   const data = {
+    nombre,
+    apellidos,
     patientType: typeSelect.value,
     sessionDuration: Number(durationSelect.value),
-    updatedAt: serverTimestamp(),
     mutual: typeSelect.value === "mutual"
       ? {
           name: mutualName.value || "",
           pricePerSession: Number(mutualPrice.value || 0)
         }
-      : null
+      : null,
+    keywords,
+    updatedAt: serverTimestamp()
   };
 
   if (currentPatient) {
@@ -196,12 +193,8 @@ saveBtn.onclick = async () => {
       data
     );
   } else {
-    // alta manual segura
-    const name = modalTitle.textContent || "";
     await addDoc(collection(db, "patients_normalized"), {
       ...data,
-      nombre: name,
-      keywords: name.toLowerCase().split(" ").filter(Boolean),
       createdAt: serverTimestamp()
     });
   }
