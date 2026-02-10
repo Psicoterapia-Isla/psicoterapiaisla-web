@@ -144,13 +144,48 @@ document.getElementById("close").onclick = () =>
   modal.classList.remove("show");
 
 /* =========================
+   ALTA RÁPIDA PACIENTE
+========================= */
+async function quickCreatePatient() {
+  const fullName = name.value.trim();
+  if (!fullName) {
+    alert("Introduce el nombre del paciente");
+    return;
+  }
+
+  const [nombre, ...rest] = fullName.split(" ");
+  const apellidos = rest.join(" ");
+
+  const ref = await addDoc(collection(db, "patients_normalized"), {
+    nombre,
+    apellidos,
+    telefono: phone.value || "",
+    patientType: "private",
+    sessionDuration: 60,
+    keywords: [
+      nombre.toLowerCase(),
+      apellidos.toLowerCase(),
+      (phone.value || "").replace(/\s+/g, "")
+    ],
+    createdAt: Timestamp.now()
+  });
+
+  selectedPatientId = ref.id;
+  selectedPatientDuration = 60;
+  selectedPatientPrice = null;
+  amount.value = "";
+
+  suggestions.innerHTML = "";
+  alert("Paciente creado");
+}
+
+/* =========================
    AUTOCOMPLETE PACIENTES
 ========================= */
 async function searchPatients(term) {
-  if (!term || term.length < 2) {
-    suggestions.innerHTML = "";
-    return;
-  }
+  suggestions.innerHTML = "";
+
+  if (!term || term.length < 2) return;
 
   const q = query(
     collection(db, "patients_normalized"),
@@ -158,7 +193,15 @@ async function searchPatients(term) {
   );
 
   const snap = await getDocs(q);
-  suggestions.innerHTML = "";
+
+  if (snap.empty) {
+    const div = document.createElement("div");
+    div.className = "suggestion-create";
+    div.textContent = "➕ Crear paciente nuevo";
+    div.onclick = quickCreatePatient;
+    suggestions.appendChild(div);
+    return;
+  }
 
   snap.forEach(d => {
     const p = d.data();
@@ -170,11 +213,9 @@ async function searchPatients(term) {
     div.onclick = () => {
       selectedPatientId = d.id;
 
-      // 👉 DURACIÓN
       selectedPatientDuration = p.sessionDuration || 60;
       end.value = addMinutes(start.value, selectedPatientDuration);
 
-      // 👉 PRECIO
       if (p.patientType === "mutual") {
         selectedPatientPrice = p.mutual?.pricePerSession || 0;
         amount.value = selectedPatientPrice;
@@ -208,7 +249,7 @@ start.onchange = () => {
 };
 
 /* =========================
-   FACTURAS (SIN CAMBIOS)
+   FACTURAS
 ========================= */
 async function getNextInvoiceNumber(therapistId) {
   const year = new Date().getFullYear();
@@ -299,10 +340,103 @@ document.getElementById("save").onclick = async () => {
 };
 
 /* =========================
-   RENDER WEEK (SIN CAMBIOS)
+   RENDER WEEK
 ========================= */
 async function renderWeek() {
-  /* igual que antes */
+  grid.innerHTML = "";
+
+  const monday = mondayOf(baseDate);
+  weekLabel.textContent = formatWeekLabel(monday);
+
+  const user = auth.currentUser;
+  if (!user) return;
+
+  const availSnap = await getDocs(
+    query(
+      collection(db, "availability"),
+      where("therapistId", "==", user.uid),
+      where("weekStart", "==", formatDate(monday))
+    )
+  );
+
+  const availability = {};
+  availSnap.forEach(d => Object.assign(availability, d.data().slots || {}));
+
+  const from = formatDate(monday);
+  const to = formatDate(new Date(monday.getTime() + 6 * 86400000));
+
+  const apptSnap = await getDocs(
+    query(
+      collection(db, "appointments"),
+      where("therapistId", "==", user.uid),
+      where("date", ">=", from),
+      where("date", "<=", to)
+    )
+  );
+
+  const bySlot = {};
+  apptSnap.forEach(d => {
+    const a = { id: d.id, ...d.data() };
+    bySlot[`${a.date}_${a.start}`] = a;
+    if (a.duration === 60) {
+      bySlot[`${a.date}_${addMinutes(a.start, 30)}`] = a;
+    }
+  });
+
+  grid.appendChild(document.createElement("div"));
+
+  DAYS.forEach((_, i) => {
+    const d = new Date(monday);
+    d.setDate(d.getDate() + i);
+    const h = document.createElement("div");
+    h.className = "day-label";
+    h.textContent = d.toLocaleDateString("es-ES",{weekday:"short",day:"numeric"});
+    grid.appendChild(h);
+  });
+
+  HOURS.forEach(hour => {
+    SUBSLOTS.forEach(min => {
+      const hl = document.createElement("div");
+      hl.className = "hour-label";
+      hl.textContent = `${pad(hour)}:${min}`;
+      grid.appendChild(hl);
+
+      DAYS.forEach(day => {
+        const date = formatDate(dayFromKey(monday, day));
+        const slotKey = `${day}_${hour}`;
+        const time = `${pad(hour)}:${min}`;
+        const apptKey = `${date}_${time}`;
+
+        const cell = document.createElement("div");
+        cell.className = "slot";
+
+        if (bySlot[apptKey]) {
+          const a = bySlot[apptKey];
+          cell.classList.add(a.paid ? "paid" : a.completed ? "done" : "busy");
+          cell.innerHTML = `<strong>${a.name}</strong><span>${a.start}–${a.end}</span>`;
+          cell.onclick = () => openEdit(a);
+        } else if (availability[slotKey]) {
+          cell.classList.add("available");
+          cell.textContent = "Disponible";
+          cell.onclick = () => openNew({ date, time });
+        } else {
+          cell.classList.add("disabled");
+        }
+
+        grid.appendChild(cell);
+      });
+    });
+  });
 }
 
+/* =========================
+   NAV
+========================= */
+prevWeek.onclick = () => { baseDate.setDate(baseDate.getDate() - 7); renderWeek(); };
+nextWeek.onclick = () => { baseDate.setDate(baseDate.getDate() + 7); renderWeek(); };
+today.onclick = () => { baseDate = new Date(); renderWeek(); };
+
+/* =========================
+   START
+========================= */
 renderWeek();
