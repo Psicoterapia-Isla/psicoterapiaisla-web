@@ -88,10 +88,8 @@ function resetModal(){
 function openNew(slot){
   resetModal();
   currentSlot = slot;
-
   start.value = `${pad(slot.hour)}:00`;
   end.value = `${pad(slot.hour + 1)}:00`;
-
   modal.classList.add("show");
 }
 
@@ -142,13 +140,13 @@ async function searchPatients(term){
       phone.value = p.telefono || "";
       name.value = `${p.nombre || ""} ${p.apellidos || ""}`.trim();
 
-      /* ⏱️ DURACIÓN AUTOMÁTICA */
+      // ⏱️ duración automática
       const duration = p.sessionDuration || 60;
       const [h,m] = start.value.split(":").map(Number);
       const endDate = new Date(0,0,0,h,m + duration);
       end.value = `${pad(endDate.getHours())}:${pad(endDate.getMinutes())}`;
 
-      /* 💰 PRECIO MUTUA */
+      // 💰 precio mutua
       if(p.patientType === "mutual"){
         amount.value = p.mutual?.pricePerSession || 0;
       }
@@ -162,6 +160,35 @@ async function searchPatients(term){
 
 phone.oninput = e => searchPatients(e.target.value);
 name.oninput  = e => searchPatients(e.target.value);
+
+/* ================= WHATSAPP ================= */
+function openWhatsAppNotification(data){
+  if(!data.phone) return;
+
+  let cleanPhone = data.phone.replace(/\s+/g,"");
+  if(!cleanPhone.startsWith("+")){
+    if(cleanPhone.startsWith("6") || cleanPhone.startsWith("7")){
+      cleanPhone = "34" + cleanPhone;
+    }
+  }
+
+  const msg = `
+Hola ${data.name || ""} 😊
+
+Te confirmo tu cita en *Psicoterapia Isla*:
+
+📅 ${data.date}
+⏰ ${data.start} – ${data.end}
+📍 ${data.modality}
+
+Cualquier cosa me dices.
+`.trim();
+
+  window.open(
+    "https://wa.me/" + cleanPhone + "?text=" + encodeURIComponent(msg),
+    "_blank"
+  );
+}
 
 /* ================= FACTURACIÓN ================= */
 async function getNextInvoiceNumber(therapistId){
@@ -254,7 +281,6 @@ document.getElementById("save").onclick = async () => {
   await maybeCreateInvoice(id,data);
   modal.classList.remove("show");
   await renderWeek();
-
   openWhatsAppNotification(data);
 };
 
@@ -262,7 +288,10 @@ document.getElementById("save").onclick = async () => {
 async function renderWeek(){
   grid.innerHTML = "";
   const monday = mondayOf(baseDate);
-  weekLabel.textContent = formatWeekLabel(monday);
+
+  if (weekLabel) {
+    weekLabel.textContent = formatWeekLabel(monday);
+  }
 
   const user = auth.currentUser;
   if(!user) return;
