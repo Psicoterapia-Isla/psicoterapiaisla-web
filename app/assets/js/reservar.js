@@ -3,7 +3,9 @@ import {
   collection,
   query,
   where,
-  getDocs
+  getDocs,
+  addDoc,
+  Timestamp
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 /* =========================
@@ -45,6 +47,10 @@ function formatDate(d) {
   return d.toISOString().slice(0, 10);
 }
 
+function pad(n) {
+  return String(n).padStart(2, "0");
+}
+
 function formatWeekLabel(monday) {
   const end = new Date(monday);
   end.setDate(end.getDate() + 6);
@@ -81,7 +87,7 @@ auth.onAuthStateChanged(async user => {
 });
 
 /* =========================
-   RENDER WEEK (CON BLOQUEO)
+   RENDER WEEK
 ========================= */
 async function renderWeek() {
   grid.innerHTML = "";
@@ -105,7 +111,7 @@ async function renderWeek() {
     availability[d.data().therapistId] = d.data().slots || {};
   });
 
-  /* ===== CITAS (BLOQUEO REAL) ===== */
+  /* ===== CITAS EXISTENTES (BLOQUEO) ===== */
   const apptSnap = await getDocs(
     query(
       collection(db, "appointments"),
@@ -146,12 +152,15 @@ async function renderWeek() {
         new Date(monday.getTime() + DAYS.indexOf(day) * 86400000)
       );
 
+      const start = `${pad(hour)}:00`;
+      const end = `${pad(hour + 1)}:00`;
+
       let freeTherapists = [];
 
       therapists.forEach(t => {
         const slotKey = `${day}_${hour}`;
         const isAvailable = availability[t.id]?.[slotKey];
-        const isBooked = booked[`${t.id}_${date}_${hour}:00`];
+        const isBooked = booked[`${t.id}_${date}_${start}`];
 
         if (isAvailable && !isBooked) {
           freeTherapists.push(t.id);
@@ -165,7 +174,12 @@ async function renderWeek() {
         cell.textContent = "Disponible";
 
         cell.onclick = () => {
-          handleReservation(date, hour, freeTherapists);
+          createAppointment({
+            date,
+            start,
+            end,
+            freeTherapists
+          });
         };
       }
 
@@ -175,29 +189,44 @@ async function renderWeek() {
 }
 
 /* =========================
-   RESERVA (AÚN SIN CREAR CITA)
+   CREAR CITA REAL
 ========================= */
-function handleReservation(date, hour, freeTherapists) {
+async function createAppointment({ date, start, end, freeTherapists }) {
 
-  // MUTUA → asignación automática
+  let therapistId = null;
+
+  // MUTUA → automático
   if (patientProfile.patientType === "mutual") {
-    const therapistId = freeTherapists[0];
-    alert("Cita reservada automáticamente");
-    return;
+    therapistId = freeTherapists[0];
+  } else {
+    // PRIVADO
+    if (freeTherapists.length === 1) {
+      therapistId = freeTherapists[0];
+    } else {
+      const choice = prompt(
+        `Hay ${freeTherapists.length} especialistas disponibles.\nIntroduce un número (1-${freeTherapists.length})`
+      );
+      if (!choice) return;
+      therapistId = freeTherapists[Number(choice) - 1];
+      if (!therapistId) return;
+    }
   }
 
-  // PRIVADO → elección
-  if (freeTherapists.length === 1) {
-    alert("Cita reservada");
-    return;
-  }
+  await addDoc(collection(db, "appointments"), {
+    therapistId,
+    patientId: patientProfile.id || null,
+    patientName: `${patientProfile.nombre || ""} ${patientProfile.apellidos || ""}`.trim(),
+    modality: "viladecans",
+    date,
+    start,
+    end,
+    completed: false,
+    paid: false,
+    createdAt: Timestamp.now()
+  });
 
-  const choice = prompt(
-    `Hay ${freeTherapists.length} especialistas disponibles. Introduce número (1-${freeTherapists.length})`
-  );
-
-  if (!choice) return;
-  alert("Cita reservada");
+  alert("Cita reservada correctamente");
+  await renderWeek();
 }
 
 /* =========================
