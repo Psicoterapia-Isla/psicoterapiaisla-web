@@ -14,28 +14,20 @@ import {
   runTransaction
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-/* =========================
-   INIT
-========================= */
+/* ================= INIT ================= */
 await requireAuth();
 await loadMenu();
 
-/* =========================
-   STATE
-========================= */
+/* ================= STATE ================= */
 let baseDate = new Date();
 let editingId = null;
-let selectedPatientId = null;
-let selectedPatientDuration = 60;   // 🔹 NUEVO
-let selectedPatientPrice = null;    // 🔹 NUEVO
+let selectedPatient = null;
 let currentSlot = null;
 
 const HOURS = Array.from({ length: 12 }, (_, i) => i + 9);
-const DAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
+const DAYS = ["mon","tue","wed","thu","fri","sat","sun"];
 
-/* =========================
-   DOM
-========================= */
+/* ================= DOM ================= */
 const grid = document.getElementById("agendaGrid");
 const weekLabel = document.getElementById("weekLabel");
 
@@ -51,48 +43,34 @@ const paid = document.getElementById("paid");
 const amount = document.getElementById("amount");
 const suggestions = document.getElementById("suggestions");
 
-/* =========================
-   HELPERS
-========================= */
-const formatDate = d => d.toISOString().slice(0, 10);
-const pad = n => String(n).padStart(2, "0");
+/* ================= HELPERS ================= */
+const pad = n => String(n).padStart(2,"0");
+const formatDate = d => d.toISOString().slice(0,10);
 
-function addMinutes(time, mins) {
-  const [h, m] = time.split(":").map(Number);
-  const d = new Date();
-  d.setHours(h, m + mins, 0, 0);
-  return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
-
-function mondayOf(d) {
+function mondayOf(d){
   const x = new Date(d);
-  const n = (x.getDay() + 6) % 7;
-  x.setDate(x.getDate() - n);
-  x.setHours(0, 0, 0, 0);
+  const n = (x.getDay()+6)%7;
+  x.setDate(x.getDate()-n);
+  x.setHours(0,0,0,0);
   return x;
 }
 
-function formatWeekLabel(monday) {
+function formatWeekLabel(monday){
   const end = new Date(monday);
-  end.setDate(end.getDate() + 6);
+  end.setDate(end.getDate()+6);
   return `${monday.toLocaleDateString("es-ES",{day:"numeric",month:"short"})} – ${end.toLocaleDateString("es-ES",{day:"numeric",month:"short",year:"numeric"})}`;
 }
 
-function dayFromKey(monday, key) {
-  const idx = DAYS.indexOf(key);
+function dayFromKey(monday,key){
   const d = new Date(monday);
-  d.setDate(d.getDate() + idx);
+  d.setDate(d.getDate()+DAYS.indexOf(key));
   return d;
 }
 
-/* =========================
-   MODAL
-========================= */
-function resetModal() {
+/* ================= MODAL ================= */
+function resetModal(){
   editingId = null;
-  selectedPatientId = null;
-  selectedPatientDuration = 60;
-  selectedPatientPrice = null;
+  selectedPatient = null;
   currentSlot = null;
 
   phone.value = "";
@@ -107,23 +85,20 @@ function resetModal() {
   suggestions.innerHTML = "";
 }
 
-function openNew(slot) {
+function openNew(slot){
   resetModal();
   currentSlot = slot;
 
   start.value = `${pad(slot.hour)}:00`;
-  end.value = addMinutes(start.value, selectedPatientDuration);
+  end.value = `${pad(slot.hour + 1)}:00`;
 
   modal.classList.add("show");
 }
 
-function openEdit(a) {
+function openEdit(a){
   resetModal();
-
   editingId = a.id;
-  selectedPatientId = a.patientId || null;
-  selectedPatientDuration = a.duration || 60;
-  selectedPatientPrice = a.amount || null;
+  selectedPatient = a.patient || null;
   currentSlot = { date: a.date, hour: Number(a.start.split(":")[0]) };
 
   phone.value = a.phone || "";
@@ -139,89 +114,45 @@ function openEdit(a) {
   modal.classList.add("show");
 }
 
-document.getElementById("close").onclick = () =>
-  modal.classList.remove("show");
+document.getElementById("close").onclick =
+  () => modal.classList.remove("show");
 
-/* =========================
-   ALTA RÁPIDA PACIENTE
-========================= */
-async function quickCreatePatient() {
-  const fullName = name.value.trim();
-  if (!fullName) {
-    alert("Introduce el nombre del paciente");
+/* ================= AUTOCOMPLETE ================= */
+async function searchPatients(term){
+  if(!term || term.length < 2){
+    suggestions.innerHTML = "";
     return;
   }
 
-  const [nombre, ...rest] = fullName.split(" ");
-  const apellidos = rest.join(" ");
-
-  const ref = await addDoc(collection(db, "patients_normalized"), {
-    nombre,
-    apellidos,
-    telefono: phone.value || "",
-    patientType: "private",
-    sessionDuration: 60,
-    keywords: [
-      nombre.toLowerCase(),
-      apellidos.toLowerCase(),
-      (phone.value || "").replace(/\s+/g, "")
-    ],
-    createdAt: Timestamp.now()
-  });
-
-  selectedPatientId = ref.id;
-  selectedPatientDuration = 60;
-  selectedPatientPrice = null;
-  amount.value = "";
+  const snap = await getDocs(query(
+    collection(db,"patients_normalized"),
+    where("keywords","array-contains",term.toLowerCase())
+  ));
 
   suggestions.innerHTML = "";
-}
 
-/* =========================
-   AUTOCOMPLETE PACIENTES
-========================= */
-async function searchPatients(term) {
-  suggestions.innerHTML = "";
-  if (!term || term.length < 2) return;
-
-  const q = query(
-    collection(db, "patients_normalized"),
-    where("keywords", "array-contains", term.toLowerCase())
-  );
-
-  const snap = await getDocs(q);
-
-  if (snap.empty) {
-    const div = document.createElement("div");
-    div.className = "suggestion-create";
-    div.textContent = "➕ Crear paciente nuevo";
-    div.onclick = quickCreatePatient;
-    suggestions.appendChild(div);
-    return;
-  }
-
-  snap.forEach(d => {
+  snap.forEach(d=>{
     const p = d.data();
     const div = document.createElement("div");
-    div.className = "suggestion-item";
     div.textContent = `${p.nombre || ""} ${p.apellidos || ""} · ${p.telefono || ""}`;
 
     div.onclick = () => {
-      selectedPatientId = d.id;
-
-      selectedPatientDuration = p.sessionDuration || 60;
-      end.value = addMinutes(start.value, selectedPatientDuration);
-
-      if (p.patientType === "mutual") {
-        selectedPatientPrice = p.mutual?.pricePerSession || 0;
-        amount.value = selectedPatientPrice;
-      } else {
-        selectedPatientPrice = null;
-        amount.value = "";
-      }
+      selectedPatient = { id: d.id, ...p };
 
       phone.value = p.telefono || "";
       name.value = `${p.nombre || ""} ${p.apellidos || ""}`.trim();
+
+      /* ⏱️ DURACIÓN AUTOMÁTICA */
+      const duration = p.sessionDuration || 60;
+      const [h,m] = start.value.split(":").map(Number);
+      const endDate = new Date(0,0,0,h,m + duration);
+      end.value = `${pad(endDate.getHours())}:${pad(endDate.getMinutes())}`;
+
+      /* 💰 PRECIO MUTUA */
+      if(p.patientType === "mutual"){
+        amount.value = p.mutual?.pricePerSession || 0;
+      }
+
       suggestions.innerHTML = "";
     };
 
@@ -229,51 +160,43 @@ async function searchPatients(term) {
   });
 }
 
-phone.oninput = e => {
-  selectedPatientId = null;
-  searchPatients(e.target.value);
-};
+phone.oninput = e => searchPatients(e.target.value);
+name.oninput  = e => searchPatients(e.target.value);
 
-name.oninput = e => {
-  selectedPatientId = null;
-  searchPatients(e.target.value);
-};
-
-start.onchange = () => {
-  end.value = addMinutes(start.value, selectedPatientDuration);
-};
-
-/* =========================
-   FACTURAS (SIN CAMBIOS)
-========================= */
-async function getNextInvoiceNumber(therapistId) {
+/* ================= FACTURACIÓN ================= */
+async function getNextInvoiceNumber(therapistId){
   const year = new Date().getFullYear();
-  const ref = doc(db, "invoice_counters", `${therapistId}_${year}`);
+  const ref = doc(db,"invoice_counters",`${therapistId}_${year}`);
 
-  return await runTransaction(db, async (tx) => {
+  return await runTransaction(db, async tx => {
     const snap = await tx.get(ref);
     let next = 1;
 
-    if (snap.exists()) {
+    if(snap.exists()){
       next = snap.data().lastNumber + 1;
-      tx.update(ref, { lastNumber: next, updatedAt: Timestamp.now() });
-    } else {
-      tx.set(ref, { therapistId, year, lastNumber: 1 });
+      tx.update(ref,{ lastNumber: next, updatedAt: Timestamp.now() });
+    }else{
+      tx.set(ref,{
+        therapistId,
+        year,
+        lastNumber: 1,
+        createdAt: Timestamp.now()
+      });
     }
 
-    return `PI-${year}-${String(next).padStart(4, "0")}`;
+    return `PI-${year}-${String(next).padStart(4,"0")}`;
   });
 }
 
-async function maybeCreateInvoice(appointmentId, data) {
-  if (!data.completed || !data.paid || !data.amount) return;
+async function maybeCreateInvoice(appointmentId,data){
+  if(!data.completed || !data.paid || !data.amount) return;
 
-  const invoiceNumber = await getNextInvoiceNumber(data.therapistId);
+  const num = await getNextInvoiceNumber(data.therapistId);
 
-  const ref = await addDoc(collection(db, "invoices"), {
+  const inv = await addDoc(collection(db,"invoices"),{
     therapistId: data.therapistId,
     appointmentId,
-    invoiceNumber,
+    invoiceNumber: num,
     issueDate: Timestamp.now(),
     patientId: data.patientId || null,
     patientName: data.name || null,
@@ -286,21 +209,22 @@ async function maybeCreateInvoice(appointmentId, data) {
     createdAt: Timestamp.now()
   });
 
-  await updateDoc(doc(db, "appointments", appointmentId), {
-    invoiceId: ref.id
-  });
+  await updateDoc(
+    doc(db,"appointments",appointmentId),
+    { invoiceId: inv.id }
+  );
 }
 
-/* =========================
-   SAVE
-========================= */
+/* ================= SAVE ================= */
 document.getElementById("save").onclick = async () => {
   const user = auth.currentUser;
-  if (!user || !currentSlot) return;
+  if(!user || !currentSlot) return;
 
   const data = {
     therapistId: user.uid,
-    patientId: selectedPatientId || null,
+    patientId: selectedPatient?.id || null,
+    patient: selectedPatient || null,
+    sessionDuration: selectedPatient?.sessionDuration || 60,
     date: currentSlot.date,
     phone: phone.value,
     name: name.value,
@@ -308,47 +232,124 @@ document.getElementById("save").onclick = async () => {
     modality: modality.value,
     start: start.value,
     end: end.value,
-    duration: selectedPatientDuration,
     completed: completed.checked,
     paid: paid.checked,
     amount: Number(amount.value || 0),
     updatedAt: Timestamp.now()
   };
 
-  let appointmentId;
+  let id;
 
-  if (editingId) {
-    await updateDoc(doc(db, "appointments", editingId), data);
-    appointmentId = editingId;
-  } else {
-    const ref = await addDoc(collection(db, "appointments"), {
-      ...data,
-      createdAt: Timestamp.now()
-    });
-    appointmentId = ref.id;
+  if(editingId){
+    await updateDoc(doc(db,"appointments",editingId),data);
+    id = editingId;
+  }else{
+    const ref = await addDoc(
+      collection(db,"appointments"),
+      { ...data, createdAt: Timestamp.now() }
+    );
+    id = ref.id;
   }
 
-  await maybeCreateInvoice(appointmentId, data);
-
+  await maybeCreateInvoice(id,data);
   modal.classList.remove("show");
   await renderWeek();
+
+  openWhatsAppNotification(data);
 };
 
-/* =========================
-   RENDER WEEK (SIN CAMBIOS)
-========================= */
-async function renderWeek() {
-  // ← exactamente igual que tu versión estable
+/* ================= RENDER WEEK ================= */
+async function renderWeek(){
+  grid.innerHTML = "";
+  const monday = mondayOf(baseDate);
+  weekLabel.textContent = formatWeekLabel(monday);
+
+  const user = auth.currentUser;
+  if(!user) return;
+
+  const availSnap = await getDocs(query(
+    collection(db,"availability"),
+    where("therapistId","==",user.uid),
+    where("weekStart","==",formatDate(monday))
+  ));
+
+  const availability = {};
+  availSnap.forEach(d =>
+    Object.assign(availability,d.data().slots || {})
+  );
+
+  const apptSnap = await getDocs(query(
+    collection(db,"appointments"),
+    where("therapistId","==",user.uid),
+    where("date",">=",formatDate(monday)),
+    where("date","<=",formatDate(new Date(monday.getTime()+6*86400000)))
+  ));
+
+  const bySlot = {};
+  apptSnap.forEach(d=>{
+    const a = { id:d.id, ...d.data() };
+    bySlot[`${a.date}_${a.start}`] = a;
+  });
+
+  grid.appendChild(document.createElement("div"));
+
+  DAYS.forEach((_,i)=>{
+    const d = new Date(monday);
+    d.setDate(d.getDate()+i);
+    const h = document.createElement("div");
+    h.className="day-label";
+    h.textContent=d.toLocaleDateString("es-ES",{weekday:"short",day:"numeric"});
+    grid.appendChild(h);
+  });
+
+  HOURS.forEach(hour=>{
+    const hl = document.createElement("div");
+    hl.className="hour-label";
+    hl.textContent=`${hour}:00`;
+    grid.appendChild(hl);
+
+    DAYS.forEach(day=>{
+      const date = formatDate(dayFromKey(monday,day));
+      const slotKey = `${day}_${hour}`;
+      const apptKey = `${date}_${pad(hour)}:00`;
+
+      const cell = document.createElement("div");
+      cell.className="slot";
+
+      if(bySlot[apptKey]){
+        const a = bySlot[apptKey];
+        cell.classList.add(
+          a.paid ? "paid" : a.completed ? "done" : "busy"
+        );
+        cell.innerHTML =
+          `<strong>${a.name || "—"}</strong>
+           <span>${a.start}–${a.end}</span>`;
+        cell.onclick = () => openEdit(a);
+      }else if(availability[slotKey]){
+        cell.classList.add("available");
+        cell.textContent="Disponible";
+        cell.onclick = () => openNew({ date, hour });
+      }else{
+        cell.classList.add("disabled");
+      }
+
+      grid.appendChild(cell);
+    });
+  });
 }
 
-/* =========================
-   NAV
-========================= */
-prevWeek.onclick = () => { baseDate.setDate(baseDate.getDate() - 7); renderWeek(); };
-nextWeek.onclick = () => { baseDate.setDate(baseDate.getDate() + 7); renderWeek(); };
-today.onclick = () => { baseDate = new Date(); renderWeek(); };
+/* ================= NAV ================= */
+prevWeek.onclick = () => {
+  baseDate.setDate(baseDate.getDate()-7);
+  renderWeek();
+};
+nextWeek.onclick = () => {
+  baseDate.setDate(baseDate.getDate()+7);
+  renderWeek();
+};
+today.onclick = () => {
+  baseDate = new Date();
+  renderWeek();
+};
 
-/* =========================
-   START
-========================= */
 renderWeek();
