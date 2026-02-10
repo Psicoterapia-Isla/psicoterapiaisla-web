@@ -112,51 +112,7 @@ function bindSearch(){
     renderPatients(filtered);
   };
 }
-/* =========================
-   SAVE
-========================= */
-saveBtn?.addEventListener("click", async () => {
-  const nombre = nombreInput?.value.trim();
-  if (!nombre) {
-    alert("El nombre es obligatorio");
-    return;
-  }
 
-  const apellidos = apellidosInput?.value.trim() || "";
-
-  const keywords = [
-    nombre.toLowerCase(),
-    apellidos.toLowerCase()
-  ].filter(Boolean);
-
-  const data = {
-    nombre,
-    apellidos,
-    patientType: typeSelect?.value || "private",
-    sessionDuration: Number(durationSelect?.value || 60),
-    mutual: typeSelect?.value === "mutual"
-      ? {
-          name: mutualName?.value || "",
-          pricePerSession: Number(mutualPrice?.value || 0)
-        }
-      : null,
-    keywords,
-    updatedAt: serverTimestamp()
-  };
-
-  if (currentPatient) {
-    await updateDoc(doc(db, "patients_normalized", currentPatient.id), data);
-  } else {
-    await addDoc(collection(db, "patients_normalized"), {
-      ...data,
-      createdAt: serverTimestamp()
-    });
-  }
-
-  modal?.classList.remove("show");
-  currentPatient = null;
-  await loadPatients();
-});
 /* =========================
    RENDER
 ========================= */
@@ -230,4 +186,48 @@ closeBtn?.addEventListener("click", () => {
   currentPatient = null;
 });
 
+/* =========================
+   SAVE
+========================= */
+saveBtn?.addEventListener("click", async () => {
+  const nombre = nombreInput?.value.trim();
+  if (!nombre) {
+    alert("El nombre es obligatorio");
+    return;
+  }
 
+  const apellidos = apellidosInput?.value.trim() || "";
+
+  const keywords = [
+    nombre.toLowerCase(),
+    apellidos.toLowerCase()
+  ].filter(Boolean);
+
+  const data = {
+    nombre,
+    apellidos,
+    patientType: typeSelect?.value || "private",
+    sessionDuration: Number(durationSelect?.value || 60),
+    mutual: typeSelect?.value === "mutual"
+      ? {
+          name: mutualName?.value || "",
+          pricePerSession: Number(mutualPrice?.value || 0)
+        }
+      : null,
+    keywords,
+    updatedAt: serverTimestamp()
+  };
+
+  if (currentPatient) {
+    await updateDoc(doc(db, "patients_normalized", currentPatient.id), data);
+  } else {
+    await addDoc(collection(db, "patients_normalized"), {
+      ...data,
+      createdAt: serverTimestamp()
+    });
+  }
+
+  modal?.classList.remove("show");
+  currentPatient = null;
+  await loadPatients();
+});
