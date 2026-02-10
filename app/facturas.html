@@ -11,7 +11,7 @@
 .facturas-wrapper {
   max-width: 900px;
   margin: 0 auto;
-  padding: 1rem;
+  padding: 1.5rem;
 }
 
 .facturas-table {
@@ -35,7 +35,7 @@
 
 .status {
   font-size: 0.75rem;
-  padding: 0.2rem 0.5rem;
+  padding: 0.25rem 0.6rem;
   border-radius: 6px;
   display: inline-block;
 }
@@ -108,6 +108,9 @@ import {
   httpsCallable
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-functions.js";
 
+/* =========================
+   INIT
+========================= */
 await requireAuth();
 await loadMenu();
 
@@ -118,12 +121,16 @@ const functions = getFunctions();
 const generateInvoicePdf =
   httpsCallable(functions, "generateInvoicePdf");
 
-/* ===== CARGAR FACTURAS ===== */
-const snap = await getDocs(query(
-  collection(db, "invoices"),
-  where("therapistId", "==", user.uid),
-  orderBy("createdAt", "desc")
-));
+/* =========================
+   LOAD INVOICES
+========================= */
+const snap = await getDocs(
+  query(
+    collection(db, "invoices"),
+    where("therapistId", "==", user.uid),
+    orderBy("createdAt", "desc")
+  )
+);
 
 tbody.innerHTML = "";
 
@@ -131,34 +138,34 @@ if (snap.empty) {
   tbody.innerHTML = `
     <tr>
       <td colspan="6">No hay facturas todavía.</td>
-    </tr>`;
+    </tr>
+  `;
 }
 
-/* ===== RENDER ===== */
+/* =========================
+   RENDER
+========================= */
 snap.forEach(docSnap => {
   const f = docSnap.data();
   const tr = document.createElement("tr");
 
-  const date =
-    f.issuedAt?.toDate
-      ? f.issuedAt.toDate().toLocaleDateString()
-      : "—";
+  const date = f.issueDate?.toDate
+    ? f.issueDate.toDate().toLocaleDateString("es-ES")
+    : "—";
+
+  const statusLabel =
+    f.status === "paid"
+      ? `<span class="status status-paid">Pagada</span>`
+      : `<span class="status status-issued">Emitida</span>`;
 
   tr.innerHTML = `
     <td>${f.invoiceNumber || "—"}</td>
-    <td>${f.patientName || f.patientId}</td>
+    <td>${f.patientName || "—"}</td>
     <td>${date}</td>
-    <td>${f.amount} €</td>
+    <td>${f.totalAmount?.toFixed(2) || "0.00"} €</td>
+    <td>${statusLabel}</td>
     <td>
-      ${
-        f.payment?.paid
-          ? `<span class="status status-paid">Pagada</span>`
-          : `<span class="status status-issued">Emitida</span>`
-      }
-    </td>
-    <td>
-      <button class="btn-link"
-        data-id="${docSnap.id}">
+      <button class="btn-link" data-id="${docSnap.id}">
         Descargar PDF
       </button>
     </td>
