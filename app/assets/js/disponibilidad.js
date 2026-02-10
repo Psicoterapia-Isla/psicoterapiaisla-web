@@ -15,31 +15,26 @@ import {
 ========================= */
 const DAYS = ["mon","tue","wed","thu","fri","sat","sun"];
 const LABELS = ["L","M","X","J","V","S","D"];
-const HOURS = Array.from({ length: 12 }, (_, i) => i + 9);
-const MODES = ["online","viladecans","badalona"];
+const HOURS = Array.from({ length:12 }, (_,i)=>i+9);
 
 /* =========================
    DOM
 ========================= */
 const grid = document.getElementById("grid");
 const saveBtn = document.getElementById("save");
-const prevWeekBtn = document.getElementById("prevWeek");
-const nextWeekBtn = document.getElementById("nextWeek");
-const todayBtn = document.getElementById("todayWeek");
-const weekLabelEl = document.getElementById("weekLabel");
 
 /* =========================
    FECHAS
 ========================= */
-function mondayOf(d) {
+function mondayOf(d){
   const x = new Date(d);
   const n = (x.getDay() + 6) % 7;
   x.setDate(x.getDate() - n);
-  x.setHours(0, 0, 0, 0);
+  x.setHours(0,0,0,0);
   return x;
 }
 
-function formatWeekLabel(monday) {
+function formatWeekLabel(monday){
   const end = new Date(monday);
   end.setDate(end.getDate() + 6);
   return `${monday.toLocaleDateString("es-ES",{day:"numeric",month:"short"})} – ${end.toLocaleDateString("es-ES",{day:"numeric",month:"short",year:"numeric"})}`;
@@ -48,40 +43,34 @@ function formatWeekLabel(monday) {
 /* =========================
    STATE
 ========================= */
-let currentUser = null;
 let baseDate = new Date();
 let currentMonday = mondayOf(baseDate);
-let weekKey = currentMonday.toISOString().slice(0, 10);
-
-/*
-state = {
-  "mon_9": { online:true, viladecans:false, badalona:false },
-  ...
-}
-*/
+let weekKey = currentMonday.toISOString().slice(0,10);
 let state = {};
+let currentUser = null;
 
 /* =========================
    HELPERS
 ========================= */
-function ensureSlot(key) {
-  if (!state[key]) {
-    state[key] = {
-      online: false,
-      viladecans: false,
-      badalona: false
-    };
-  }
+function norm(k){
+  state[k] ??= { online:false, viladecans:false, badalona:false };
 }
 
 /* =========================
    RENDER
 ========================= */
-function render(hasAvailability = true) {
-  grid.innerHTML = "";
-  weekLabelEl.textContent = formatWeekLabel(currentMonday);
+function render(hasAvailability=true){
+  if (!grid) return;
 
-  if (!hasAvailability) {
+  grid.innerHTML = "";
+
+  // 🔒 LABEL OPCIONAL — NO ROMPE NUNCA
+  const label = document.getElementById("weekLabel");
+  if (label) {
+    label.textContent = formatWeekLabel(currentMonday);
+  }
+
+  if(!hasAvailability){
     const hint = document.createElement("div");
     hint.className = "week-hint";
     hint.textContent = "No hay disponibilidad definida para esta semana";
@@ -91,83 +80,75 @@ function render(hasAvailability = true) {
   // esquina vacía
   grid.appendChild(document.createElement("div"));
 
-  // cabecera días
-  LABELS.forEach(label => {
+  LABELS.forEach(l=>{
     const d = document.createElement("div");
     d.className = "day";
-    d.textContent = label;
+    d.textContent = l;
     grid.appendChild(d);
   });
 
-  HOURS.forEach(hour => {
-    // columna horas
+  HOURS.forEach(h=>{
     const hl = document.createElement("div");
     hl.className = "hour";
-    hl.textContent = `${hour}:00`;
+    hl.textContent = `${h}:00`;
     grid.appendChild(hl);
 
-    DAYS.forEach(day => {
-      const key = `${day}_${hour}`;
-      ensureSlot(key);
+    DAYS.forEach(d=>{
+      const k = `${d}_${h}`;
+      norm(k);
 
-      const slot = document.createElement("div");
-      slot.className = "slot";
+      const s = document.createElement("div");
+      s.className = "slot";
 
-      MODES.forEach(mode => {
-        const btn = document.createElement("button");
-        btn.className = `mode ${state[key][mode] ? "on" : ""}`;
-        btn.textContent =
-          mode === "online" ? "Online" :
-          mode === "viladecans" ? "Vila" : "Bada";
+      ["online","viladecans","badalona"].forEach(m=>{
+        const b = document.createElement("button");
+        b.className = `mode ${state[k][m] ? "on" : ""}`;
+        b.textContent =
+          m === "online" ? "Online" :
+          m === "viladecans" ? "Vila" : "Bada";
 
-        btn.onclick = () => {
-          // presencial exclusivo
-          if (mode !== "online") {
-            state[key].viladecans = false;
-            state[key].badalona = false;
+        b.onclick = () => {
+          if(m !== "online"){
+            state[k].viladecans = false;
+            state[k].badalona = false;
           }
-          state[key][mode] = !state[key][mode];
+          state[k][m] = !state[k][m];
           render(true);
         };
 
-        slot.appendChild(btn);
+        s.appendChild(b);
       });
 
-      grid.appendChild(slot);
+      grid.appendChild(s);
     });
   });
 }
 
 /* =========================
-   LOAD WEEK
+   LOAD / SAVE
 ========================= */
-async function loadWeek() {
-  if (!currentUser) return;
+async function loadWeek(){
+  if(!currentUser) return;
 
-  weekKey = currentMonday.toISOString().slice(0, 10);
+  weekKey = currentMonday.toISOString().slice(0,10);
   state = {};
 
   const ref = doc(db, "availability", `${currentUser.uid}_${weekKey}`);
   const snap = await getDoc(ref);
 
-  if (snap.exists()) {
-    const data = snap.data();
-    Object.assign(state, data.slots || {});
-    Object.keys(state).forEach(ensureSlot);
+  if(snap.exists()){
+    Object.assign(state, snap.data().slots || {});
+    Object.keys(state).forEach(norm);
     render(true);
   } else {
     render(false);
   }
 }
 
-/* =========================
-   SAVE WEEK
-========================= */
-async function saveWeek() {
-  if (!currentUser) return;
+async function saveWeek(){
+  if(!currentUser) return;
 
   const ref = doc(db, "availability", `${currentUser.uid}_${weekKey}`);
-
   await setDoc(ref, {
     therapistId: currentUser.uid,
     weekStart: weekKey,
@@ -175,23 +156,23 @@ async function saveWeek() {
     updatedAt: serverTimestamp()
   });
 
-  alert("Disponibilidad guardada correctamente");
+  alert("Disponibilidad guardada");
 }
 
 /* =========================
    NAV
 ========================= */
-prevWeekBtn.onclick = () => {
+prevWeek.onclick = () => {
   currentMonday.setDate(currentMonday.getDate() - 7);
   loadWeek();
 };
 
-nextWeekBtn.onclick = () => {
+nextWeek.onclick = () => {
   currentMonday.setDate(currentMonday.getDate() + 7);
   loadWeek();
 };
 
-todayBtn.onclick = () => {
+todayWeek.onclick = () => {
   currentMonday = mondayOf(new Date());
   loadWeek();
 };
@@ -199,9 +180,9 @@ todayBtn.onclick = () => {
 /* =========================
    AUTH
 ========================= */
-onAuthStateChanged(auth, async user => {
-  if (!user) return;
+onAuthStateChanged(auth, async user=>{
+  if(!user) return;
   currentUser = user;
   await loadWeek();
-  saveBtn.onclick = saveWeek;
+  if (saveBtn) saveBtn.onclick = saveWeek;
 });
