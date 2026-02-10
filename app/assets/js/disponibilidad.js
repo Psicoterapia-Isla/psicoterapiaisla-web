@@ -15,135 +15,159 @@ import {
 ========================= */
 const DAYS = ["mon","tue","wed","thu","fri","sat","sun"];
 const LABELS = ["L","M","X","J","V","S","D"];
-const HOURS = Array.from({ length:12 }, (_,i)=>i+9);
+const HOURS = Array.from({ length: 12 }, (_, i) => i + 9);
+const MODES = ["online","viladecans","badalona"];
 
 /* =========================
    DOM
 ========================= */
 const grid = document.getElementById("grid");
 const saveBtn = document.getElementById("save");
-function getWeekLabelEl(){
-  return document.getElementById("weekLabel");
-}
+const prevWeekBtn = document.getElementById("prevWeek");
+const nextWeekBtn = document.getElementById("nextWeek");
+const todayBtn = document.getElementById("todayWeek");
+const weekLabelEl = document.getElementById("weekLabel");
 
 /* =========================
    FECHAS
 ========================= */
-function mondayOf(d){
+function mondayOf(d) {
   const x = new Date(d);
   const n = (x.getDay() + 6) % 7;
   x.setDate(x.getDate() - n);
-  x.setHours(0,0,0,0);
+  x.setHours(0, 0, 0, 0);
   return x;
 }
 
-function formatWeekLabel(monday){
+function formatWeekLabel(monday) {
   const end = new Date(monday);
   end.setDate(end.getDate() + 6);
-
   return `${monday.toLocaleDateString("es-ES",{day:"numeric",month:"short"})} – ${end.toLocaleDateString("es-ES",{day:"numeric",month:"short",year:"numeric"})}`;
 }
 
 /* =========================
    STATE
 ========================= */
+let currentUser = null;
 let baseDate = new Date();
 let currentMonday = mondayOf(baseDate);
-let weekKey = currentMonday.toISOString().slice(0,10);
-let state = {};
-let currentUser = null;
+let weekKey = currentMonday.toISOString().slice(0, 10);
 
-function norm(k){
-  state[k] ??= { online:false, viladecans:false, badalona:false };
+/*
+state = {
+  "mon_9": { online:true, viladecans:false, badalona:false },
+  ...
+}
+*/
+let state = {};
+
+/* =========================
+   HELPERS
+========================= */
+function ensureSlot(key) {
+  if (!state[key]) {
+    state[key] = {
+      online: false,
+      viladecans: false,
+      badalona: false
+    };
+  }
 }
 
 /* =========================
    RENDER
 ========================= */
-function render(hasAvailability=true){
+function render(hasAvailability = true) {
   grid.innerHTML = "";
-  const label = getWeekLabelEl();
-if (label) {
-  label.textContent = formatWeekLabel(currentMonday);
-}
+  weekLabelEl.textContent = formatWeekLabel(currentMonday);
 
-  if(!hasAvailability){
+  if (!hasAvailability) {
     const hint = document.createElement("div");
     hint.className = "week-hint";
     hint.textContent = "No hay disponibilidad definida para esta semana";
     grid.appendChild(hint);
   }
 
+  // esquina vacía
   grid.appendChild(document.createElement("div"));
-  LABELS.forEach(l=>{
+
+  // cabecera días
+  LABELS.forEach(label => {
     const d = document.createElement("div");
     d.className = "day";
-    d.textContent = l;
+    d.textContent = label;
     grid.appendChild(d);
   });
 
-  HOURS.forEach(h=>{
+  HOURS.forEach(hour => {
+    // columna horas
     const hl = document.createElement("div");
     hl.className = "hour";
-    hl.textContent = `${h}:00`;
+    hl.textContent = `${hour}:00`;
     grid.appendChild(hl);
 
-    DAYS.forEach(d=>{
-      const k = `${d}_${h}`;
-      norm(k);
+    DAYS.forEach(day => {
+      const key = `${day}_${hour}`;
+      ensureSlot(key);
 
-      const s = document.createElement("div");
-      s.className = "slot";
+      const slot = document.createElement("div");
+      slot.className = "slot";
 
-      ["online","viladecans","badalona"].forEach(m=>{
-        const b = document.createElement("button");
-        b.className = `mode ${state[k][m] ? "on" : ""}`;
-        b.textContent =
-          m === "online" ? "Online" :
-          m === "viladecans" ? "Vila" : "Bada";
+      MODES.forEach(mode => {
+        const btn = document.createElement("button");
+        btn.className = `mode ${state[key][mode] ? "on" : ""}`;
+        btn.textContent =
+          mode === "online" ? "Online" :
+          mode === "viladecans" ? "Vila" : "Bada";
 
-        b.onclick = () => {
-          if(m !== "online"){
-            state[k].viladecans = false;
-            state[k].badalona = false;
+        btn.onclick = () => {
+          // presencial exclusivo
+          if (mode !== "online") {
+            state[key].viladecans = false;
+            state[key].badalona = false;
           }
-          state[k][m] = !state[k][m];
+          state[key][mode] = !state[key][mode];
           render(true);
         };
 
-        s.appendChild(b);
+        slot.appendChild(btn);
       });
 
-      grid.appendChild(s);
+      grid.appendChild(slot);
     });
   });
 }
 
 /* =========================
-   LOAD / SAVE
+   LOAD WEEK
 ========================= */
-async function loadWeek(){
-  if(!currentUser) return;
+async function loadWeek() {
+  if (!currentUser) return;
 
-  weekKey = currentMonday.toISOString().slice(0,10);
+  weekKey = currentMonday.toISOString().slice(0, 10);
   state = {};
 
   const ref = doc(db, "availability", `${currentUser.uid}_${weekKey}`);
   const snap = await getDoc(ref);
 
-  if(snap.exists()){
-    Object.assign(state, snap.data().slots || {});
-    Object.keys(state).forEach(norm);
+  if (snap.exists()) {
+    const data = snap.data();
+    Object.assign(state, data.slots || {});
+    Object.keys(state).forEach(ensureSlot);
     render(true);
   } else {
     render(false);
   }
 }
 
-async function saveWeek(){
-  if(!currentUser) return;
+/* =========================
+   SAVE WEEK
+========================= */
+async function saveWeek() {
+  if (!currentUser) return;
 
   const ref = doc(db, "availability", `${currentUser.uid}_${weekKey}`);
+
   await setDoc(ref, {
     therapistId: currentUser.uid,
     weekStart: weekKey,
@@ -151,23 +175,23 @@ async function saveWeek(){
     updatedAt: serverTimestamp()
   });
 
-  alert("Disponibilidad guardada");
+  alert("Disponibilidad guardada correctamente");
 }
 
 /* =========================
    NAV
 ========================= */
-prevWeek.onclick = () => {
+prevWeekBtn.onclick = () => {
   currentMonday.setDate(currentMonday.getDate() - 7);
   loadWeek();
 };
 
-nextWeek.onclick = () => {
+nextWeekBtn.onclick = () => {
   currentMonday.setDate(currentMonday.getDate() + 7);
   loadWeek();
 };
 
-todayWeek.onclick = () => {
+todayBtn.onclick = () => {
   currentMonday = mondayOf(new Date());
   loadWeek();
 };
@@ -175,8 +199,8 @@ todayWeek.onclick = () => {
 /* =========================
    AUTH
 ========================= */
-onAuthStateChanged(auth, async user=>{
-  if(!user) return;
+onAuthStateChanged(auth, async user => {
+  if (!user) return;
   currentUser = user;
   await loadWeek();
   saveBtn.onclick = saveWeek;
