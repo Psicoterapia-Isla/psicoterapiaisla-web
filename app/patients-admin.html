@@ -2,14 +2,14 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <title>Gestión de pacientes</title>
+  <title>Pacientes · Psicoterapia Isla</title>
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
   <!-- ESTILOS -->
   <link rel="stylesheet" href="assets/css/app.css">
   <link rel="stylesheet" href="assets/css/menu.css">
   <link rel="stylesheet" href="assets/css/isla-theme.css">
-
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 </head>
 
 <body class="app-layout">
@@ -23,7 +23,7 @@
     <header class="page-header">
       <h1>Pacientes</h1>
       <p class="page-subtitle">
-        Listado de pacientes importados en el sistema
+        Gestión de pacientes del sistema
       </p>
     </header>
 
@@ -38,12 +38,46 @@
 
     <!-- LISTADO -->
     <section id="patients-list" class="patients-list">
-      Cargando pacientes...
+      Cargando pacientes…
     </section>
 
   </main>
 
-  <!-- SCRIPTS DE UI / LECTURA -->
+  <!-- MODAL ÚNICO -->
+  <div id="patient-modal" class="modal">
+    <div class="modal-card">
+
+      <h3 id="modal-title">Editar paciente</h3>
+
+      <label>Tipo de paciente</label>
+      <select id="patientType">
+        <option value="private">Privado</option>
+        <option value="mutual">Mutua</option>
+      </select>
+
+      <label>Duración sesión</label>
+      <select id="sessionDuration">
+        <option value="60">60 minutos</option>
+        <option value="30">30 minutos</option>
+      </select>
+
+      <div id="mutualBox" style="display:none">
+        <label>Nombre mutua</label>
+        <input id="mutualName" type="text" />
+
+        <label>Precio sesión (€)</label>
+        <input id="mutualPrice" type="number" />
+      </div>
+
+      <div class="modal-actions">
+        <button id="savePatient" class="btn-primary">Guardar</button>
+        <button id="closePatient" class="btn-secondary">Cerrar</button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- SCRIPTS -->
   <script type="module" src="assets/js/menu.js"></script>
   <script type="module" src="assets/js/patients-admin.js"></script>
 
