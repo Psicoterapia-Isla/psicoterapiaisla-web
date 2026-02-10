@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Colaboraciones · Psicoterapia Isla</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Colaboraciones institucionales y profesionales de Psicoterapia Isla.">
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+
+<body>
+
+<header id="main-menu"></header>
+
+<main class="content">
+
+<h1>Colaboraciones</h1>
+
+<p>
+Psicoterapia Isla colabora con entidades, instituciones y profesionales
+comprometidos con la salud mental, la prevención y la intervención comunitaria.
+</p>
+
+<ul>
+  <li>Ajuntament de Cunit</li>
+  <li>Casal Jove de Cunit</li>
+  <li>COPC – Col·legi Oficial de Psicologia de Catalunya</li>
+  <li>Programas de atención a víctimas de violencia sexual</li>
+</ul>
+
+<h2>¿Quieres colaborar?</h2>
+
+<p>
+Ofrecemos:
+</p>
+
+<ul>
+  <li>Charlas y talleres sobre trauma y salud mental</li>
+  <li>Formaciones especializadas en trauma complejo</li>
+  <li>Alquiler de salas para profesionales y entidades</li>
+  <li>Colaboraciones en proyectos comunitarios</li>
+</ul>
+
+<p>
+Si te interesa colaborar con nosotras, puedes escribirnos
+y valorar juntas la propuesta.
+</p>
+
+</main>
+
+<footer>
+  <p>Psicoterapia Isla · Trabajo en red</p>
+</footer>
+
+<script src="assets/js/menu.js"></script>
+</body>
+</html>
