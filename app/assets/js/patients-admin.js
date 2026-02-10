@@ -9,6 +9,7 @@ import {
   doc,
   getDoc,
   updateDoc,
+  addDoc,
   serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
@@ -35,6 +36,7 @@ const closeBtn = document.getElementById("closePatient");
 const auth = getAuth();
 let allPatients = [];
 let currentPatient = null;
+let canEdit = false;
 
 onAuthStateChanged(auth, async (user) => {
   if (!user) {
@@ -43,14 +45,43 @@ onAuthStateChanged(auth, async (user) => {
   }
 
   const snap = await getDoc(doc(db, "users", user.uid));
-  if (!snap.exists() || snap.data().role !== "admin") {
+  if (!snap.exists()) {
+    alert("Usuario no válido");
+    window.location.href = "index.html";
+    return;
+  }
+
+  const role = snap.data().role;
+  canEdit = role === "admin" || role === "therapist";
+
+  if (!canEdit) {
     alert("Acceso restringido");
     window.location.href = "index.html";
     return;
   }
 
+  injectCreateButton();
   loadPatients();
 });
+
+/* =========================
+   UI EXTRA (NO ROMPE NADA)
+========================= */
+function injectCreateButton() {
+  if (document.getElementById("new-patient-btn")) return;
+
+  const btn = document.createElement("button");
+  btn.id = "new-patient-btn";
+  btn.className = "btn-primary";
+  btn.textContent = "+ Nuevo paciente";
+
+  btn.onclick = () => openEditor(null);
+
+  listContainer.parentElement.insertBefore(
+    btn,
+    listContainer
+  );
+}
 
 /* =========================
    LOAD
@@ -114,17 +145,21 @@ searchInput.oninput = () => {
 function openEditor(patient) {
   currentPatient = patient;
 
-  modalTitle.textContent = `${patient.nombre || ""} ${patient.apellidos || ""}`;
+  modalTitle.textContent = patient
+    ? `${patient.nombre || ""} ${patient.apellidos || ""}`
+    : "Nuevo paciente";
 
-  typeSelect.value = patient.patientType || "private";
-  durationSelect.value = patient.sessionDuration || 60;
+  typeSelect.value = patient?.patientType || "private";
+  durationSelect.value = patient?.sessionDuration || 60;
 
   if (typeSelect.value === "mutual") {
     mutualBox.style.display = "block";
-    mutualName.value = patient.mutual?.name || "";
-    mutualPrice.value = patient.mutual?.pricePerSession || "";
+    mutualName.value = patient?.mutual?.name || "";
+    mutualPrice.value = patient?.mutual?.pricePerSession || "";
   } else {
     mutualBox.style.display = "none";
+    mutualName.value = "";
+    mutualPrice.value = "";
   }
 
   modal.classList.add("show");
@@ -143,8 +178,6 @@ closeBtn.onclick = () => {
    SAVE
 ========================= */
 saveBtn.onclick = async () => {
-  if (!currentPatient) return;
-
   const data = {
     patientType: typeSelect.value,
     sessionDuration: Number(durationSelect.value),
@@ -157,10 +190,21 @@ saveBtn.onclick = async () => {
       : null
   };
 
-  await updateDoc(
-    doc(db, "patients_normalized", currentPatient.id),
-    data
-  );
+  if (currentPatient) {
+    await updateDoc(
+      doc(db, "patients_normalized", currentPatient.id),
+      data
+    );
+  } else {
+    // alta manual segura
+    const name = modalTitle.textContent || "";
+    await addDoc(collection(db, "patients_normalized"), {
+      ...data,
+      nombre: name,
+      keywords: name.toLowerCase().split(" ").filter(Boolean),
+      createdAt: serverTimestamp()
+    });
+  }
 
   modal.classList.remove("show");
   currentPatient = null;
