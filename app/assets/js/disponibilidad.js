@@ -1,3 +1,5 @@
+// assets/js/disponibilidad.js
+
 import { auth, db } from "./firebase.js";
 import {
   doc,
@@ -15,13 +17,17 @@ import {
 ========================= */
 const DAYS = ["mon","tue","wed","thu","fri","sat","sun"];
 const LABELS = ["L","M","X","J","V","S","D"];
-const HOURS = Array.from({ length:12 }, (_,i)=>i+9);
+const HOURS = Array.from({ length: 12 }, (_, i) => i + 9);
 
 /* =========================
    DOM
 ========================= */
 const grid = document.getElementById("grid");
 const saveBtn = document.getElementById("save");
+
+const prevBtn = document.getElementById("prevWeek");
+const nextBtn = document.getElementById("nextWeek");
+const todayBtn = document.getElementById("todayWeek");
 
 /* =========================
    FECHAS
@@ -43,8 +49,7 @@ function formatWeekLabel(monday){
 /* =========================
    STATE
 ========================= */
-let baseDate = new Date();
-let currentMonday = mondayOf(baseDate);
+let currentMonday = mondayOf(new Date());
 let weekKey = currentMonday.toISOString().slice(0,10);
 let state = {};
 let currentUser = null;
@@ -53,24 +58,28 @@ let currentUser = null;
    HELPERS
 ========================= */
 function norm(k){
-  state[k] ??= { online:false, viladecans:false, badalona:false };
+  state[k] ??= {
+    online: false,
+    viladecans: false,
+    badalona: false
+  };
 }
 
 /* =========================
    RENDER
 ========================= */
-function render(hasAvailability=true){
+function render(hasAvailability = true){
   if (!grid) return;
 
   grid.innerHTML = "";
 
-  // 🔒 LABEL OPCIONAL — NO ROMPE NUNCA
+  // label semana (opcional)
   const label = document.getElementById("weekLabel");
   if (label) {
     label.textContent = formatWeekLabel(currentMonday);
   }
 
-  if(!hasAvailability){
+  if (!hasAvailability) {
     const hint = document.createElement("div");
     hint.className = "week-hint";
     hint.textContent = "No hay disponibilidad definida para esta semana";
@@ -80,46 +89,49 @@ function render(hasAvailability=true){
   // esquina vacía
   grid.appendChild(document.createElement("div"));
 
-  LABELS.forEach(l=>{
+  // cabecera días
+  LABELS.forEach(l => {
     const d = document.createElement("div");
     d.className = "day";
     d.textContent = l;
     grid.appendChild(d);
   });
 
-  HOURS.forEach(h=>{
+  // horas + slots
+  HOURS.forEach(hour => {
     const hl = document.createElement("div");
     hl.className = "hour";
-    hl.textContent = `${h}:00`;
+    hl.textContent = `${hour}:00`;
     grid.appendChild(hl);
 
-    DAYS.forEach(d=>{
-      const k = `${d}_${h}`;
-      norm(k);
+    DAYS.forEach(day => {
+      const key = `${day}_${hour}`;
+      norm(key);
 
-      const s = document.createElement("div");
-      s.className = "slot";
+      const slot = document.createElement("div");
+      slot.className = "slot";
 
-      ["online","viladecans","badalona"].forEach(m=>{
-        const b = document.createElement("button");
-        b.className = `mode ${state[k][m] ? "on" : ""}`;
-        b.textContent =
-          m === "online" ? "Online" :
-          m === "viladecans" ? "Vila" : "Bada";
+      ["online","viladecans","badalona"].forEach(mode => {
+        const btn = document.createElement("button");
+        btn.className = `mode ${state[key][mode] ? "on" : ""}`;
+        btn.textContent =
+          mode === "online" ? "Online" :
+          mode === "viladecans" ? "Vila" : "Bada";
 
-        b.onclick = () => {
-          if(m !== "online"){
-            state[k].viladecans = false;
-            state[k].badalona = false;
+        btn.onclick = () => {
+          // presencial excluyente
+          if (mode !== "online") {
+            state[key].viladecans = false;
+            state[key].badalona = false;
           }
-          state[k][m] = !state[k][m];
+          state[key][mode] = !state[key][mode];
           render(true);
         };
 
-        s.appendChild(b);
+        slot.appendChild(btn);
       });
 
-      grid.appendChild(s);
+      grid.appendChild(slot);
     });
   });
 }
@@ -128,7 +140,7 @@ function render(hasAvailability=true){
    LOAD / SAVE
 ========================= */
 async function loadWeek(){
-  if(!currentUser) return;
+  if (!currentUser) return;
 
   weekKey = currentMonday.toISOString().slice(0,10);
   state = {};
@@ -136,7 +148,7 @@ async function loadWeek(){
   const ref = doc(db, "availability", `${currentUser.uid}_${weekKey}`);
   const snap = await getDoc(ref);
 
-  if(snap.exists()){
+  if (snap.exists()) {
     Object.assign(state, snap.data().slots || {});
     Object.keys(state).forEach(norm);
     render(true);
@@ -146,7 +158,7 @@ async function loadWeek(){
 }
 
 async function saveWeek(){
-  if(!currentUser) return;
+  if (!currentUser) return;
 
   const ref = doc(db, "availability", `${currentUser.uid}_${weekKey}`);
   await setDoc(ref, {
@@ -160,28 +172,34 @@ async function saveWeek(){
 }
 
 /* =========================
-   NAV
+   NAV (BLINDADO)
 ========================= */
-prevWeek.onclick = () => {
-  currentMonday.setDate(currentMonday.getDate() - 7);
-  loadWeek();
-};
+if (prevBtn) {
+  prevBtn.onclick = () => {
+    currentMonday.setDate(currentMonday.getDate() - 7);
+    loadWeek();
+  };
+}
 
-nextWeek.onclick = () => {
-  currentMonday.setDate(currentMonday.getDate() + 7);
-  loadWeek();
-};
+if (nextBtn) {
+  nextBtn.onclick = () => {
+    currentMonday.setDate(currentMonday.getDate() + 7);
+    loadWeek();
+  };
+}
 
-todayWeek.onclick = () => {
-  currentMonday = mondayOf(new Date());
-  loadWeek();
-};
+if (todayBtn) {
+  todayBtn.onclick = () => {
+    currentMonday = mondayOf(new Date());
+    loadWeek();
+  };
+}
 
 /* =========================
    AUTH
 ========================= */
-onAuthStateChanged(auth, async user=>{
-  if(!user) return;
+onAuthStateChanged(auth, async user => {
+  if (!user) return;
   currentUser = user;
   await loadWeek();
   if (saveBtn) saveBtn.onclick = saveWeek;
