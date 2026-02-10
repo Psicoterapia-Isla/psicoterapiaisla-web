@@ -52,28 +52,28 @@ function formatWeekLabel(monday) {
 }
 
 /* =========================
-   LOAD USER
+   AUTH + DATA BASE
 ========================= */
 auth.onAuthStateChanged(async user => {
   if (!user) return;
   currentUser = user;
 
   // perfil paciente
-  const snap = await getDocs(
+  const pSnap = await getDocs(
     query(
       collection(db, "patients_normalized"),
       where("userId", "==", user.uid)
     )
   );
 
-  if (snap.empty) {
+  if (pSnap.empty) {
     alert("No se ha encontrado tu perfil de paciente");
     return;
   }
 
-  patientProfile = snap.docs[0].data();
+  patientProfile = pSnap.docs[0].data();
 
-  // terapeutas activos
+  // terapeutas
   const tSnap = await getDocs(collection(db, "therapists"));
   therapists = tSnap.docs.map(d => ({ id: d.id, ...d.data() }));
 
@@ -81,7 +81,7 @@ auth.onAuthStateChanged(async user => {
 });
 
 /* =========================
-   RENDER WEEK
+   RENDER WEEK (CON BLOQUEO)
 ========================= */
 async function renderWeek() {
   grid.innerHTML = "";
@@ -92,7 +92,7 @@ async function renderWeek() {
   const from = formatDate(monday);
   const to = formatDate(new Date(monday.getTime() + 6 * 86400000));
 
-  // cargar disponibilidades
+  /* ===== DISPONIBILIDAD ===== */
   const availSnap = await getDocs(
     query(
       collection(db, "availability"),
@@ -100,13 +100,27 @@ async function renderWeek() {
     )
   );
 
-  const availabilityByTherapist = {};
+  const availability = {};
   availSnap.forEach(d => {
-    const data = d.data();
-    availabilityByTherapist[data.therapistId] = data.slots || {};
+    availability[d.data().therapistId] = d.data().slots || {};
   });
 
-  // cabecera
+  /* ===== CITAS (BLOQUEO REAL) ===== */
+  const apptSnap = await getDocs(
+    query(
+      collection(db, "appointments"),
+      where("date", ">=", from),
+      where("date", "<=", to)
+    )
+  );
+
+  const booked = {};
+  apptSnap.forEach(d => {
+    const a = d.data();
+    booked[`${a.therapistId}_${a.date}_${a.start}`] = true;
+  });
+
+  /* ===== CABECERA ===== */
   grid.appendChild(document.createElement("div"));
   DAYS.forEach((_, i) => {
     const d = new Date(monday);
@@ -117,6 +131,7 @@ async function renderWeek() {
     grid.appendChild(h);
   });
 
+  /* ===== GRID ===== */
   HOURS.forEach(hour => {
     const hl = document.createElement("div");
     hl.className = "hour-label";
@@ -127,27 +142,30 @@ async function renderWeek() {
       const cell = document.createElement("div");
       cell.className = "slot";
 
-      const key = `${day}_${hour}`;
-      let matches = [];
+      const date = formatDate(
+        new Date(monday.getTime() + DAYS.indexOf(day) * 86400000)
+      );
+
+      let freeTherapists = [];
 
       therapists.forEach(t => {
-        const slots = availabilityByTherapist[t.id];
-        if (slots?.[key]) {
-          matches.push({
-            therapistId: t.id,
-            modes: slots[key]
-          });
+        const slotKey = `${day}_${hour}`;
+        const isAvailable = availability[t.id]?.[slotKey];
+        const isBooked = booked[`${t.id}_${date}_${hour}:00`];
+
+        if (isAvailable && !isBooked) {
+          freeTherapists.push(t.id);
         }
       });
 
-      if (!matches.length) {
+      if (!freeTherapists.length) {
         cell.classList.add("disabled");
       } else {
         cell.classList.add("available");
         cell.textContent = "Disponible";
 
         cell.onclick = () => {
-          handleReservation(monday, day, hour, matches);
+          handleReservation(date, hour, freeTherapists);
         };
       }
 
@@ -157,33 +175,29 @@ async function renderWeek() {
 }
 
 /* =========================
-   RESERVA
+   RESERVA (AÚN SIN CREAR CITA)
 ========================= */
-function handleReservation(monday, day, hour, matches) {
-  // mutua → asignación automática
+function handleReservation(date, hour, freeTherapists) {
+
+  // MUTUA → asignación automática
   if (patientProfile.patientType === "mutual") {
-    const chosen = matches[0];
-    alert(`Cita reservada automáticamente con el especialista asignado`);
-    // aquí iría pre-reserva backend
+    const therapistId = freeTherapists[0];
+    alert("Cita reservada automáticamente");
     return;
   }
 
-  // privado → elegir terapeuta
-  if (matches.length === 1) {
-    alert(`Cita reservada`);
+  // PRIVADO → elección
+  if (freeTherapists.length === 1) {
+    alert("Cita reservada");
     return;
   }
 
-  // selector simple
-  const names = matches.map((m, i) => `${i+1}`).join(", ");
   const choice = prompt(
-    `Hay varios especialistas disponibles (${names}). Introduce número:`
+    `Hay ${freeTherapists.length} especialistas disponibles. Introduce número (1-${freeTherapists.length})`
   );
 
-  const idx = Number(choice) - 1;
-  if (!matches[idx]) return;
-
-  alert("Cita reservada con el especialista elegido");
+  if (!choice) return;
+  alert("Cita reservada");
 }
 
 /* =========================
