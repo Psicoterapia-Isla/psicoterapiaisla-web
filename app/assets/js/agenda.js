@@ -57,12 +57,6 @@ function mondayOf(d){
   return x;
 }
 
-function formatWeekLabel(monday){
-  const end = new Date(monday);
-  end.setDate(end.getDate()+6);
-  return `${monday.toLocaleDateString("es-ES",{day:"numeric",month:"short"})} – ${end.toLocaleDateString("es-ES",{day:"numeric",month:"short",year:"numeric"})}`;
-}
-
 function dayFromKey(monday,key){
   const d = new Date(monday);
   d.setDate(d.getDate()+DAYS.indexOf(key));
@@ -94,9 +88,10 @@ function resetModal(){
 function openNew(slot){
   resetModal();
   currentSlot = slot;
+
   start.value = timeString(slot.hour, slot.minute);
 
-  const duration = selectedPatient?.patientType === "mutual" ? 30 : 60;
+  const duration = selectedPatient?.sessionDuration || 60;
   const endDate = new Date(0,0,0,slot.hour,slot.minute + duration);
   end.value = timeString(endDate.getHours(), endDate.getMinutes());
 
@@ -150,8 +145,7 @@ async function searchPatients(term){
       phone.value = p.telefono || "";
       name.value = `${p.nombre || ""} ${p.apellidos || ""}`.trim();
 
-      let duration = p.patientType === "mutual" ? 30 : 60;
-
+      const duration = p.sessionDuration || 60;
       const [h,m] = start.value.split(":").map(Number);
       const endDate = new Date(0,0,0,h,m + duration);
       end.value = timeString(endDate.getHours(), endDate.getMinutes());
@@ -170,28 +164,107 @@ async function searchPatients(term){
 phone.oninput = e => searchPatients(e.target.value);
 name.oninput  = e => searchPatients(e.target.value);
 
-/* ================= RENDER WEEK CON MEDIA HORA ================= */
+/* ================= FACTURACIÓN ================= */
+async function getNextInvoiceNumber(therapistId){
+  const year = new Date().getFullYear();
+  const ref = doc(db,"invoice_counters",`${therapistId}_${year}`);
+
+  return await runTransaction(db, async tx => {
+    const snap = await tx.get(ref);
+    let next = 1;
+
+    if(snap.exists()){
+      next = snap.data().lastNumber + 1;
+      tx.update(ref,{ lastNumber: next, updatedAt: Timestamp.now() });
+    }else{
+      tx.set(ref,{
+        therapistId,
+        year,
+        lastNumber: 1,
+        createdAt: Timestamp.now()
+      });
+    }
+
+    return `PI-${year}-${String(next).padStart(4,"0")}`;
+  });
+}
+
+async function maybeCreateInvoice(id,data){
+  if(!data.completed || !data.paid || !data.amount) return;
+
+  const num = await getNextInvoiceNumber(data.therapistId);
+
+  const inv = await addDoc(collection(db,"invoices"),{
+    therapistId: data.therapistId,
+    appointmentId: id,
+    invoiceNumber: num,
+    issueDate: Timestamp.now(),
+    patientId: data.patientId || null,
+    patientName: data.name || null,
+    concept: data.service,
+    baseAmount: data.amount,
+    vatRate: 0,
+    vatExemptReason: "Exento IVA – Art. 20.3 Ley 37/1992",
+    totalAmount: data.amount,
+    status: "paid",
+    createdAt: Timestamp.now()
+  });
+
+  await updateDoc(doc(db,"appointments",id),{ invoiceId: inv.id });
+}
+
+/* ================= SAVE ================= */
+document.getElementById("save").onclick = async () => {
+
+  const user = auth.currentUser;
+  if(!user || !currentSlot) return;
+
+  const data = {
+    therapistId: user.uid,
+    patientId: selectedPatient?.id || null,
+    patient: selectedPatient || null,
+    sessionDuration: selectedPatient?.sessionDuration || 60,
+    date: currentSlot.date,
+    phone: phone.value,
+    name: name.value,
+    service: service.value,
+    modality: modality.value,
+    start: start.value,
+    end: end.value,
+    completed: completed.checked,
+    paid: paid.checked,
+    amount: Number(amount.value || 0),
+    updatedAt: Timestamp.now()
+  };
+
+  let id;
+
+  if(editingId){
+    await updateDoc(doc(db,"appointments",editingId),data);
+    id = editingId;
+  }else{
+    const ref = await addDoc(
+      collection(db,"appointments"),
+      { ...data, createdAt: Timestamp.now() }
+    );
+    id = ref.id;
+  }
+
+  await maybeCreateInvoice(id,data);
+
+  modal.classList.remove("show");
+  await renderWeek();
+};
+
+/* ================= RENDER ================= */
 async function renderWeek(){
+
   grid.innerHTML = "";
   const monday = mondayOf(baseDate);
-
-  if (weekLabel) {
-    weekLabel.textContent = formatWeekLabel(monday);
-  }
+  weekLabel.textContent = monday.toLocaleDateString("es-ES");
 
   const user = auth.currentUser;
   if(!user) return;
-
-  const availSnap = await getDocs(query(
-    collection(db,"availability"),
-    where("therapistId","==",user.uid),
-    where("weekStart","==",formatDate(monday))
-  ));
-
-  let availability = {};
-  availSnap.forEach(d=>{
-    availability = d.data().slots || {};
-  });
 
   const apptSnap = await getDocs(query(
     collection(db,"appointments"),
@@ -201,9 +274,7 @@ async function renderWeek(){
   ));
 
   const appointments = [];
-  apptSnap.forEach(d=>{
-    appointments.push({ id:d.id, ...d.data() });
-  });
+  apptSnap.forEach(d=>appointments.push({ id:d.id, ...d.data() }));
 
   grid.appendChild(document.createElement("div"));
 
@@ -211,38 +282,30 @@ async function renderWeek(){
     const d = new Date(monday);
     d.setDate(d.getDate()+i);
     const h = document.createElement("div");
-    h.className="day-label";
-    h.textContent=d.toLocaleDateString("es-ES",{weekday:"short",day:"numeric"});
+    h.textContent = d.toLocaleDateString("es-ES",{weekday:"short",day:"numeric"});
     grid.appendChild(h);
   });
 
   HOURS.forEach(hour=>{
     MINUTES.forEach(minute=>{
 
-      const hl=document.createElement("div");
-      hl.className="hour-label";
-      hl.textContent=`${pad(hour)}:${pad(minute)}`;
-      grid.appendChild(hl);
+      const label=document.createElement("div");
+      label.textContent=timeString(hour,minute);
+      grid.appendChild(label);
 
       DAYS.forEach(day=>{
         const date=formatDate(dayFromKey(monday,day));
-        const slotKey=`${day}_${hour}_${minute}`;
-        const slotStart=timeString(hour,minute);
-
         const cell=document.createElement("div");
         cell.className="slot";
 
         const appointment = appointments.find(a=>{
           if(a.date !== date) return false;
-
-          const startParts = a.start.split(":").map(Number);
-          const endParts = a.end.split(":").map(Number);
-
-          const startMin = startParts[0]*60 + startParts[1];
-          const endMin = endParts[0]*60 + endParts[1];
-          const currentMin = hour*60 + minute;
-
-          return currentMin >= startMin && currentMin < endMin;
+          const [sh,sm]=a.start.split(":").map(Number);
+          const [eh,em]=a.end.split(":").map(Number);
+          const startMin=sh*60+sm;
+          const endMin=eh*60+em;
+          const cur=hour*60+minute;
+          return cur>=startMin && cur<endMin;
         });
 
         if(appointment){
@@ -250,17 +313,11 @@ async function renderWeek(){
             appointment.paid ? "paid" :
             appointment.completed ? "done" : "busy"
           );
-          cell.innerHTML=`<strong>${appointment.name||"—"}</strong>
-          <span>${appointment.start}–${appointment.end}</span>`;
+          cell.innerHTML=`<strong>${appointment.name||"—"}</strong>`;
           cell.onclick=()=>openEdit(appointment);
-        }
-        else if(availability[slotKey]){
+        }else{
           cell.classList.add("available");
-          cell.textContent="Disponible";
           cell.onclick=()=>openNew({date,hour,minute});
-        }
-        else{
-          cell.classList.add("disabled");
         }
 
         grid.appendChild(cell);
@@ -275,12 +332,10 @@ prevWeek.onclick=()=>{
   baseDate.setDate(baseDate.getDate()-7);
   renderWeek();
 };
-
 nextWeek.onclick=()=>{
   baseDate.setDate(baseDate.getDate()+7);
   renderWeek();
 };
-
 today.onclick=()=>{
   baseDate=new Date();
   renderWeek();
