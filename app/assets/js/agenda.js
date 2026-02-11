@@ -140,13 +140,12 @@ async function searchPatients(term){
       phone.value = p.telefono || "";
       name.value = `${p.nombre || ""} ${p.apellidos || ""}`.trim();
 
-      // ⏱️ duración automática
-      const duration = p.sessionDuration || 60;
+      let duration = p.patientType === "mutual" ? 30 : 60;
+
       const [h,m] = start.value.split(":").map(Number);
       const endDate = new Date(0,0,0,h,m + duration);
       end.value = `${pad(endDate.getHours())}:${pad(endDate.getMinutes())}`;
 
-      // 💰 precio mutua
       if(p.patientType === "mutual"){
         amount.value = p.mutual?.pricePerSession || 0;
       }
@@ -160,35 +159,6 @@ async function searchPatients(term){
 
 phone.oninput = e => searchPatients(e.target.value);
 name.oninput  = e => searchPatients(e.target.value);
-
-/* ================= WHATSAPP ================= */
-function openWhatsAppNotification(data){
-  if(!data.phone) return;
-
-  let cleanPhone = data.phone.replace(/\s+/g,"");
-  if(!cleanPhone.startsWith("+")){
-    if(cleanPhone.startsWith("6") || cleanPhone.startsWith("7")){
-      cleanPhone = "34" + cleanPhone;
-    }
-  }
-
-  const msg = `
-Hola ${data.name || ""} 😊
-
-Te confirmo tu cita en *Psicoterapia Isla*:
-
-📅 ${data.date}
-⏰ ${data.start} – ${data.end}
-📍 ${data.modality}
-
-Cualquier cosa me dices.
-`.trim();
-
-  window.open(
-    "https://wa.me/" + cleanPhone + "?text=" + encodeURIComponent(msg),
-    "_blank"
-  );
-}
 
 /* ================= FACTURACIÓN ================= */
 async function getNextInvoiceNumber(therapistId){
@@ -236,10 +206,9 @@ async function maybeCreateInvoice(appointmentId,data){
     createdAt: Timestamp.now()
   });
 
-  await updateDoc(
-    doc(db,"appointments",appointmentId),
-    { invoiceId: inv.id }
-  );
+  await updateDoc(doc(db,"appointments",appointmentId),{
+    invoiceId: inv.id
+  });
 }
 
 /* ================= SAVE ================= */
@@ -247,11 +216,13 @@ document.getElementById("save").onclick = async () => {
   const user = auth.currentUser;
   if(!user || !currentSlot) return;
 
+  const duration = selectedPatient?.patientType === "mutual" ? 30 : 60;
+
   const data = {
     therapistId: user.uid,
     patientId: selectedPatient?.id || null,
     patient: selectedPatient || null,
-    sessionDuration: selectedPatient?.sessionDuration || 60,
+    sessionDuration: duration,
     date: currentSlot.date,
     phone: phone.value,
     name: name.value,
@@ -271,20 +242,19 @@ document.getElementById("save").onclick = async () => {
     await updateDoc(doc(db,"appointments",editingId),data);
     id = editingId;
   }else{
-    const ref = await addDoc(
-      collection(db,"appointments"),
-      { ...data, createdAt: Timestamp.now() }
-    );
+    const ref = await addDoc(collection(db,"appointments"),{
+      ...data,
+      createdAt: Timestamp.now()
+    });
     id = ref.id;
   }
 
   await maybeCreateInvoice(id,data);
   modal.classList.remove("show");
   await renderWeek();
-  openWhatsAppNotification(data);
 };
 
-/* ================= RENDER WEEK ================= */
+/* ================= RENDER WEEK COMPLETO ================= */
 async function renderWeek(){
   grid.innerHTML = "";
   const monday = mondayOf(baseDate);
@@ -303,9 +273,9 @@ async function renderWeek(){
   ));
 
   const availability = {};
-  availSnap.forEach(d =>
-    Object.assign(availability,d.data().slots || {})
-  );
+  availSnap.forEach(d=>{
+    Object.assign(availability, d.data().slots || {});
+  });
 
   const apptSnap = await getDocs(query(
     collection(db,"appointments"),
@@ -332,33 +302,34 @@ async function renderWeek(){
   });
 
   HOURS.forEach(hour=>{
-    const hl = document.createElement("div");
+    const hl=document.createElement("div");
     hl.className="hour-label";
     hl.textContent=`${hour}:00`;
     grid.appendChild(hl);
 
     DAYS.forEach(day=>{
-      const date = formatDate(dayFromKey(monday,day));
-      const slotKey = `${day}_${hour}`;
-      const apptKey = `${date}_${pad(hour)}:00`;
+      const date=formatDate(dayFromKey(monday,day));
+      const slotKey=`${day}_${hour}`;
+      const apptKey=`${date}_${pad(hour)}:00`;
 
-      const cell = document.createElement("div");
+      const cell=document.createElement("div");
       cell.className="slot";
 
       if(bySlot[apptKey]){
-        const a = bySlot[apptKey];
+        const a=bySlot[apptKey];
         cell.classList.add(
-          a.paid ? "paid" : a.completed ? "done" : "busy"
+          a.paid?"paid":a.completed?"done":"busy"
         );
-        cell.innerHTML =
-          `<strong>${a.name || "—"}</strong>
-           <span>${a.start}–${a.end}</span>`;
-        cell.onclick = () => openEdit(a);
-      }else if(availability[slotKey]){
+        cell.innerHTML=`<strong>${a.name||"—"}</strong>
+        <span>${a.start}–${a.end}</span>`;
+        cell.onclick=()=>openEdit(a);
+      }
+      else if(availability[slotKey]){
         cell.classList.add("available");
         cell.textContent="Disponible";
-        cell.onclick = () => openNew({ date, hour });
-      }else{
+        cell.onclick=()=>openNew({date,hour});
+      }
+      else{
         cell.classList.add("disabled");
       }
 
@@ -368,16 +339,18 @@ async function renderWeek(){
 }
 
 /* ================= NAV ================= */
-prevWeek.onclick = () => {
+prevWeek.onclick=()=>{
   baseDate.setDate(baseDate.getDate()-7);
   renderWeek();
 };
-nextWeek.onclick = () => {
+
+nextWeek.onclick=()=>{
   baseDate.setDate(baseDate.getDate()+7);
   renderWeek();
 };
-today.onclick = () => {
-  baseDate = new Date();
+
+today.onclick=()=>{
+  baseDate=new Date();
   renderWeek();
 };
 
