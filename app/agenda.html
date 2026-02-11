@@ -44,14 +44,14 @@
 <!-- ================= MODAL ================= -->
 
 <div id="modal" class="modal">
-  <div class="modal-card">
-
-    <div class="modal-header">
-      <h3>Cita</h3>
-      <button id="close" class="modal-close">✕</button>
-    </div>
+  <div class="modal-content">
 
     <div class="modal-body">
+
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+        <h3 style="margin:0;">Cita</h3>
+        <button id="close" class="btn-secondary">✕</button>
+      </div>
 
       <label>Teléfono</label>
       <input id="phone" autocomplete="off">
@@ -61,7 +61,7 @@
       <input id="name">
 
       <label>Servicio</label>
-      <input id="service" value="Visita Psicología">
+      <input id="service" value="Sesión de psicología sanitaria">
 
       <label>Modalidad</label>
       <select id="modality">
@@ -70,19 +70,18 @@
         <option value="online">Online</option>
       </select>
 
-      <div class="time-row">
-        <div>
+      <div style="display:flex; gap:1rem;">
+        <div style="flex:1;">
           <label>Inicio</label>
           <input id="start" type="time">
         </div>
-
-        <div>
+        <div style="flex:1;">
           <label>Fin</label>
           <input id="end" type="time">
         </div>
       </div>
 
-      <div class="checkbox-row">
+      <div style="display:flex; justify-content:space-between; margin:1rem 0;">
         <label>
           <input type="checkbox" id="completed">
           Sesión realizada
@@ -100,12 +99,11 @@
     </div>
 
     <div class="modal-footer">
-      <button id="save" class="button-primary">Guardar</button>
+      <button id="save" class="btn-primary">Guardar</button>
     </div>
 
   </div>
 </div>
-
 <!-- ================= INICIALIZACIÓN ROBUSTA ================= -->
 
 <script type="module">
