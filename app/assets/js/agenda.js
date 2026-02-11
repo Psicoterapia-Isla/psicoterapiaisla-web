@@ -65,12 +65,71 @@ function dayFromKey(monday,key){
 }
 
 function timeString(h,m){
-  return `${pad(h)}:${pad(m)}`;
+  const date = new Date(0,0,0,h,m);
+  return `${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
 function minutesOf(time){
   const [h,m] = time.split(":").map(Number);
   return h*60 + m;
+}
+
+/* ================= FACTURACIÓN ================= */
+
+async function getNextInvoiceNumber(therapistId){
+  const year = new Date().getFullYear();
+  const ref = doc(db,"invoice_counters",`${therapistId}_${year}`);
+
+  return await runTransaction(db, async tx => {
+    const snap = await tx.get(ref);
+    let next = 1;
+
+    if(snap.exists()){
+      next = snap.data().lastNumber + 1;
+      tx.update(ref,{ lastNumber: next, updatedAt: Timestamp.now() });
+    }else{
+      tx.set(ref,{
+        therapistId,
+        year,
+        lastNumber: 1,
+        createdAt: Timestamp.now()
+      });
+    }
+
+    return `PI-${year}-${String(next).padStart(4,"0")}`;
+  });
+}
+
+async function maybeCreateInvoice(id,data){
+
+  if(!data.completed || !data.paid || !data.amount) return;
+
+  const num = await getNextInvoiceNumber(data.therapistId);
+
+  const inv = await addDoc(collection(db,"invoices"),{
+    therapistId: data.therapistId,
+    appointmentId: id,
+    invoiceNumber: num,
+    issueDate: Timestamp.now(),
+
+    patientId: data.patientId || null,
+    patientName: data.name || null,
+    patientType: data.patient?.patientType || "private",
+    mutualName: data.patient?.mutual?.name || null,
+
+    concept: data.service,
+    baseAmount: data.amount,
+    vatRate: 0,
+    vatExemptReason: "Exento IVA – Art. 20.3 Ley 37/1992",
+    totalAmount: data.amount,
+    status: "paid",
+
+    createdAt: Timestamp.now()
+  });
+
+  await updateDoc(doc(db,"appointments",id),{
+    invoiceId: inv.id
+  });
 }
 
 /* ================= MODAL ================= */
@@ -152,8 +211,7 @@ async function searchPatients(term){
       const duration = p.patientType === "mutual" ? 30 : 60;
 
       const [h,m] = start.value.split(":").map(Number);
-      const endDate = new Date(0,0,0,h,m + duration);
-      end.value = timeString(endDate.getHours(), endDate.getMinutes());
+      end.value = timeString(h, m + duration);
 
       if(p.patientType === "mutual"){
         amount.value = p.mutual?.pricePerSession || 0;
@@ -274,6 +332,8 @@ document.getElementById("save").onclick = async () => {
     });
     id = ref.id;
   }
+
+  await maybeCreateInvoice(id,data);
 
   modal.classList.remove("show");
   await renderWeek();
