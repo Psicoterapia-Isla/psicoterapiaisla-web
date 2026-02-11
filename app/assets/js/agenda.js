@@ -24,7 +24,9 @@ let editingId = null;
 let selectedPatient = null;
 let currentSlot = null;
 
+/* 🔥 MEDIA HORA REAL */
 const HOURS = Array.from({ length: 12 }, (_, i) => i + 9);
+const MINUTES = [0,30];
 const DAYS = ["mon","tue","wed","thu","fri","sat","sun"];
 
 /* ================= DOM ================= */
@@ -67,6 +69,10 @@ function dayFromKey(monday,key){
   return d;
 }
 
+function timeString(h,m){
+  return `${pad(h)}:${pad(m)}`;
+}
+
 /* ================= MODAL ================= */
 function resetModal(){
   editingId = null;
@@ -88,8 +94,12 @@ function resetModal(){
 function openNew(slot){
   resetModal();
   currentSlot = slot;
-  start.value = `${pad(slot.hour)}:00`;
-  end.value = `${pad(slot.hour + 1)}:00`;
+  start.value = timeString(slot.hour, slot.minute);
+
+  const duration = selectedPatient?.patientType === "mutual" ? 30 : 60;
+  const endDate = new Date(0,0,0,slot.hour,slot.minute + duration);
+  end.value = timeString(endDate.getHours(), endDate.getMinutes());
+
   modal.classList.add("show");
 }
 
@@ -97,7 +107,7 @@ function openEdit(a){
   resetModal();
   editingId = a.id;
   selectedPatient = a.patient || null;
-  currentSlot = { date: a.date, hour: Number(a.start.split(":")[0]) };
+  currentSlot = { date: a.date };
 
   phone.value = a.phone || "";
   name.value = a.name || "";
@@ -144,7 +154,7 @@ async function searchPatients(term){
 
       const [h,m] = start.value.split(":").map(Number);
       const endDate = new Date(0,0,0,h,m + duration);
-      end.value = `${pad(endDate.getHours())}:${pad(endDate.getMinutes())}`;
+      end.value = timeString(endDate.getHours(), endDate.getMinutes());
 
       if(p.patientType === "mutual"){
         amount.value = p.mutual?.pricePerSession || 0;
@@ -160,101 +170,7 @@ async function searchPatients(term){
 phone.oninput = e => searchPatients(e.target.value);
 name.oninput  = e => searchPatients(e.target.value);
 
-/* ================= FACTURACIÓN ================= */
-async function getNextInvoiceNumber(therapistId){
-  const year = new Date().getFullYear();
-  const ref = doc(db,"invoice_counters",`${therapistId}_${year}`);
-
-  return await runTransaction(db, async tx => {
-    const snap = await tx.get(ref);
-    let next = 1;
-
-    if(snap.exists()){
-      next = snap.data().lastNumber + 1;
-      tx.update(ref,{ lastNumber: next, updatedAt: Timestamp.now() });
-    }else{
-      tx.set(ref,{
-        therapistId,
-        year,
-        lastNumber: 1,
-        createdAt: Timestamp.now()
-      });
-    }
-
-    return `PI-${year}-${String(next).padStart(4,"0")}`;
-  });
-}
-
-async function maybeCreateInvoice(appointmentId,data){
-  if(!data.completed || !data.paid || !data.amount) return;
-
-  const num = await getNextInvoiceNumber(data.therapistId);
-
-  const inv = await addDoc(collection(db,"invoices"),{
-    therapistId: data.therapistId,
-    appointmentId,
-    invoiceNumber: num,
-    issueDate: Timestamp.now(),
-    patientId: data.patientId || null,
-    patientName: data.name || null,
-    concept: data.service,
-    baseAmount: data.amount,
-    vatRate: 0,
-    vatExemptReason: "Exento IVA – Art. 20.3 Ley 37/1992",
-    totalAmount: data.amount,
-    status: "paid",
-    createdAt: Timestamp.now()
-  });
-
-  await updateDoc(doc(db,"appointments",appointmentId),{
-    invoiceId: inv.id
-  });
-}
-
-/* ================= SAVE ================= */
-document.getElementById("save").onclick = async () => {
-  const user = auth.currentUser;
-  if(!user || !currentSlot) return;
-
-  const duration = selectedPatient?.patientType === "mutual" ? 30 : 60;
-
-  const data = {
-    therapistId: user.uid,
-    patientId: selectedPatient?.id || null,
-    patient: selectedPatient || null,
-    sessionDuration: duration,
-    date: currentSlot.date,
-    phone: phone.value,
-    name: name.value,
-    service: service.value,
-    modality: modality.value,
-    start: start.value,
-    end: end.value,
-    completed: completed.checked,
-    paid: paid.checked,
-    amount: Number(amount.value || 0),
-    updatedAt: Timestamp.now()
-  };
-
-  let id;
-
-  if(editingId){
-    await updateDoc(doc(db,"appointments",editingId),data);
-    id = editingId;
-  }else{
-    const ref = await addDoc(collection(db,"appointments"),{
-      ...data,
-      createdAt: Timestamp.now()
-    });
-    id = ref.id;
-  }
-
-  await maybeCreateInvoice(id,data);
-  modal.classList.remove("show");
-  await renderWeek();
-};
-
-/* ================= RENDER WEEK COMPLETO ================= */
+/* ================= RENDER WEEK CON MEDIA HORA ================= */
 async function renderWeek(){
   grid.innerHTML = "";
   const monday = mondayOf(baseDate);
@@ -272,9 +188,9 @@ async function renderWeek(){
     where("weekStart","==",formatDate(monday))
   ));
 
-  const availability = {};
+  let availability = {};
   availSnap.forEach(d=>{
-    Object.assign(availability, d.data().slots || {});
+    availability = d.data().slots || {};
   });
 
   const apptSnap = await getDocs(query(
@@ -284,10 +200,9 @@ async function renderWeek(){
     where("date","<=",formatDate(new Date(monday.getTime()+6*86400000)))
   ));
 
-  const bySlot = {};
+  const appointments = [];
   apptSnap.forEach(d=>{
-    const a = { id:d.id, ...d.data() };
-    bySlot[`${a.date}_${a.start}`] = a;
+    appointments.push({ id:d.id, ...d.data() });
   });
 
   grid.appendChild(document.createElement("div"));
@@ -302,38 +217,55 @@ async function renderWeek(){
   });
 
   HOURS.forEach(hour=>{
-    const hl=document.createElement("div");
-    hl.className="hour-label";
-    hl.textContent=`${hour}:00`;
-    grid.appendChild(hl);
+    MINUTES.forEach(minute=>{
 
-    DAYS.forEach(day=>{
-      const date=formatDate(dayFromKey(monday,day));
-      const slotKey=`${day}_${hour}`;
-      const apptKey=`${date}_${pad(hour)}:00`;
+      const hl=document.createElement("div");
+      hl.className="hour-label";
+      hl.textContent=`${pad(hour)}:${pad(minute)}`;
+      grid.appendChild(hl);
 
-      const cell=document.createElement("div");
-      cell.className="slot";
+      DAYS.forEach(day=>{
+        const date=formatDate(dayFromKey(monday,day));
+        const slotKey=`${day}_${hour}_${minute}`;
+        const slotStart=timeString(hour,minute);
 
-      if(bySlot[apptKey]){
-        const a=bySlot[apptKey];
-        cell.classList.add(
-          a.paid?"paid":a.completed?"done":"busy"
-        );
-        cell.innerHTML=`<strong>${a.name||"—"}</strong>
-        <span>${a.start}–${a.end}</span>`;
-        cell.onclick=()=>openEdit(a);
-      }
-      else if(availability[slotKey]){
-        cell.classList.add("available");
-        cell.textContent="Disponible";
-        cell.onclick=()=>openNew({date,hour});
-      }
-      else{
-        cell.classList.add("disabled");
-      }
+        const cell=document.createElement("div");
+        cell.className="slot";
 
-      grid.appendChild(cell);
+        const appointment = appointments.find(a=>{
+          if(a.date !== date) return false;
+
+          const startParts = a.start.split(":").map(Number);
+          const endParts = a.end.split(":").map(Number);
+
+          const startMin = startParts[0]*60 + startParts[1];
+          const endMin = endParts[0]*60 + endParts[1];
+          const currentMin = hour*60 + minute;
+
+          return currentMin >= startMin && currentMin < endMin;
+        });
+
+        if(appointment){
+          cell.classList.add(
+            appointment.paid ? "paid" :
+            appointment.completed ? "done" : "busy"
+          );
+          cell.innerHTML=`<strong>${appointment.name||"—"}</strong>
+          <span>${appointment.start}–${appointment.end}</span>`;
+          cell.onclick=()=>openEdit(appointment);
+        }
+        else if(availability[slotKey]){
+          cell.classList.add("available");
+          cell.textContent="Disponible";
+          cell.onclick=()=>openNew({date,hour,minute});
+        }
+        else{
+          cell.classList.add("disabled");
+        }
+
+        grid.appendChild(cell);
+      });
+
     });
   });
 }
