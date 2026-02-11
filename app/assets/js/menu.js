@@ -15,6 +15,7 @@ import {
 let unsubscribeAuth = null;
 
 export async function loadMenu() {
+
   const menu = document.querySelector(".app-menu");
   if (!menu) return;
 
@@ -24,14 +25,16 @@ export async function loadMenu() {
   if (unsubscribeAuth) return;
 
   unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
+
     if (!user) {
       menu.innerHTML = "";
       return;
     }
 
     /* ======================
-       ROL REAL (ROBUSTO)
+       OBTENER ROL REAL
     ====================== */
+
     let role = "patient";
 
     try {
@@ -40,20 +43,21 @@ export async function loadMenu() {
         role = snap.data().role;
       }
     } catch (err) {
-      console.warn("menu.js → no se pudo leer rol, usando patient");
+      console.warn("menu.js → no se pudo leer rol");
     }
 
     const isAdmin = role === "admin";
     const isTherapist = role === "therapist" || isAdmin;
 
     /* ======================
-       MENU
+       CONSTRUIR MENÚ
     ====================== */
+
     menu.innerHTML = `
       <div class="app-menu-inner">
 
         <!-- INICIO -->
-        <button class="menu-group-toggle" data-link="index.html">
+        <button class="menu-item" data-link="index.html">
           Inicio
         </button>
 
@@ -79,7 +83,7 @@ export async function loadMenu() {
             <a href="exercises-list.html">Ejercicios</a>
             <hr>
             <a href="reservar.html">Reservar cita</a>
-            <a href="agenda-paciente.html">Mis citas</a>
+            <a href="agenda-paciente.html">Mi agenda</a>
           </div>
         </div>
         ` : ""}
@@ -93,12 +97,13 @@ export async function loadMenu() {
           <button class="menu-group-toggle">Espacio terapeuta</button>
           <div class="menu-group-content">
 
-            <!-- AGENDA ÚNICA -->
+            <!-- AGENDA -->
             <a href="agenda.html">Agenda</a>
+            <a href="disponibilidad.html">Disponibilidad</a>
 
             <hr>
 
-            <!-- GESTIÓN CLÍNICA -->
+            <!-- PACIENTES -->
             <a href="patients-admin.html">Pacientes</a>
             <a href="diario-terapeuta.html">Diarios pacientes</a>
             <a href="entries-by-patient.html">Registros por paciente</a>
@@ -121,7 +126,7 @@ export async function loadMenu() {
         ` : ""}
 
         <!-- SALIR -->
-        <button class="menu-group-toggle" id="logout-btn">
+        <button class="menu-item" id="logout-btn">
           Salir
         </button>
 
@@ -131,6 +136,7 @@ export async function loadMenu() {
     /* ======================
        NAVEGACIÓN DIRECTA
     ====================== */
+
     menu.querySelectorAll("[data-link]").forEach(btn => {
       btn.addEventListener("click", () => {
         window.location.href = btn.dataset.link;
@@ -138,11 +144,14 @@ export async function loadMenu() {
     });
 
     /* ======================
-       DESPLEGABLES (ESTABLE)
+       DESPLEGABLES
     ====================== */
+
     menu.querySelectorAll(".menu-group > .menu-group-toggle")
       .forEach(btn => {
+
         btn.addEventListener("click", (e) => {
+
           e.stopPropagation();
           const group = btn.parentElement;
 
@@ -153,9 +162,9 @@ export async function loadMenu() {
 
           group.classList.toggle("open");
         });
+
       });
 
-    // cerrar al clicar fuera
     document.addEventListener("click", () => {
       menu.querySelectorAll(".menu-group.open")
         .forEach(g => g.classList.remove("open"));
@@ -164,6 +173,7 @@ export async function loadMenu() {
     /* ======================
        LOGOUT
     ====================== */
+
     const logoutBtn = document.getElementById("logout-btn");
     if (logoutBtn) {
       logoutBtn.addEventListener("click", async () => {
@@ -171,5 +181,6 @@ export async function loadMenu() {
         window.location.href = "login.html";
       });
     }
+
   });
 }
