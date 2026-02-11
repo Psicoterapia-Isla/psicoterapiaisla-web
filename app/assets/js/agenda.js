@@ -24,8 +24,9 @@ let editingId = null;
 let selectedPatient = null;
 let currentSlot = null;
 
+/* ===== MEDIA HORA REAL ===== */
 const HOURS = Array.from({ length: 12 }, (_, i) => i + 9);
-const MINUTES = [0,30];
+const MINUTES = [0, 30];
 const DAYS = ["mon","tue","wed","thu","fri","sat","sun"];
 
 /* ================= DOM ================= */
@@ -139,15 +140,19 @@ async function searchPatients(term){
     div.textContent = `${p.nombre || ""} ${p.apellidos || ""} · ${p.telefono || ""}`;
 
     div.onclick = () => {
+
       selectedPatient = { id: d.id, ...p };
 
       phone.value = p.telefono || "";
       name.value = `${p.nombre || ""} ${p.apellidos || ""}`.trim();
 
-      const duration = p.sessionDuration || 60;
-      const [h,m] = start.value.split(":").map(Number);
-      const endDate = new Date(0,0,0,h,m + duration);
-      end.value = timeString(endDate.getHours(), endDate.getMinutes());
+      const duration = p.sessionDuration || (p.patientType === "mutual" ? 30 : 60);
+
+      if(start.value){
+        const [h,m] = start.value.split(":").map(Number);
+        const endDate = new Date(0,0,0,h,m + duration);
+        end.value = timeString(endDate.getHours(), endDate.getMinutes());
+      }
 
       if(p.patientType === "mutual"){
         amount.value = p.mutual?.pricePerSession || 0;
@@ -162,6 +167,89 @@ async function searchPatients(term){
 
 phone.oninput = e => searchPatients(e.target.value);
 name.oninput  = e => searchPatients(e.target.value);
+
+/* ================= WHATSAPP ================= */
+function openWhatsAppNotification(data){
+
+  if(!data.phone) return;
+
+  let cleanPhone = data.phone.replace(/\s+/g,"");
+
+  if(!cleanPhone.startsWith("+")){
+    if(cleanPhone.startsWith("6") || cleanPhone.startsWith("7")){
+      cleanPhone = "34" + cleanPhone;
+    }
+  }
+
+  const msg = `
+Hola ${data.name || ""} 😊
+
+Te confirmo tu cita en *Psicoterapia Isla*:
+
+📅 ${data.date}
+⏰ ${data.start} – ${data.end}
+📍 ${data.modality}
+
+Si necesitas modificarla, escríbeme.
+`.trim();
+
+  window.open(
+    "https://wa.me/" + cleanPhone + "?text=" + encodeURIComponent(msg),
+    "_blank"
+  );
+}
+
+/* ================= FACTURACIÓN ================= */
+async function getNextInvoiceNumber(therapistId){
+  const year = new Date().getFullYear();
+  const ref = doc(db,"invoice_counters",`${therapistId}_${year}`);
+
+  return await runTransaction(db, async tx => {
+    const snap = await tx.get(ref);
+    let next = 1;
+
+    if(snap.exists()){
+      next = snap.data().lastNumber + 1;
+      tx.update(ref,{ lastNumber: next, updatedAt: Timestamp.now() });
+    }else{
+      tx.set(ref,{
+        therapistId,
+        year,
+        lastNumber: 1,
+        createdAt: Timestamp.now()
+      });
+    }
+
+    return `PI-${year}-${String(next).padStart(4,"0")}`;
+  });
+}
+
+async function maybeCreateInvoice(id,data){
+
+  if(!data.completed || !data.paid || !data.amount) return;
+
+  const num = await getNextInvoiceNumber(data.therapistId);
+
+  const inv = await addDoc(collection(db,"invoices"),{
+    therapistId: data.therapistId,
+    appointmentId: id,
+    invoiceNumber: num,
+    issueDate: Timestamp.now(),
+    patientId: data.patientId || null,
+    patientName: data.name || null,
+    concept: data.service,
+    baseAmount: data.amount,
+    vatRate: 0,
+    vatExemptReason: "Exento IVA – Art. 20.3 Ley 37/1992",
+    totalAmount: data.amount,
+    status: "paid",
+    createdAt: Timestamp.now()
+  });
+
+  await updateDoc(doc(db,"appointments",id),{
+    invoiceId: inv.id
+  });
+}
 
 /* ================= SAVE ================= */
 document.getElementById("save").onclick = async () => {
@@ -178,7 +266,7 @@ document.getElementById("save").onclick = async () => {
     phone: phone.value,
     name: name.value,
     service: service.value,
-    modality: modality.value || "viladecans",
+    modality: modality.value,
     start: start.value,
     end: end.value,
     completed: completed.checked,
@@ -187,20 +275,28 @@ document.getElementById("save").onclick = async () => {
     updatedAt: Timestamp.now()
   };
 
+  let id;
+
   if(editingId){
     await updateDoc(doc(db,"appointments",editingId),data);
+    id = editingId;
   }else{
-    await addDoc(collection(db,"appointments"),{
-      ...data,
-      createdAt: Timestamp.now()
-    });
+    const ref = await addDoc(
+      collection(db,"appointments"),
+      { ...data, createdAt: Timestamp.now() }
+    );
+    id = ref.id;
   }
+
+  await maybeCreateInvoice(id,data);
 
   modal.classList.remove("show");
   await renderWeek();
+
+  openWhatsAppNotification(data);
 };
 
-/* ================= RENDER CON DISPONIBILIDAD REAL ================= */
+/* ================= RENDER ================= */
 async function renderWeek(){
 
   grid.innerHTML = "";
@@ -210,13 +306,11 @@ async function renderWeek(){
   const user = auth.currentUser;
   if(!user) return;
 
-  /* 🔹 Cargar disponibilidad */
-  const weekKey = formatDate(monday);
-  const availRef = doc(db,"availability",`${user.uid}_${weekKey}`);
+  /* Cargar disponibilidad */
   const availSnap = await getDocs(query(
     collection(db,"availability"),
     where("therapistId","==",user.uid),
-    where("weekStart","==",weekKey)
+    where("weekStart","==",formatDate(monday))
   ));
 
   let availability = {};
@@ -224,7 +318,7 @@ async function renderWeek(){
     availability = d.data().slots || {};
   });
 
-  /* 🔹 Cargar citas */
+  /* Cargar citas */
   const apptSnap = await getDocs(query(
     collection(db,"appointments"),
     where("therapistId","==",user.uid),
@@ -269,11 +363,14 @@ async function renderWeek(){
         });
 
         if(appointment){
-          cell.classList.add("busy");
+          cell.classList.add(
+            appointment.paid ? "paid" :
+            appointment.completed ? "done" : "busy"
+          );
           cell.innerHTML=`<strong>${appointment.name||"—"}</strong>`;
           cell.onclick=()=>openEdit(appointment);
         }
-        else if(availability[slotKey] === true){
+        else if(availability[slotKey]){
           cell.classList.add("available");
           cell.onclick=()=>openNew({date,hour,minute});
         }
@@ -289,8 +386,19 @@ async function renderWeek(){
 }
 
 /* ================= NAV ================= */
-prevWeek.onclick=()=>{ baseDate.setDate(baseDate.getDate()-7); renderWeek(); };
-nextWeek.onclick=()=>{ baseDate.setDate(baseDate.getDate()+7); renderWeek(); };
-today.onclick=()=>{ baseDate=new Date(); renderWeek(); };
+prevWeek.onclick=()=>{
+  baseDate.setDate(baseDate.getDate()-7);
+  renderWeek();
+};
+
+nextWeek.onclick=()=>{
+  baseDate.setDate(baseDate.getDate()+7);
+  renderWeek();
+};
+
+today.onclick=()=>{
+  baseDate=new Date();
+  renderWeek();
+};
 
 renderWeek();
