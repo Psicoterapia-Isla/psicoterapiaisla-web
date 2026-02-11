@@ -77,6 +77,20 @@ function norm(k){
   state[k] ??= false;
 }
 
+function isTodayInThisWeek(dayIndex){
+  const today = new Date();
+  const monday = currentMonday;
+
+  const thisDay = new Date(monday);
+  thisDay.setDate(monday.getDate() + dayIndex);
+
+  return (
+    today.getFullYear() === thisDay.getFullYear() &&
+    today.getMonth() === thisDay.getMonth() &&
+    today.getDate() === thisDay.getDate()
+  );
+}
+
 /* =========================
    RENDER
 ========================= */
@@ -96,15 +110,23 @@ function render(hasAvailability=true){
     grid.appendChild(hint);
   }
 
-  // esquina vacía
+  /* ===== CABECERA ===== */
+
   grid.appendChild(document.createElement("div"));
 
-  LABELS.forEach(l=>{
+  LABELS.forEach((labelText, index)=>{
     const d = document.createElement("div");
     d.className = "day-label";
-    d.textContent = l;
+
+    if (isTodayInThisWeek(index)) {
+      d.classList.add("today-column");
+    }
+
+    d.textContent = labelText;
     grid.appendChild(d);
   });
+
+  /* ===== GRID ===== */
 
   TIME_SLOTS.forEach(time => {
 
@@ -113,13 +135,17 @@ function render(hasAvailability=true){
     hl.textContent = time;
     grid.appendChild(hl);
 
-    DAYS.forEach(day => {
+    DAYS.forEach((day, index) => {
 
       const key = `${day}_${time}`;
       norm(key);
 
       const cell = document.createElement("div");
       cell.className = "slot";
+
+      if (isTodayInThisWeek(index)) {
+        cell.classList.add("today-column");
+      }
 
       const btn = document.createElement("button");
       btn.className = `mode ${state[key] ? "on" : ""}`;
@@ -132,7 +158,6 @@ function render(hasAvailability=true){
 
       cell.appendChild(btn);
       grid.appendChild(cell);
-
     });
 
   });
