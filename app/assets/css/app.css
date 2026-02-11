@@ -411,3 +411,12 @@ select {
   background: rgba(242, 182, 198, 0.15);
   border-left: 3px solid var(--isla-morado-profundo);
 }
+.today-column {
+  background: rgba(242, 182, 198, 0.12);
+  border-left: 3px solid var(--isla-morado-profundo);
+}
+
+#weekStatus {
+  font-weight: 600;
+  margin-top: 10px;
+}
