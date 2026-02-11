@@ -3,29 +3,30 @@
 <head>
   <meta charset="UTF-8" />
   <title>Pacientes · Psicoterapia Isla</title>
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <!-- CSS UNIFICADO -->
+  <!-- SOLO CSS BASE -->
   <link rel="stylesheet" href="assets/css/app.css">
 </head>
 
 <body class="app-body">
 
-  <!-- MENÚ GLOBAL -->
+  <!-- MENÚ -->
   <header class="app-menu"></header>
 
   <!-- CONTENIDO -->
   <main class="app-container">
 
-    <section class="page-header">
+    <header class="page-header">
       <h1>Pacientes</h1>
       <p class="page-subtitle">
         Gestión de pacientes del sistema
       </p>
-    </section>
+    </header>
 
     <!-- BUSCADOR -->
-    <section class="card">
+    <section class="filters">
       <input
         type="text"
         id="patient-search"
@@ -34,7 +35,7 @@
     </section>
 
     <!-- LISTADO -->
-    <section id="patients-list" class="card">
+    <section id="patients-list" class="patients-list">
       Cargando pacientes…
     </section>
 
@@ -44,43 +45,37 @@
   <div id="patient-modal" class="modal">
     <div class="modal-card">
 
-      <div class="modal-header">
-        <h3 id="modal-title">Editar paciente</h3>
-        <button id="closePatient" class="modal-close">✕</button>
+      <h3 id="modal-title">Editar paciente</h3>
+
+      <label>Tipo de paciente</label>
+      <select id="patientType">
+        <option value="private">Privado</option>
+        <option value="mutual">Mutua</option>
+      </select>
+
+      <label>Duración sesión</label>
+      <select id="sessionDuration">
+        <option value="60">60 minutos</option>
+        <option value="30">30 minutos</option>
+      </select>
+
+      <div id="mutualBox" style="display:none">
+        <label>Nombre mutua</label>
+        <input id="mutualName" type="text" />
+
+        <label>Precio sesión (€)</label>
+        <input id="mutualPrice" type="number" />
       </div>
 
-      <div class="modal-body">
-
-        <label>Tipo de paciente</label>
-        <select id="patientType">
-          <option value="private">Privado</option>
-          <option value="mutual">Mutua</option>
-        </select>
-
-        <label>Duración sesión</label>
-        <select id="sessionDuration">
-          <option value="60">60 minutos</option>
-          <option value="30">30 minutos</option>
-        </select>
-
-        <div id="mutualBox" style="display:none">
-          <label>Nombre mutua</label>
-          <input id="mutualName" type="text" />
-
-          <label>Precio sesión (€)</label>
-          <input id="mutualPrice" type="number" />
-        </div>
-
-      </div>
-
-      <div class="modal-footer">
+      <div class="modal-actions">
         <button id="savePatient" class="btn-primary">Guardar</button>
+        <button id="closePatient" class="btn-secondary">Cerrar</button>
       </div>
 
     </div>
   </div>
 
-  <!-- SCRIPTS CORRECTOS -->
+  <!-- CARGA CORRECTA DEL MENÚ -->
   <script type="module">
     import { requireAuth } from "./assets/js/auth.js";
     import { loadMenu } from "./assets/js/menu.js";
@@ -89,6 +84,7 @@
     await loadMenu();
   </script>
 
+  <!-- LÓGICA DE PACIENTES -->
   <script type="module" src="assets/js/patients-admin.js"></script>
 
 </body>
