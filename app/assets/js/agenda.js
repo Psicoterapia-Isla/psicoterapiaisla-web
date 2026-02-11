@@ -24,7 +24,6 @@ let editingId = null;
 let selectedPatient = null;
 let currentSlot = null;
 
-/* 🔥 MEDIA HORA REAL */
 const HOURS = Array.from({ length: 12 }, (_, i) => i + 9);
 const MINUTES = [0,30];
 const DAYS = ["mon","tue","wed","thu","fri","sat","sun"];
@@ -164,55 +163,6 @@ async function searchPatients(term){
 phone.oninput = e => searchPatients(e.target.value);
 name.oninput  = e => searchPatients(e.target.value);
 
-/* ================= FACTURACIÓN ================= */
-async function getNextInvoiceNumber(therapistId){
-  const year = new Date().getFullYear();
-  const ref = doc(db,"invoice_counters",`${therapistId}_${year}`);
-
-  return await runTransaction(db, async tx => {
-    const snap = await tx.get(ref);
-    let next = 1;
-
-    if(snap.exists()){
-      next = snap.data().lastNumber + 1;
-      tx.update(ref,{ lastNumber: next, updatedAt: Timestamp.now() });
-    }else{
-      tx.set(ref,{
-        therapistId,
-        year,
-        lastNumber: 1,
-        createdAt: Timestamp.now()
-      });
-    }
-
-    return `PI-${year}-${String(next).padStart(4,"0")}`;
-  });
-}
-
-async function maybeCreateInvoice(id,data){
-  if(!data.completed || !data.paid || !data.amount) return;
-
-  const num = await getNextInvoiceNumber(data.therapistId);
-
-  const inv = await addDoc(collection(db,"invoices"),{
-    therapistId: data.therapistId,
-    appointmentId: id,
-    invoiceNumber: num,
-    issueDate: Timestamp.now(),
-    patientId: data.patientId || null,
-    patientName: data.name || null,
-    concept: data.service,
-    baseAmount: data.amount,
-    vatRate: 0,
-    vatExemptReason: "Exento IVA – Art. 20.3 Ley 37/1992",
-    totalAmount: data.amount,
-    status: "paid",
-    createdAt: Timestamp.now()
-  });
-
-  await updateDoc(doc(db,"appointments",id),{ invoiceId: inv.id });
-}
-
 /* ================= SAVE ================= */
 document.getElementById("save").onclick = async () => {
 
@@ -228,7 +178,7 @@ document.getElementById("save").onclick = async () => {
     phone: phone.value,
     name: name.value,
     service: service.value,
-    modality: modality.value,
+    modality: modality.value || "viladecans",
     start: start.value,
     end: end.value,
     completed: completed.checked,
@@ -237,26 +187,20 @@ document.getElementById("save").onclick = async () => {
     updatedAt: Timestamp.now()
   };
 
-  let id;
-
   if(editingId){
     await updateDoc(doc(db,"appointments",editingId),data);
-    id = editingId;
   }else{
-    const ref = await addDoc(
-      collection(db,"appointments"),
-      { ...data, createdAt: Timestamp.now() }
-    );
-    id = ref.id;
+    await addDoc(collection(db,"appointments"),{
+      ...data,
+      createdAt: Timestamp.now()
+    });
   }
-
-  await maybeCreateInvoice(id,data);
 
   modal.classList.remove("show");
   await renderWeek();
 };
 
-/* ================= RENDER ================= */
+/* ================= RENDER CON DISPONIBILIDAD REAL ================= */
 async function renderWeek(){
 
   grid.innerHTML = "";
@@ -266,6 +210,21 @@ async function renderWeek(){
   const user = auth.currentUser;
   if(!user) return;
 
+  /* 🔹 Cargar disponibilidad */
+  const weekKey = formatDate(monday);
+  const availRef = doc(db,"availability",`${user.uid}_${weekKey}`);
+  const availSnap = await getDocs(query(
+    collection(db,"availability"),
+    where("therapistId","==",user.uid),
+    where("weekStart","==",weekKey)
+  ));
+
+  let availability = {};
+  availSnap.forEach(d=>{
+    availability = d.data().slots || {};
+  });
+
+  /* 🔹 Cargar citas */
   const apptSnap = await getDocs(query(
     collection(db,"appointments"),
     where("therapistId","==",user.uid),
@@ -295,6 +254,7 @@ async function renderWeek(){
 
       DAYS.forEach(day=>{
         const date=formatDate(dayFromKey(monday,day));
+        const slotKey=`${day}_${hour}_${minute}`;
         const cell=document.createElement("div");
         cell.className="slot";
 
@@ -309,15 +269,16 @@ async function renderWeek(){
         });
 
         if(appointment){
-          cell.classList.add(
-            appointment.paid ? "paid" :
-            appointment.completed ? "done" : "busy"
-          );
+          cell.classList.add("busy");
           cell.innerHTML=`<strong>${appointment.name||"—"}</strong>`;
           cell.onclick=()=>openEdit(appointment);
-        }else{
+        }
+        else if(availability[slotKey] === true){
           cell.classList.add("available");
           cell.onclick=()=>openNew({date,hour,minute});
+        }
+        else{
+          cell.classList.add("disabled");
         }
 
         grid.appendChild(cell);
@@ -328,17 +289,8 @@ async function renderWeek(){
 }
 
 /* ================= NAV ================= */
-prevWeek.onclick=()=>{
-  baseDate.setDate(baseDate.getDate()-7);
-  renderWeek();
-};
-nextWeek.onclick=()=>{
-  baseDate.setDate(baseDate.getDate()+7);
-  renderWeek();
-};
-today.onclick=()=>{
-  baseDate=new Date();
-  renderWeek();
-};
+prevWeek.onclick=()=>{ baseDate.setDate(baseDate.getDate()-7); renderWeek(); };
+nextWeek.onclick=()=>{ baseDate.setDate(baseDate.getDate()+7); renderWeek(); };
+today.onclick=()=>{ baseDate=new Date(); renderWeek(); };
 
 renderWeek();
