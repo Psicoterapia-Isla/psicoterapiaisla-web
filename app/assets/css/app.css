@@ -1,336 +1,136 @@
-/* =========================
-   PSICOTERAPIA ISLA SYSTEM
-========================= */
+// app/assets/js/menu.js
 
-:root {
+import {
+  getAuth,
+  onAuthStateChanged,
+  signOut
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-  /* PALETA */
-  --bg-main: #f7f9f8;
-  --bg-surface: #ffffff;
-  --bg-soft: #eef3f1;
+import { db } from "./firebase.js";
+import {
+  doc,
+  getDoc
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-  --green-main: #2e6f5e;
-  --green-soft: #cfe7df;
+let unsubscribeAuth = null;
 
-  --rose-soft: #f6e6ec;
-  --rose-main: #c26a8d;
+export async function loadMenu() {
 
-  --text-main: #1f2937;
-  --text-soft: #6b7280;
+  const container = document.querySelector(".app-menu");
+  if (!container) return;
 
-  --border-soft: #e5e7eb;
+  const auth = getAuth();
+  if (unsubscribeAuth) return;
 
-  --radius-lg: 18px;
-  --radius-md: 12px;
+  unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
 
-  --shadow-soft: 0 10px 30px rgba(0,0,0,0.04);
-}
+    if (!user) {
+      container.innerHTML = "";
+      return;
+    }
 
-/* =========================
-   GLOBAL
-========================= */
+    let role = "patient";
 
-body.app-body {
-  margin: 0;
-  background: var(--bg-main);
-  font-family: -apple-system, BlinkMacSystemFont, "Inter", sans-serif;
-  color: var(--text-main);
-}
+    try {
+      const snap = await getDoc(doc(db, "users", user.uid));
+      if (snap.exists() && snap.data().role) {
+        role = snap.data().role;
+      }
+    } catch {
+      console.warn("No se pudo leer rol.");
+    }
 
-.wrapper,
-.agenda-wrapper {
-  max-width: 1200px;
-  margin: auto;
-  padding: 2rem 1.5rem;
-}
+    const isAdmin = role === "admin";
+    const isTherapist = role === "therapist" || isAdmin;
 
-/* =========================
-   TITULOS
-========================= */
+    container.innerHTML = `
+      <nav class="app-nav">
+        <div class="nav-left">
 
-h1 {
-  font-size: 1.8rem;
-  font-weight: 600;
-  margin-bottom: 1rem;
-}
+          <a href="index.html" class="nav-link">Inicio</a>
+          <a href="foro.html" class="nav-link">Foro</a>
 
-h3 {
-  font-weight: 500;
-  color: var(--text-soft);
-}
+          ${
+            isTherapist ? `
+            <div class="nav-dropdown">
+              <button class="nav-link dropdown-toggle">
+                Espacio terapeuta
+              </button>
 
-/* =========================
-   BOTONES
-========================= */
+              <div class="dropdown-menu">
+                <a href="agenda.html">Agenda</a>
+                <a href="disponibilidad.html">Disponibilidad</a>
+                <hr>
+                <a href="patients-admin.html">Pacientes</a>
+                <a href="diario-terapeuta.html">Diarios pacientes</a>
+                <a href="entries-by-patient.html">Registros por paciente</a>
+                <hr>
+                <a href="patient-invoices.html">Facturación</a>
+                ${
+                  isAdmin ? `
+                  <hr>
+                  <a href="exercises-admin.html">Gestionar ejercicios</a>
+                  ` : ""
+                }
+              </div>
+            </div>
+            ` : `
+            <div class="nav-dropdown">
+              <button class="nav-link dropdown-toggle">
+                Mi espacio
+              </button>
+              <div class="dropdown-menu">
+                <a href="espacio.html">Espacio personal</a>
+                <a href="diario.html">Escribir diario</a>
+                <a href="mi-diario.html">Mi diario</a>
+                <a href="exercises-list.html">Ejercicios</a>
+                <hr>
+                <a href="reservar.html">Reservar cita</a>
+                <a href="agenda-paciente.html">Mis citas</a>
+              </div>
+            </div>
+            `
+          }
 
-button {
-  border: none;
-  border-radius: 12px;
-  padding: .6rem 1.1rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all .25s ease;
-}
-
-.btn-primary {
-  background: var(--green-main);
-  color: white;
-}
-
-.btn-primary:hover {
-  opacity: .9;
-}
-
-.btn-secondary {
-  background: var(--bg-soft);
-  color: var(--green-main);
-}
-
-.btn-secondary:hover {
-  background: var(--green-soft);
-}
-
-/* =========================
-   CARDS
-========================= */
-
-.card {
-  background: var(--bg-surface);
-  border-radius: var(--radius-lg);
-  padding: 1.5rem;
-  box-shadow: var(--shadow-soft);
-  margin-bottom: 1.5rem;
-}
-
-/* =========================
-   AGENDA
-========================= */
-
-.agenda-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1rem;
-}
-
-.agenda-nav {
-  display: flex;
-  gap: .5rem;
-}
-
-.agenda-scroll {
-  overflow-x: auto;
-  padding-bottom: 12px;
-}
-
-.agenda-grid {
-  display: grid;
-  grid-template-columns: 80px repeat(7, 1fr);
-  min-width: 1100px;
-  gap: 8px;
-}
-
-/* LABELS */
-
-.hour-label {
-  text-align: right;
-  font-size: .75rem;
-  color: var(--text-soft);
-  padding-right: 8px;
-}
-
-.day-label {
-  text-align: center;
-  font-weight: 600;
-  color: var(--green-main);
-  padding-bottom: .5rem;
-}
-
-/* SLOTS */
-
-.slot {
-  min-height: 56px;
-  border-radius: var(--radius-md);
-  font-size: .75rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  transition: all .2s ease;
-  box-shadow: 0 2px 6px rgba(0,0,0,.03);
-}
-
-/* Estados refinados */
-
-.slot.available {
-  background: var(--green-soft);
-  color: var(--green-main);
-}
-
-.slot.available:hover {
-  background: #bde1d6;
-  transform: translateY(-2px);
-}
-
-.slot.busy {
-  background: var(--rose-soft);
-  color: var(--rose-main);
-}
-
-.slot.done {
-  background: #e5ecff;
-  color: #4f46e5;
-}
-
-.slot.paid {
-  background: #d1fae5;
-  color: #065f46;
-}
-
-.slot.disabled {
-  background: #f3f4f6;
-  opacity: .6;
-  cursor: default;
-}
-
-/* =========================
-   MODAL
-========================= */
-
-.modal {
-  .modal {
-  position: fixed;
-  inset: 0;
-  background: rgba(31, 41, 55, 0.55);
-  backdrop-filter: blur(4px);
-  display: none;
-  z-index: 1000;
-  align-items: center;
-  justify-content: center;
-}
-
-.modal.show {
-  display: flex;
-}
-
-.modal-content {
-  background: var(--bg-surface);
-  width: 100%;
-  max-width: 440px;
-  border-radius: 22px;
-  box-shadow: 0 20px 60px rgba(0,0,0,.15);
-  overflow: hidden;
-}
-
-.modal-body {
-  padding: 1.8rem;
-}
-
-.modal-footer {
-  padding: 1.2rem;
-  border-top: 1px solid var(--border-soft);
-  display: flex;
-  justify-content: flex-end;
-  gap: .5rem;
-}
-
-/* =========================
-   INPUTS
-========================= */
-
-input,
-select {
-  width: 100%;
-  padding: .65rem;
-  border-radius: 12px;
-  border: 1px solid var(--border-soft);
-  margin-bottom: 1rem;
-  font-size: .85rem;
-  background: #fff;
-}
-
-input:focus,
-select:focus {
-  outline: none;
-  border-color: var(--green-main);
-}
-
-/* =========================
-   MOBILE
-========================= */
-
-@media (max-width: 768px) {
-
-  .agenda-wrapper {
-    padding: 1.2rem;
-  }
-
-  .agenda-grid {
-    min-width: 900px;
-  }
-
-  .modal-content {
-    border-radius: 20px 20px 0 0;
-  }
-}
-<div id="modal" class="modal">
-  <div class="modal-content">
-
-    <div class="modal-body">
-
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
-        <h3 style="margin:0;">Cita</h3>
-        <button id="close" class="btn-secondary">✕</button>
-      </div>
-
-      <label>Teléfono</label>
-      <input id="phone" autocomplete="off">
-      <div id="suggestions" class="suggestions"></div>
-
-      <label>Nombre</label>
-      <input id="name">
-
-      <label>Servicio</label>
-      <input id="service" value="Sesión de psicología sanitaria">
-
-      <label>Modalidad</label>
-      <select id="modality">
-        <option value="viladecans">Viladecans</option>
-        <option value="badalona">Badalona</option>
-        <option value="online">Online</option>
-      </select>
-
-      <div style="display:flex; gap:1rem;">
-        <div style="flex:1;">
-          <label>Inicio</label>
-          <input id="start" type="time">
         </div>
-        <div style="flex:1;">
-          <label>Fin</label>
-          <input id="end" type="time">
+
+        <div class="nav-right">
+          <button id="logout-btn" class="nav-link logout">
+            Salir
+          </button>
         </div>
-      </div>
+      </nav>
+    `;
 
-      <div style="display:flex; justify-content:space-between; margin:1rem 0;">
-        <label>
-          <input type="checkbox" id="completed">
-          Sesión realizada
-        </label>
+    /* ======================
+       DROPDOWN
+    ====================== */
 
-        <label>
-          <input type="checkbox" id="paid">
-          Pagada
-        </label>
-      </div>
+    document.querySelectorAll(".dropdown-toggle").forEach(btn => {
+      btn.addEventListener("click", e => {
+        e.stopPropagation();
+        const menu = btn.nextElementSibling;
+        closeAllDropdowns();
+        menu.classList.toggle("open");
+      });
+    });
 
-      <label>Importe (€)</label>
-      <input id="amount" type="number">
+    document.addEventListener("click", closeAllDropdowns);
 
-    </div>
+    function closeAllDropdowns() {
+      document.querySelectorAll(".dropdown-menu")
+        .forEach(m => m.classList.remove("open"));
+    }
 
-    <div class="modal-footer">
-      <button id="save" class="btn-primary">Guardar</button>
-    </div>
+    /* ======================
+       LOGOUT
+    ====================== */
 
-  </div>
-</div>
+    document.getElementById("logout-btn")
+      ?.addEventListener("click", async () => {
+        await signOut(auth);
+        window.location.href = "login.html";
+      });
+
+  });
+}
