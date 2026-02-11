@@ -7,39 +7,91 @@
 <link rel="stylesheet" href="assets/css/app.css">
 
 <style>
-.wrapper { max-width:1000px; margin:0 auto; padding:1.5rem; }
-.header { display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; }
-.nav { display:flex; gap:.5rem; }
+.wrapper {
+  max-width:1100px;
+  margin:0 auto;
+  padding:1.5rem;
+}
+
+.header {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:1rem;
+  flex-wrap:wrap;
+  gap:1rem;
+}
+
+.nav {
+  display:flex;
+  gap:.5rem;
+}
+
+.header-extra {
+  display:flex;
+  align-items:center;
+  gap:1rem;
+  flex-wrap:wrap;
+}
+
+#therapistSelect {
+  padding:.4rem .6rem;
+  border-radius:8px;
+  border:1px solid #ccc;
+}
+
+#weekStatus {
+  font-weight:600;
+}
 
 .grid {
   display:grid;
-  grid-template-columns:60px repeat(7,1fr);
+  grid-template-columns:80px repeat(7,1fr);
   gap:6px;
 }
 
-.hour { font-size:.75rem; text-align:right; padding-right:6px; color:#666; }
-.day { text-align:center; font-weight:600; }
+.hour-label {
+  font-size:.75rem;
+  text-align:right;
+  padding-right:6px;
+  color:#666;
+}
+
+.day-label {
+  text-align:center;
+  font-weight:600;
+}
+
+.today-column {
+  background:rgba(242,182,198,.12);
+  border-left:3px solid #5A2A6E;
+}
 
 .slot {
   padding:.25rem;
   border-radius:8px;
   background:#e5e7eb;
   display:flex;
-  gap:.25rem;
   justify-content:center;
 }
 
 .mode {
-  font-size:.65rem;
-  padding:.25rem .4rem;
+  width:100%;
+  padding:.45rem 0;
   border-radius:6px;
   border:none;
   cursor:pointer;
+  background:#e5e7eb;
 }
 
 .mode.on {
   background:#1f6b4e;
   color:#fff;
+}
+
+.mode:disabled {
+  opacity:.5;
+  cursor:not-allowed;
 }
 </style>
 </head>
@@ -50,18 +102,33 @@
 <main class="wrapper">
 
   <div class="header">
-    <h1>Disponibilidad</h1>
+
+    <div>
+      <h1>Disponibilidad</h1>
+      <div id="weekLabel"></div>
+    </div>
+
     <div class="nav">
       <button id="prevWeek" class="btn-secondary">←</button>
       <button id="todayWeek" class="btn-secondary">Hoy</button>
       <button id="nextWeek" class="btn-secondary">→</button>
     </div>
+
+    <!-- NUEVA ZONA HEADER -->
+    <div class="header-extra">
+      <select id="therapistSelect"></select>
+      <span id="weekStatus">Semana sin guardar</span>
+    </div>
+
   </div>
 
   <div id="grid" class="grid"></div>
 
   <br>
-  <button id="save" class="btn-primary">Guardar disponibilidad</button>
+  <button id="save" class="btn-primary">
+    Guardar disponibilidad
+  </button>
+
 </main>
 
 <script type="module">
