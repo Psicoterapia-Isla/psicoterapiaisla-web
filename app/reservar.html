@@ -4,38 +4,54 @@
   <meta charset="UTF-8">
   <title>Mis citas | Psicoterapia Isla</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="assets/css/app.css">
+
+  <!-- SISTEMA GLOBAL -->
+  <link rel="stylesheet" href="/app/assets/css/app.css">
+
 </head>
 
 <body class="app-body">
+
 <header class="app-menu"></header>
 
-<main class="wrapper">
+<main class="app-container">
 
-  <div class="header">
-    <h1>Mis citas</h1>
-    <div class="nav">
-      <button id="prevWeek" class="btn-secondary">←</button>
-      <button id="today" class="btn-secondary">Hoy</button>
-      <button id="nextWeek" class="btn-secondary">→</button>
+  <div class="agenda-wrapper">
+
+    <!-- HEADER -->
+    <div class="agenda-header">
+      <div>
+        <h1 style="margin:0;">Mis citas</h1>
+        <h3 id="weekLabel" style="margin:4px 0 0 0;"></h3>
+      </div>
+
+      <div class="agenda-nav">
+        <button id="prevWeek" class="btn-secondary">←</button>
+        <button id="today" class="btn-secondary">Hoy</button>
+        <button id="nextWeek" class="btn-secondary">→</button>
+      </div>
     </div>
-  </div>
 
-  <h3 id="weekLabel"></h3>
+    <!-- GRID -->
+    <div class="agenda-scroll">
+      <div id="agendaGrid" class="agenda-grid"></div>
+    </div>
 
-  <div class="agenda-scroll">
-    <div id="agendaGrid" class="agenda-grid"></div>
   </div>
 
 </main>
 
+<!-- AUTH + MENU -->
 <script type="module">
-  import { requireAuth } from "./assets/js/auth.js";
-  import { loadMenu } from "./assets/js/menu.js";
+  import { requireAuth } from "/app/assets/js/auth.js";
+  import { loadMenu } from "/app/assets/js/menu.js";
+
   await requireAuth();
   await loadMenu();
 </script>
 
-<script type="module" src="assets/js/reservar.js"></script>
+<!-- LÓGICA -->
+<script type="module" src="/app/assets/js/reservar.js?v=1"></script>
+
 </body>
 </html>
