@@ -1,60 +1,48 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
   <title>Facturación | Psicoterapia Isla</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
-  <!-- CSS GLOBAL -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="assets/css/app.css">
 </head>
 
 <body class="app-body">
 
-<!-- MENÚ -->
 <header class="app-menu"></header>
 
-<main class="app-container">
+<main class="wrapper">
 
-  <section class="card">
+  <h1>Facturación</h1>
 
-    <h1>Facturación</h1>
-    <p class="page-subtitle">
-      Gestión de facturas por paciente
-    </p>
+  <!-- FILTROS -->
+  <div class="card">
 
-    <!-- FILTROS -->
-    <div class="filters">
-      <input
-        type="text"
-        id="searchInput"
-        placeholder="Buscar por paciente o email"
-      />
+    <label>Paciente</label>
+    <input type="text" id="patientFilter" placeholder="Nombre del paciente">
 
-      <select id="statusFilter">
-        <option value="">Todos los estados</option>
-        <option value="draft">Borrador</option>
-        <option value="issued">Emitida</option>
-        <option value="paid">Pagada</option>
-      </select>
-    </div>
+    <label>Mes</label>
+    <input type="month" id="monthFilter">
 
-    <!-- LISTADO -->
-    <div id="invoicesList"></div>
+    <button id="applyFilters" class="btn-primary">
+      Filtrar
+    </button>
 
-  </section>
+  </div>
+
+  <!-- RESULTADOS -->
+  <div id="list"></div>
 
 </main>
 
-<!-- AUTH + MENÚ -->
 <script type="module">
   import { requireAuth } from "./assets/js/auth.js";
   import { loadMenu } from "./assets/js/menu.js";
+
   await requireAuth();
   await loadMenu();
 </script>
 
-<!-- LÓGICA FACTURACIÓN -->
 <script type="module" src="assets/js/patient-invoices.js"></script>
 
 </body>
