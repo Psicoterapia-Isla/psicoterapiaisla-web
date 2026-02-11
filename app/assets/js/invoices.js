@@ -1,106 +1,133 @@
-import { db } from "./firebase.js";
+import { auth, db } from "./firebase.js";
 import {
   collection,
-  getDocs,
   query,
-  where
+  where,
+  getDocs,
+  orderBy
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-const tableBody = document.querySelector("#invoices-table tbody");
-const searchInput = document.getElementById("search-patient");
+/* =========================
+   DOM
+========================= */
+const list = document.getElementById("list");
+const summary = document.getElementById("summary");
 
-let patientsCache = [];
-let invoicesCache = [];
+const typeFilter = document.getElementById("typeFilter");
+const patientFilter = document.getElementById("patientFilter");
+const fromDate = document.getElementById("fromDate");
+const toDate = document.getElementById("toDate");
+const applyBtn = document.getElementById("applyFilters");
 
-/* ---------- CARGA INICIAL ---------- */
+/* =========================
+   INIT
+========================= */
+auth.onAuthStateChanged(user => {
+  if (!user) return;
+  loadInvoices();
+});
 
-async function loadData() {
-  // pacientes
-  const patientsSnap = await getDocs(collection(db, "patients"));
-  patientsCache = patientsSnap.docs.map(doc => ({
-    id: doc.id,
-    ...doc.data()
-  }));
+/* =========================
+   LOAD FACTURAS
+========================= */
+async function loadInvoices() {
 
-  // facturas
-  const invoicesSnap = await getDocs(collection(db, "patientInvoices"));
-  invoicesCache = invoicesSnap.docs.map(doc => doc.data());
+  list.innerHTML = "";
+  summary.innerHTML = "Cargando…";
 
-  renderTable(patientsCache);
-}
+  const user = auth.currentUser;
+  if (!user) return;
 
-/* ---------- RENDER TABLA ---------- */
+  const snap = await getDocs(
+    query(
+      collection(db, "invoices"),
+      where("therapistId", "==", user.uid),
+      orderBy("issueDate", "desc")
+    )
+  );
 
-function renderTable(patients) {
-  tableBody.innerHTML = "";
-
-  if (patients.length === 0) {
-    tableBody.innerHTML = `
-      <tr>
-        <td colspan="6">No hay resultados</td>
-      </tr>`;
+  if (snap.empty) {
+    summary.innerHTML = "No hay facturas.";
     return;
   }
 
-  patients.forEach(patient => {
-    const patientInvoices = invoicesCache.filter(
-      inv => inv.patientId === patient.id
-    );
+  const type = typeFilter.value;
+  const patientTerm = patientFilter.value.toLowerCase().trim();
+  const from = fromDate.value;
+  const to = toDate.value;
 
-    const total = patientInvoices.length;
-    const paid = patientInvoices.filter(i => i.status === "paid").length;
-    const pending = patientInvoices.filter(i => i.status === "pending").length;
+  let total = 0;
+  let count = 0;
 
-    let statusText = "Sin facturas";
-    if (total > 0) {
-      statusText = `${paid} pagadas / ${pending} pendientes`;
+  snap.forEach(docSnap => {
+
+    const i = docSnap.data();
+    const date = i.issueDate?.toDate?.();
+    if (!date) return;
+
+    /* ===== FILTRO TIPO ===== */
+    if (type) {
+      if (type === "mutual" && i.patientType !== "mutual") return;
+      if (type === "private" && i.patientType === "mutual") return;
     }
 
-    const row = document.createElement("tr");
-    row.innerHTML = `
-      <td>
-        <strong>${patient.name} ${patient.surname || ""}</strong><br>
-        DNI: ${patient.dni || "-"}
-      </td>
+    /* ===== FILTRO NOMBRE ===== */
+    if (patientTerm) {
+      if (!i.patientName?.toLowerCase().includes(patientTerm)) return;
+    }
 
-      <td>
-        📧 ${patient.email || "-"}<br>
-        📞 ${patient.phone || "-"}
-      </td>
+    /* ===== FILTRO FECHA ===== */
+    if (from && date < new Date(from)) return;
+    if (to) {
+      const toDateObj = new Date(to);
+      toDateObj.setHours(23,59,59,999);
+      if (date > toDateObj) return;
+    }
 
-      <td>${total}</td>
+    total += Number(i.totalAmount || 0);
+    count++;
 
-      <td>${statusText}</td>
-
-      <td>
-        <button data-id="${patient.id}" class="view-btn">
-          Ver
-        </button>
-        <button data-id="${patient.id}" class="new-btn">
-          + Factura
-        </button>
-      </td>
+    const div = document.createElement("div");
+    div.className = "card";
+    div.innerHTML = `
+      <strong>${i.invoiceNumber}</strong><br>
+      ${i.patientName || "—"}<br>
+      ${i.concept || ""}<br><br>
+      <strong>${Number(i.totalAmount).toFixed(2)} €</strong><br>
+      <small>
+        ${date.toLocaleDateString("es-ES")}
+        · ${translateStatus(i.status)}
+      </small>
     `;
 
-    tableBody.appendChild(row);
+    list.appendChild(div);
   });
+
+  if (!count) {
+    summary.innerHTML = "No hay facturas con esos filtros.";
+    return;
+  }
+
+  summary.innerHTML = `
+    <strong>Total facturado:</strong><br>
+    ${total.toFixed(2)} €<br>
+    ${count} facturas
+  `;
 }
 
-/* ---------- BUSCADOR ---------- */
+/* =========================
+   HELPERS
+========================= */
+function translateStatus(status) {
+  switch (status) {
+    case "draft": return "Borrador";
+    case "issued": return "Emitida";
+    case "paid": return "Pagada";
+    default: return "—";
+  }
+}
 
-searchInput.addEventListener("input", () => {
-  const term = searchInput.value.toLowerCase();
-
-  const filtered = patientsCache.filter(p =>
-    (p.name && p.name.toLowerCase().includes(term)) ||
-    (p.surname && p.surname.toLowerCase().includes(term)) ||
-    (p.dni && p.dni.toLowerCase().includes(term)) ||
-    (p.email && p.email.toLowerCase().includes(term)) ||
-    (p.phone && p.phone.includes(term))
-  );
-
-  renderTable(filtered);
-});
-
-/* ---------- INIT ---------- */
-loadData();
+/* =========================
+   EVENTS
+========================= */
+applyBtn.onclick = loadInvoices;
