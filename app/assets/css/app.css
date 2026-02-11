@@ -407,3 +407,7 @@ select {
   background: rgba(242, 182, 198, 0.15);
   border-left: 3px solid var(--isla-morado-profundo);
 }
+.today-column {
+  background: rgba(242, 182, 198, 0.15);
+  border-left: 3px solid var(--isla-morado-profundo);
+}
