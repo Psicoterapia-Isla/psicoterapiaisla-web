@@ -36,7 +36,7 @@ export async function loadMenu() {
       if (snap.exists() && snap.data().role) {
         role = snap.data().role;
       }
-    } catch (err) {
+    } catch {
       console.warn("No se pudo leer rol.");
     }
 
@@ -44,65 +44,62 @@ export async function loadMenu() {
     const isTherapist = role === "therapist" || isAdmin;
 
     container.innerHTML = `
-      <header class="nav">
-        <div class="nav-inner">
+      <nav class="app-nav">
+        <div class="nav-left">
 
-          <div class="nav-left">
-            <a href="index.html" class="nav-link">Inicio</a>
-            <a href="foro.html" class="nav-link">Foro</a>
+          <a href="index.html" class="nav-link">Inicio</a>
+          <a href="foro.html" class="nav-link">Foro</a>
 
-            ${
-              isTherapist ? `
-              <div class="nav-dropdown">
-                <button class="nav-link dropdown-toggle">
-                  Espacio terapeuta
-                </button>
+          ${
+            isTherapist ? `
+            <div class="nav-dropdown">
+              <button class="nav-link dropdown-toggle">
+                Espacio terapeuta
+              </button>
 
-                <div class="dropdown-menu">
-                  <a href="agenda.html">Agenda</a>
-                  <a href="disponibilidad.html">Disponibilidad</a>
+              <div class="dropdown-menu">
+                <a href="agenda.html">Agenda</a>
+                <a href="disponibilidad.html">Disponibilidad</a>
+                <hr>
+                <a href="patients-admin.html">Pacientes</a>
+                <a href="diario-terapeuta.html">Diarios pacientes</a>
+                <a href="entries-by-patient.html">Registros por paciente</a>
+                <hr>
+                <a href="patient-invoices.html">Facturación</a>
+                ${
+                  isAdmin ? `
                   <hr>
-                  <a href="patients-admin.html">Pacientes</a>
-                  <a href="diario-terapeuta.html">Diarios pacientes</a>
-                  <a href="entries-by-patient.html">Registros por paciente</a>
-                  <hr>
-                  <a href="patient-invoices.html">Facturación</a>
-                  ${
-                    isAdmin ? `
-                    <hr>
-                    <a href="exercises-admin.html">Gestionar ejercicios</a>
-                    ` : ""
-                  }
-                </div>
+                  <a href="exercises-admin.html">Gestionar ejercicios</a>
+                  ` : ""
+                }
               </div>
-              ` : `
-              <div class="nav-dropdown">
-                <button class="nav-link dropdown-toggle">
-                  Mi espacio
-                </button>
-                <div class="dropdown-menu">
-                  <a href="espacio.html">Espacio personal</a>
-                  <a href="diario.html">Escribir diario</a>
-                  <a href="mi-diario.html">Mi diario</a>
-                  <a href="exercises-list.html">Ejercicios</a>
-                  <hr>
-                  <a href="reservar.html">Reservar cita</a>
-                  <a href="agenda-paciente.html">Mis citas</a>
-                </div>
+            </div>
+            ` : `
+            <div class="nav-dropdown">
+              <button class="nav-link dropdown-toggle">
+                Mi espacio
+              </button>
+              <div class="dropdown-menu">
+                <a href="espacio.html">Espacio personal</a>
+                <a href="diario.html">Escribir diario</a>
+                <a href="mi-diario.html">Mi diario</a>
+                <a href="exercises-list.html">Ejercicios</a>
+                <hr>
+                <a href="reservar.html">Reservar cita</a>
+                <a href="agenda-paciente.html">Mis citas</a>
               </div>
-              `
-            }
-
-          </div>
-
-          <div class="nav-right">
-            <button id="logout-btn" class="nav-link logout">
-              Salir
-            </button>
-          </div>
+            </div>
+            `
+          }
 
         </div>
-      </header>
+
+        <div class="nav-right">
+          <button id="logout-btn" class="nav-link logout">
+            Salir
+          </button>
+        </div>
+      </nav>
     `;
 
     /* ======================
