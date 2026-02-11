@@ -1,10 +1,10 @@
 /* =========================================
-   AGENDA PRO – Psicoterapia Isla
+   AGENDA – Psicoterapia Isla (alineada con app.css)
 ========================================= */
 
 .agenda-wrapper {
-  background: var(--color-surface);
-  border-radius: var(--radius-xl);
+  background: var(--bg-surface);
+  border-radius: var(--radius-lg);
   box-shadow: var(--shadow-soft);
   padding: 24px;
 }
@@ -21,6 +21,7 @@
 .agenda-week-label {
   font-size: 20px;
   font-weight: 600;
+  color: var(--green-main);
 }
 
 .agenda-nav {
@@ -32,78 +33,93 @@
   overflow-x: auto;
 }
 
-/* GRID */
+/* ================= GRID ================= */
 
 .agenda-grid {
   display: grid;
   grid-template-columns: 80px repeat(7, 1fr);
   min-width: 1000px;
-  position: relative;
+  gap: 8px;
 }
 
-.agenda-day-header {
-  text-align: center;
+/* Encabezados día */
+
+.agenda-grid > div:nth-child(-n+8) {
   font-weight: 600;
+  text-align: center;
   padding: 12px 0;
-  border-bottom: 1px solid var(--color-border);
-  background: var(--color-bg);
+  color: var(--green-main);
 }
 
-.agenda-hour {
+/* Hora */
+
+.agenda-grid > div {
   font-size: 12px;
-  color: var(--color-text-soft);
-  padding: 6px 10px;
-  border-top: 1px solid var(--color-border);
 }
 
-.agenda-cell {
-  height: 40px;
-  border-top: 1px solid var(--color-border);
-  border-left: 1px solid var(--color-border);
-  position: relative;
-  cursor: pointer;
-  transition: var(--transition-base);
-}
+/* ================= CELDAS ================= */
 
-.agenda-cell:hover {
-  background: rgba(79, 124, 172, 0.05);
-}
-
-/* BLOQUES DE CITA */
-
-.appointment-block {
-  position: absolute;
-  left: 6px;
-  right: 6px;
-  background: var(--color-primary);
-  color: white;
-  border-radius: 12px;
-  padding: 8px;
+.slot {
+  min-height: 48px;
+  border-radius: var(--radius-md);
   font-size: 12px;
-  box-shadow: var(--shadow-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  transition: all .2s ease;
+  box-shadow: 0 2px 6px rgba(0,0,0,.03);
   cursor: pointer;
-  transition: var(--transition-base);
 }
 
-.appointment-block:hover {
+/* Disponible */
+
+.slot.available {
+  background: var(--green-soft);
+  color: var(--green-main);
+}
+
+.slot.available:hover {
+  background: #bde1d6;
   transform: translateY(-2px);
-  box-shadow: var(--shadow-soft);
 }
 
-.appointment-block.done {
-  background: #7fbfa6;
+/* Ocupada */
+
+.slot.busy {
+  background: var(--rose-soft);
+  color: var(--rose-main);
 }
 
-.appointment-block.paid {
-  background: #4aa97f;
+/* Realizada */
+
+.slot.done {
+  background: #e5ecff;
+  color: #4f46e5;
 }
 
-/* MODAL */
+/* Pagada */
+
+.slot.paid {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+/* No disponible */
+
+.slot.disabled {
+  background: #f3f4f6;
+  opacity: .6;
+  cursor: default;
+}
+
+/* ================= MODAL ================= */
 
 .modal {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,.45);
+  background: rgba(31, 41, 55, 0.55);
+  backdrop-filter: blur(4px);
   display: none;
   align-items: center;
   justify-content: center;
@@ -114,27 +130,19 @@
   display: flex;
 }
 
-.modal-card {
-  background: var(--color-surface);
+.modal-content {
+  background: var(--bg-surface);
   width: 100%;
   max-width: 480px;
-  border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-soft);
+  border-radius: 22px;
+  box-shadow: 0 20px 60px rgba(0,0,0,.15);
   display: flex;
   flex-direction: column;
   max-height: 90vh;
 }
 
-.modal-header {
-  padding: 20px;
-  border-bottom: 1px solid var(--color-border);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
 .modal-body {
-  padding: 20px;
+  padding: 24px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
@@ -142,25 +150,17 @@
 }
 
 .modal-footer {
-  padding: 16px 20px;
-  border-top: 1px solid var(--color-border);
+  padding: 16px 24px;
+  border-top: 1px solid var(--border-soft);
   display: flex;
   justify-content: flex-end;
 }
 
-.time-row {
-  display: flex;
-  gap: 12px;
-}
-
-.checkbox-row {
-  display: flex;
-  gap: 16px;
-}
+/* AUTOCOMPLETE */
 
 .suggestions {
   background: white;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--border-soft);
   border-radius: 10px;
   max-height: 160px;
   overflow-y: auto;
@@ -172,17 +172,17 @@
 }
 
 .suggestions div:hover {
-  background: #f3f4f6;
+  background: var(--green-soft);
 }
 
-/* MÓVIL */
+/* ================= MOBILE ================= */
 
 @media (max-width: 768px) {
   .agenda-grid {
     min-width: 800px;
   }
 
-  .modal-card {
+  .modal-content {
     height: 100vh;
     max-height: 100vh;
     border-radius: 16px 16px 0 0;
