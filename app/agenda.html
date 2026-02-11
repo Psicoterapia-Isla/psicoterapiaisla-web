@@ -106,7 +106,17 @@
   </div>
 </div>
 
-<script type="module" src="/app/assets/js/agenda.js?v=3"></script>
+<!-- ================= INICIALIZACIÓN ROBUSTA ================= -->
+
+<script type="module">
+  import { requireAuth } from "./assets/js/auth.js";
+  import { loadMenu } from "./assets/js/menu.js";
+
+  await requireAuth();
+  await loadMenu();
+</script>
+
+<script type="module" src="./assets/js/agenda.js?v=3"></script>
 
 </body>
 </html>
