@@ -5,169 +5,53 @@
   <title>Agenda semanal | Psicoterapia Isla</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <link rel="stylesheet" href="assets/css/app.css">
+  <!-- SISTEMA GLOBAL -->
+  <link rel="stylesheet" href="/app/assets/css/system.css">
 
-  <style>
-    .agenda-wrapper {
-      padding: 1.5rem;
-    }
+  <!-- AGENDA PRO -->
+  <link rel="stylesheet" href="/app/assets/css/agenda.css">
 
-    .agenda-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 1rem;
-      gap: .5rem;
-      flex-wrap: wrap;
-    }
-
-    .agenda-nav {
-      display: flex;
-      gap: .5rem;
-      flex-wrap: wrap;
-    }
-
-    .agenda-scroll {
-      overflow-x: auto;
-      padding-bottom: 12px;
-    }
-
-    .agenda-grid {
-      display: grid;
-      grid-template-columns: 70px repeat(7, 1fr);
-      min-width: 1000px;
-      gap: 6px;
-    }
-
-    .hour-label {
-      text-align: right;
-      font-size: .75rem;
-      padding-right: 6px;
-      opacity: .6;
-    }
-
-    .day-label {
-      text-align: center;
-      font-weight: 600;
-      font-size: .85rem;
-    }
-
-    .slot {
-      min-height: 54px;
-      border-radius: 10px;
-      padding: 6px;
-      font-size: .75rem;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      text-align: center;
-      cursor: pointer;
-    }
-
-    .slot.available { background: #e6f4d7; }
-    .slot.busy      { background: #fff2cc; }
-    .slot.done      { background: #e6f0ff; }
-    .slot.paid      { background: #d1fae5; }
-    .slot.disabled  { background: #e5e7eb; cursor: default; }
-
-    /* ================= MODAL ================= */
-
-    .modal {
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,.45);
-      display: none;
-      z-index: 1000;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .modal.show {
-      display: flex;
-    }
-
-    .modal-content {
-      background: #fff;
-      width: 100%;
-      max-width: 420px;
-      max-height: 90vh;
-      display: flex;
-      flex-direction: column;
-      border-radius: 16px;
-      overflow: hidden;
-    }
-
-    .modal-body {
-      padding: 1.25rem;
-      overflow-y: auto;
-    }
-
-    .modal-footer {
-      padding: 1rem;
-      border-top: 1px solid #eee;
-      display: flex;
-      gap: .5rem;
-      justify-content: flex-end;
-      background: #fff;
-    }
-
-    .suggestions {
-      background: #fff;
-      border: 1px solid #ddd;
-      border-radius: 10px;
-      margin-bottom: 12px;
-      max-height: 160px;
-      overflow-y: auto;
-    }
-
-    .suggestions div {
-      padding: 8px 12px;
-      cursor: pointer;
-    }
-
-    .suggestions div:hover {
-      background: #f3f4f6;
-    }
-
-    /* ===== MÓVIL ===== */
-    @media (max-width: 600px) {
-      .modal-content {
-        height: 100vh;
-        max-height: 100vh;
-        border-radius: 16px 16px 0 0;
-      }
-    }
-  </style>
 </head>
 
 <body class="app-body">
+
 <header class="app-menu"></header>
 
-<main class="agenda-wrapper">
+<main class="app-container">
 
-  <div class="agenda-header">
-    <h1>Agenda semanal</h1>
-    <div class="agenda-nav">
-      <button id="prevWeek" class="btn-secondary">←</button>
-      <button id="today" class="btn-secondary">Hoy</button>
-      <button id="nextWeek" class="btn-secondary">→</button>
+  <div class="agenda-wrapper">
+
+    <!-- HEADER -->
+    <div class="agenda-header">
+      <div class="agenda-week-label" id="weekLabel"></div>
+
+      <div class="agenda-nav">
+        <button id="prevWeek" class="button-secondary">←</button>
+        <button id="today" class="button-secondary">Hoy</button>
+        <button id="nextWeek" class="button-secondary">→</button>
+      </div>
     </div>
-  </div>
 
-  <h3 id="weekLabel"></h3>
+    <!-- GRID -->
+    <div class="agenda-scroll">
+      <div id="agendaGrid" class="agenda-grid"></div>
+    </div>
 
-  <div class="agenda-scroll">
-    <div id="agendaGrid" class="agenda-grid"></div>
   </div>
 
 </main>
 
-<!-- ================= MODAL CITA ================= -->
+<!-- ================= MODAL ================= -->
+
 <div id="modal" class="modal">
-  <div class="modal-content">
+  <div class="modal-card">
+
+    <div class="modal-header">
+      <h3>Cita</h3>
+      <button id="close" class="modal-close">✕</button>
+    </div>
 
     <div class="modal-body">
-      <h3>Cita</h3>
 
       <label>Teléfono</label>
       <input id="phone" autocomplete="off">
@@ -186,34 +70,43 @@
         <option value="online">Online</option>
       </select>
 
-      <label>Inicio</label>
-      <input id="start" type="time">
+      <div class="time-row">
+        <div>
+          <label>Inicio</label>
+          <input id="start" type="time">
+        </div>
 
-      <label>Fin</label>
-      <input id="end" type="time">
+        <div>
+          <label>Fin</label>
+          <input id="end" type="time">
+        </div>
+      </div>
 
-      <label>
-        <input type="checkbox" id="completed">
-        Sesión realizada
-      </label>
+      <div class="checkbox-row">
+        <label>
+          <input type="checkbox" id="completed">
+          Sesión realizada
+        </label>
 
-      <label>
-        <input type="checkbox" id="paid">
-        Pagada
-      </label>
+        <label>
+          <input type="checkbox" id="paid">
+          Pagada
+        </label>
+      </div>
 
       <label>Importe (€)</label>
       <input id="amount" type="number">
+
     </div>
 
     <div class="modal-footer">
-      <button id="save" class="btn-primary">Guardar</button>
-      <button id="close" class="btn-secondary">Cerrar</button>
+      <button id="save" class="button-primary">Guardar</button>
     </div>
 
   </div>
 </div>
 
-<script type="module" src="assets/js/agenda.js?v=2"></script>
+<script type="module" src="/app/assets/js/agenda.js?v=3"></script>
+
 </body>
 </html>
