@@ -9,7 +9,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 /* =========================
-   CONFIGURACIÓN HORARIA 30 MIN
+   CONFIGURACIÓN HORARIA
 ========================= */
 
 const START_HOUR = 9;
@@ -51,46 +51,49 @@ let therapists = [];
    FECHAS
 ========================= */
 
-function mondayOf(d) {
+function mondayOf(d){
   const x = new Date(d);
-  const n = (x.getDay() + 6) % 7;
-  x.setDate(x.getDate() - n);
+  const n = (x.getDay()+6)%7;
+  x.setDate(x.getDate()-n);
   x.setHours(0,0,0,0);
   return x;
 }
 
-function formatDate(d) {
+function formatDate(d){
   return d.toISOString().slice(0,10);
 }
 
-function formatWeekLabel(monday) {
+function formatWeekLabel(monday){
   const end = new Date(monday);
   end.setDate(end.getDate()+6);
   return `${monday.toLocaleDateString("es-ES",{day:"numeric",month:"short"})} – ${end.toLocaleDateString("es-ES",{day:"numeric",month:"short",year:"numeric"})}`;
 }
 
-function addMinutes(time, minutes) {
+function addMinutes(time, minutes){
   const [h,m] = time.split(":").map(Number);
   const d = new Date(0,0,0,h,m+minutes);
   return `${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
+}
+
+function timeToMinutes(t){
+  const [h,m] = t.split(":").map(Number);
+  return h*60+m;
 }
 
 /* =========================
    AUTH + PERFIL
 ========================= */
 
-auth.onAuthStateChanged(async user => {
-  if (!user) return;
+auth.onAuthStateChanged(async user=>{
+  if(!user) return;
   currentUser = user;
 
   const pSnap = await getDocs(
-    query(
-      collection(db,"patients_normalized"),
-      where("userId","==",user.uid)
-    )
+    query(collection(db,"patients_normalized"),
+    where("userId","==",user.uid))
   );
 
-  if (pSnap.empty) {
+  if(pSnap.empty){
     alert("No se ha encontrado tu perfil de paciente");
     return;
   }
@@ -99,7 +102,7 @@ auth.onAuthStateChanged(async user => {
   patientProfile = { id: docData.id, ...docData.data() };
 
   const tSnap = await getDocs(collection(db,"therapists"));
-  therapists = tSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+  therapists = tSnap.docs.map(d=>({ id:d.id, ...d.data() }));
 
   renderWeek();
 });
@@ -108,24 +111,22 @@ auth.onAuthStateChanged(async user => {
    RENDER
 ========================= */
 
-async function renderWeek() {
+async function renderWeek(){
 
-  if (!grid) return;
+  if(!grid) return;
+
   grid.innerHTML = "";
 
   const monday = mondayOf(baseDate);
-  if (weekLabel) weekLabel.textContent = formatWeekLabel(monday);
+  if(weekLabel) weekLabel.textContent = formatWeekLabel(monday);
 
   const from = formatDate(monday);
   const to = formatDate(new Date(monday.getTime()+6*86400000));
 
-  /* ===== DISPONIBILIDAD ===== */
-
+  /* DISPONIBILIDAD */
   const availSnap = await getDocs(
-    query(
-      collection(db,"availability"),
-      where("weekStart","==",from)
-    )
+    query(collection(db,"availability"),
+    where("weekStart","==",from))
   );
 
   const availability = {};
@@ -133,24 +134,19 @@ async function renderWeek() {
     availability[d.data().therapistId] = d.data().slots || {};
   });
 
-  /* ===== CITAS EXISTENTES ===== */
-
+  /* CITAS */
   const apptSnap = await getDocs(
-    query(
-      collection(db,"appointments"),
-      where("date",">=",from),
-      where("date","<=",to)
-    )
+    query(collection(db,"appointments"),
+    where("date",">=",from),
+    where("date","<=",to))
   );
 
-  const booked = {};
+  const appointments = [];
   apptSnap.forEach(d=>{
-    const a = d.data();
-    booked[`${a.therapistId}_${a.date}_${a.start}`] = true;
+    appointments.push({ id:d.id, ...d.data() });
   });
 
-  /* ===== CABECERA ===== */
-
+  /* CABECERA */
   grid.appendChild(document.createElement("div"));
 
   DAYS.forEach((_,i)=>{
@@ -162,9 +158,8 @@ async function renderWeek() {
     grid.appendChild(el);
   });
 
-  /* ===== GRID MILIMÉTRICO ===== */
-
-  TIME_SLOTS.forEach(time => {
+  /* GRID */
+  TIME_SLOTS.forEach(time=>{
 
     const hourLabel = document.createElement("div");
     hourLabel.className="hour-label";
@@ -173,116 +168,135 @@ async function renderWeek() {
 
     DAYS.forEach(day=>{
 
-      const cell = document.createElement("div");
-      cell.className="slot";
-
       const date = formatDate(
         new Date(monday.getTime()+DAYS.indexOf(day)*86400000)
       );
 
-      const freeTherapists = [];
+      const cell = document.createElement("div");
+      cell.className="slot";
 
-      therapists.forEach(t=>{
+      const freeTherapists = therapists.filter(t=>{
 
-        const slotKey = `${day}_${time}`;
+        const slotKey = `${day}_${time.replace(":","_")}`;
+
         const isAvailable = availability[t.id]?.[slotKey];
-        const isBooked = booked[`${t.id}_${date}_${time}`];
 
-        if (isAvailable && !isBooked) {
-          freeTherapists.push(t.id);
-        }
+        if(!isAvailable) return false;
 
+        const currentMin = timeToMinutes(time);
+
+        const conflict = appointments.some(a=>{
+          if(a.therapistId !== t.id) return false;
+          if(a.date !== date) return false;
+
+          const startMin = timeToMinutes(a.start);
+          const endMin = timeToMinutes(a.end);
+
+          return currentMin >= startMin && currentMin < endMin;
+        });
+
+        return !conflict;
       });
 
-      if (!freeTherapists.length) {
+      if(!freeTherapists.length){
         cell.classList.add("disabled");
-      } else {
+      }else{
         cell.classList.add("available");
         cell.textContent="Disponible";
-
-        cell.onclick = () => createAppointment({
+        cell.onclick = ()=>createAppointment({
           date,
           start: time,
-          freeTherapists
+          therapistsAvailable: freeTherapists
         });
       }
 
       grid.appendChild(cell);
     });
-
   });
-
 }
 
 /* =========================
-   CREAR CITA SEGÚN TIPO
+   CREAR CITA SEGURA
 ========================= */
 
-async function createAppointment({ date, start, freeTherapists }) {
+async function createAppointment({ date, start, therapistsAvailable }){
 
-  let duration = 30;
-  let therapistId = null;
+  const duration =
+    patientProfile.patientType === "private" ? 60 : 30;
 
-  if (patientProfile.patientType === "private") {
-    duration = 60;
-  }
+  const end = addMinutes(start,duration);
 
-  /* 🔒 VALIDACIÓN 60 MIN */
+  for(const therapistId of therapistsAvailable){
 
-  if (duration === 60) {
+    if(duration === 60){
 
-    const nextSlot = addMinutes(start,30);
+      const nextSlot = addMinutes(start,30);
+      const nextKey = nextSlot.replace(":","_");
 
-    const hasSecondSlot = freeTherapists.some(t =>
-      TIME_SLOTS.includes(nextSlot)
-    );
+      const monday = mondayOf(baseDate);
+      const dayIndex = DAYS.indexOf(
+        new Date(date).toLocaleDateString("en-US",{weekday:"short"}).toLowerCase().slice(0,3)
+      );
 
-    if (!hasSecondSlot) {
-      alert("No hay disponibilidad completa de 60 minutos.");
-      return;
+      const slotKey1 = `${DAYS[dayIndex]}_${start.replace(":","_")}`;
+      const slotKey2 = `${DAYS[dayIndex]}_${nextKey}`;
+
+      const availSnap = await getDocs(
+        query(collection(db,"availability"),
+        where("therapistId","==",therapistId),
+        where("weekStart","==",formatDate(monday)))
+      );
+
+      let slots = {};
+      availSnap.forEach(d=>slots=d.data().slots||{});
+
+      if(!slots[slotKey1] || !slots[slotKey2]){
+        continue;
+      }
     }
+
+    await addDoc(collection(db,"appointments"),{
+      therapistId,
+      patientId: patientProfile.id,
+      patientName: `${patientProfile.nombre || ""} ${patientProfile.apellidos || ""}`.trim(),
+      modality: "viladecans",
+      date,
+      start,
+      end,
+      completed:false,
+      paid:false,
+      createdAt: Timestamp.now()
+    });
+
+    alert("Cita reservada correctamente");
+    renderWeek();
+    return;
   }
 
-  therapistId = freeTherapists[0];
-
-  await addDoc(collection(db,"appointments"),{
-    therapistId,
-    patientId: patientProfile.id,
-    patientName: `${patientProfile.nombre || ""} ${patientProfile.apellidos || ""}`.trim(),
-    modality: "viladecans",
-    date,
-    start,
-    end: addMinutes(start,duration),
-    completed:false,
-    paid:false,
-    createdAt: Timestamp.now()
-  });
-
-  alert("Cita reservada correctamente");
-  renderWeek();
+  alert("No hay disponibilidad completa para esa duración.");
 }
 
 /* =========================
    NAV
 ========================= */
 
-if (prevWeek) {
-  prevWeek.onclick = () => {
+if(prevWeek){
+  prevWeek.onclick=()=>{
     baseDate.setDate(baseDate.getDate()-7);
     renderWeek();
   };
 }
 
-if (nextWeek) {
-  nextWeek.onclick = () => {
+if(nextWeek){
+  nextWeek.onclick=()=>{
     baseDate.setDate(baseDate.getDate()+7);
     renderWeek();
   };
 }
 
-if (todayBtn) {
-  todayBtn.onclick = () => {
-    baseDate = new Date();
+if(todayBtn){
+  todayBtn.onclick=()=>{
+    baseDate=new Date();
     renderWeek();
   };
 }
