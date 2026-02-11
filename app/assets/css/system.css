@@ -1,0 +1,321 @@
+/* ======================================================
+   PSICOTERAPIA ISLA — DESIGN SYSTEM GLOBAL
+   Minimalismo premium · coherente · escalable
+====================================================== */
+
+/* =========================
+   TOKENS
+========================= */
+
+:root {
+
+  /* === COLORES === */
+  --color-primary: #1F6B4E;
+  --color-primary-soft: rgba(31,107,78,0.08);
+
+  --color-bg: #F6F8F7;
+  --color-surface: #FFFFFF;
+
+  --color-text: #1A1A1A;
+  --color-text-soft: #5E5E5E;
+
+  --color-border: rgba(0,0,0,0.06);
+
+  /* === SOMBRAS === */
+  --shadow-soft: 0 8px 30px rgba(0,0,0,0.08);
+  --shadow-light: 0 2px 8px rgba(0,0,0,0.04);
+
+  /* === RADIOS === */
+  --radius-xl: 20px;
+  --radius-lg: 16px;
+  --radius-md: 12px;
+  --radius-sm: 8px;
+
+  /* === ESPACIADO (8pt system) === */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 16px;
+  --space-4: 24px;
+  --space-5: 32px;
+  --space-6: 48px;
+
+  /* === TRANSICIONES === */
+  --transition-fast: 0.15s ease;
+  --transition-base: 0.25s ease;
+
+}
+
+/* =========================
+   BASE GLOBAL
+========================= */
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+  background: var(--color-bg);
+  color: var(--color-text);
+  -webkit-font-smoothing: antialiased;
+}
+
+.app-container {
+  max-width: 1100px;
+  margin: auto;
+  padding: var(--space-5) var(--space-4);
+}
+
+.page-title {
+  font-size: 32px;
+  font-weight: 600;
+  margin-bottom: var(--space-5);
+  letter-spacing: -0.3px;
+}
+
+/* =========================
+   NAVBAR
+========================= */
+
+.nav {
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  position: sticky;
+  top: 0;
+  z-index: 200;
+  backdrop-filter: blur(12px);
+}
+
+.nav-inner {
+  max-width: 1100px;
+  margin: auto;
+  padding: var(--space-3) var(--space-4);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.nav-left {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.nav-link {
+  font-size: 15px;
+  font-weight: 500;
+  padding: 8px 14px;
+  border-radius: var(--radius-md);
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-text);
+  transition: var(--transition-fast);
+}
+
+.nav-link:hover {
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+}
+
+.logout {
+  color: var(--color-text-soft);
+}
+
+/* =========================
+   DROPDOWN
+========================= */
+
+.nav-dropdown {
+  position: relative;
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: 44px;
+  left: 0;
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-soft);
+  padding: var(--space-2) 0;
+  min-width: 240px;
+  opacity: 0;
+  transform: translateY(-6px);
+  pointer-events: none;
+  transition: var(--transition-base);
+}
+
+.dropdown-menu.open {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.dropdown-menu a {
+  display: block;
+  padding: 10px 18px;
+  font-size: 14px;
+  text-decoration: none;
+  color: var(--color-text);
+  transition: var(--transition-fast);
+}
+
+.dropdown-menu a:hover {
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+}
+
+.dropdown-menu hr {
+  border: none;
+  border-top: 1px solid var(--color-border);
+  margin: var(--space-2) 0;
+}
+
+/* =========================
+   CARDS
+========================= */
+
+.card {
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  box-shadow: var(--shadow-light);
+  transition: var(--transition-base);
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-soft);
+}
+
+/* =========================
+   BOTONES
+========================= */
+
+.button-primary {
+  background: var(--color-primary);
+  color: white;
+  border: none;
+  padding: 12px 20px;
+  border-radius: var(--radius-md);
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.button-primary:hover {
+  transform: translateY(-1px);
+  opacity: 0.95;
+}
+
+.button-secondary {
+  background: transparent;
+  border: 1px solid var(--color-border);
+  padding: 10px 16px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.button-secondary:hover {
+  background: var(--color-primary-soft);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+/* =========================
+   FORMULARIOS
+========================= */
+
+input,
+select,
+textarea {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  font-size: 14px;
+  transition: var(--transition-fast);
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-soft);
+}
+
+/* =========================
+   AGENDA GRID
+========================= */
+
+.slot {
+  border-radius: var(--radius-sm);
+  transition: var(--transition-fast);
+  cursor: pointer;
+}
+
+.slot.available {
+  background: var(--color-primary-soft);
+}
+
+.slot.available:hover {
+  background: var(--color-primary);
+  color: white;
+}
+
+.slot.busy {
+  background: rgba(0,0,0,0.08);
+}
+
+.slot.done {
+  background: #e0f5ec;
+}
+
+.slot.paid {
+  background: #cfeee0;
+}
+
+.slot.disabled {
+  background: #f1f1f1;
+  cursor: not-allowed;
+}
+
+/* =========================
+   TABLAS SIMPLES
+========================= */
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table th,
+.table td {
+  padding: 14px;
+  border-bottom: 1px solid var(--color-border);
+  text-align: left;
+  font-size: 14px;
+}
+
+/* =========================
+   RESPONSIVE
+========================= */
+
+@media (max-width: 768px) {
+
+  .nav-inner {
+    padding: var(--space-3);
+  }
+
+  .app-container {
+    padding: var(--space-4);
+  }
+
+  .page-title {
+    font-size: 24px;
+  }
+
+}
