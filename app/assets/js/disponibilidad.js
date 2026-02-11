@@ -30,6 +30,7 @@ const saveBtn = document.getElementById("save");
 const prevWeek = document.getElementById("prevWeek");
 const nextWeek = document.getElementById("nextWeek");
 const todayWeek = document.getElementById("todayWeek");
+const weekLabel = document.getElementById("weekLabel");
 
 /* =========================
    FECHAS
@@ -65,8 +66,23 @@ function formatWeekLabel(monday){
 let baseDate = new Date();
 let currentMonday = mondayOf(baseDate);
 let weekKey = formatDate(currentMonday);
-let state = {};
+let state = {};      // { mon_9_0: true }
 let currentUser = null;
+
+/* =========================
+   HELPERS
+========================= */
+
+function toggleSlot(key, cell){
+
+  if(state[key]){
+    delete state[key];         // 🔥 solo guardamos TRUE
+    cell.classList.remove("available");
+  } else {
+    state[key] = true;
+    cell.classList.add("available");
+  }
+}
 
 /* =========================
    RENDER
@@ -76,31 +92,31 @@ function render(){
 
   grid.innerHTML = "";
 
-  const label = document.getElementById("weekLabel");
-  if (label) {
-    label.textContent = formatWeekLabel(currentMonday);
+  if(weekLabel){
+    weekLabel.textContent = formatWeekLabel(currentMonday);
   }
 
   /* ===== CABECERA ===== */
 
   grid.appendChild(document.createElement("div"));
 
-  LABELS.forEach((l,i)=>{
-    const d = document.createElement("div");
-    d.className = "day";
-    d.textContent = l;
+  LABELS.forEach((label,i)=>{
+
+    const dayCell = document.createElement("div");
+    dayCell.className = "day";
+    dayCell.textContent = label;
 
     const today = new Date();
     const thisDay = new Date(currentMonday);
     thisDay.setDate(thisDay.getDate() + i);
 
-    if (today.toDateString() === thisDay.toDateString()) {
-      d.style.background = "#1f6b4e";
-      d.style.color = "#fff";
-      d.style.borderRadius = "8px";
+    if(today.toDateString() === thisDay.toDateString()){
+      dayCell.style.background = "#1f6b4e";
+      dayCell.style.color = "#fff";
+      dayCell.style.borderRadius = "8px";
     }
 
-    grid.appendChild(d);
+    grid.appendChild(dayCell);
   });
 
   /* ===== GRID MEDIA HORA ===== */
@@ -116,18 +132,16 @@ function render(){
       DAYS.forEach(day=>{
 
         const key = `${day}_${hour}_${minute}`;
-
         const cell = document.createElement("div");
         cell.className = "slot";
 
-        if(state[key] === true){
+        if(state[key]){
           cell.classList.add("available");
         }
 
-        cell.onclick = ()=>{
-          state[key] = !state[key];
-          cell.classList.toggle("available");
-        };
+        cell.addEventListener("click", ()=>{
+          toggleSlot(key, cell);
+        });
 
         grid.appendChild(cell);
       });
