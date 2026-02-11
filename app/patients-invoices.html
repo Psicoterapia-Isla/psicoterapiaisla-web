@@ -1,55 +1,48 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<title>Facturación | Psicoterapia Isla</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<link rel="stylesheet" href="assets/css/app.css">
+  <meta charset="UTF-8">
+  <title>Facturación | Psicoterapia Isla</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="assets/css/app.css">
 </head>
 
 <body class="app-body">
+
 <header class="app-menu"></header>
 
-<main class="app-container">
+<main class="wrapper">
 
   <h1>Facturación</h1>
 
   <div class="card">
 
-    <label>Tipo de paciente</label>
-    <select id="typeFilter">
-      <option value="">Todos</option>
-      <option value="mutual">Mutua</option>
-      <option value="private">Privado</option>
-    </select>
+    <label>Paciente</label>
+    <input type="text" id="patientFilter" placeholder="Nombre del paciente">
 
-    <label>Nombre paciente</label>
-    <input type="text" id="patientFilter" placeholder="Buscar paciente">
-
-    <label>Fecha desde</label>
-    <input type="date" id="fromDate">
-
-    <label>Fecha hasta</label>
-    <input type="date" id="toDate">
+    <label>Mes</label>
+    <input type="month" id="monthFilter">
 
     <button id="applyFilters" class="btn-primary">
-      Aplicar filtros
+      Filtrar
     </button>
 
   </div>
 
   <div id="summary" class="card"></div>
+
   <div id="list"></div>
 
 </main>
 
 <script type="module">
-import { requireAuth } from "./assets/js/auth.js";
-import { loadMenu } from "./assets/js/menu.js";
-await requireAuth();
-await loadMenu();
+  import { requireAuth } from "./assets/js/auth.js";
+  import { loadMenu } from "./assets/js/menu.js";
+  await requireAuth();
+  await loadMenu();
 </script>
 
 <script type="module" src="assets/js/patient-invoices.js"></script>
+
 </body>
 </html>
