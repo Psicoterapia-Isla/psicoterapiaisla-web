@@ -289,7 +289,35 @@ textarea:focus {
   gap: 12px;
   margin-top: 20px;
 }
+/* ========================
+   AUTOCOMPLETE AGENDA
+======================== */
 
+.modal-body {
+  position: relative;
+}
+
+.suggestions {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  max-height: 160px;
+  overflow-y: auto;
+  z-index: 5000;
+}
+
+.suggestions div {
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+.suggestions div:hover {
+  background: #f3f4f6;
+}
 /* ========================
    AGENDA BÁSICA
 ======================== */
