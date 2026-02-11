@@ -4,46 +4,53 @@
   <meta charset="UTF-8">
   <title>Acceso pacientes | Psicoterapia Isla</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="assets/css/app.css">
+
+  <!-- SISTEMA GLOBAL -->
+  <link rel="stylesheet" href="/app/assets/css/app.css">
+
 </head>
 
 <body class="app-body">
 
 <header class="app-menu"></header>
 
-<main class="app-container auth-layout">
+<main class="app-container">
 
-  <section class="auth-card">
+  <div class="auth-wrapper">
 
-    <h1>Espacio terapéutico</h1>
+    <div class="card auth-card">
 
-    <p class="auth-intro">
-      Acceso privado para pacientes de Psicoterapia Isla.
-    </p>
+      <h1>Espacio terapéutico</h1>
 
-    <form id="login-form">
+      <p class="text-soft" style="margin-bottom: 1.5rem;">
+        Acceso privado para pacientes de Psicoterapia Isla.
+      </p>
 
-      <input
-        type="email"
-        id="email"
-        placeholder="Email"
-        required
-      />
+      <form id="login-form">
 
-      <input
-        type="password"
-        id="password"
-        placeholder="Contraseña"
-        required
-      />
+        <input
+          type="email"
+          id="email"
+          placeholder="Email"
+          required
+        />
 
-      <button type="submit" class="btn-primary" id="login-btn">
-        Entrar
-      </button>
+        <input
+          type="password"
+          id="password"
+          placeholder="Contraseña"
+          required
+        />
 
-    </form>
+        <button type="submit" class="btn-primary" style="width:100%;">
+          Entrar
+        </button>
 
-  </section>
+      </form>
+
+    </div>
+
+  </div>
 
 </main>
 
