@@ -33,6 +33,18 @@ const todayWeek = document.getElementById("todayWeek");
 const weekLabel = document.getElementById("weekLabel");
 
 /* =========================
+   STATE
+========================= */
+
+let baseDate = new Date();
+let currentMonday = mondayOf(baseDate);
+let weekKey = formatDate(currentMonday);
+
+let state = {};      // slots
+let locations = {};  // NUEVO: config por día
+let currentUser = null;
+
+/* =========================
    FECHAS
 ========================= */
 
@@ -60,28 +72,40 @@ function formatWeekLabel(monday){
 }
 
 /* =========================
-   STATE
-========================= */
-
-let baseDate = new Date();
-let currentMonday = mondayOf(baseDate);
-let weekKey = formatDate(currentMonday);
-let state = {};      // { mon_9_0: true }
-let currentUser = null;
-
-/* =========================
-   HELPERS
+   TOGGLE SLOT
 ========================= */
 
 function toggleSlot(key, cell){
 
   if(state[key]){
-    delete state[key];         // 🔥 solo guardamos TRUE
+    delete state[key];
     cell.classList.remove("available");
   } else {
     state[key] = true;
     cell.classList.add("available");
   }
+}
+
+/* =========================
+   CAMBIAR SEDE POR DÍA
+========================= */
+
+function cycleLocation(day){
+
+  const current = locations[day]?.base || "viladecans";
+
+  const next =
+    current === "viladecans"
+      ? "badalona"
+      : current === "badalona"
+        ? "online"
+        : "viladecans";
+
+  if(!locations[day]) locations[day] = {};
+
+  locations[day].base = next;
+
+  render();
 }
 
 /* =========================
@@ -96,36 +120,35 @@ function render(){
     weekLabel.textContent = formatWeekLabel(currentMonday);
   }
 
-  /* ===== CABECERA ===== */
-
   grid.appendChild(document.createElement("div"));
 
   LABELS.forEach((label,i)=>{
 
+    const dayKey = DAYS[i];
+
     const dayCell = document.createElement("div");
-    dayCell.className = "day";
-    dayCell.textContent = label;
+    dayCell.className = "day-label";
 
-    const today = new Date();
-    const thisDay = new Date(currentMonday);
-    thisDay.setDate(thisDay.getDate() + i);
+    const base = locations[dayKey]?.base || "viladecans";
 
-    if(today.toDateString() === thisDay.toDateString()){
-      dayCell.style.background = "#1f6b4e";
-      dayCell.style.color = "#fff";
-      dayCell.style.borderRadius = "8px";
-    }
+    dayCell.innerHTML = `
+      <div>${label}</div>
+      <small style="cursor:pointer;font-weight:500;">
+        ${base}
+      </small>
+    `;
+
+    dayCell.querySelector("small").onclick = () =>
+      cycleLocation(dayKey);
 
     grid.appendChild(dayCell);
   });
-
-  /* ===== GRID MEDIA HORA ===== */
 
   HOURS.forEach(hour=>{
     MINUTES.forEach(minute=>{
 
       const hourLabel = document.createElement("div");
-      hourLabel.className = "hour";
+      hourLabel.className = "hour-label";
       hourLabel.textContent = `${pad(hour)}:${pad(minute)}`;
       grid.appendChild(hourLabel);
 
@@ -160,15 +183,16 @@ async function loadWeek(){
 
   weekKey = formatDate(currentMonday);
   state = {};
+  locations = {};
 
   const ref = doc(db,"availability",`${currentUser.uid}_${weekKey}`);
   const snap = await getDoc(ref);
 
   if(snap.exists()){
     const data = snap.data();
-    if(data.slots){
-      state = data.slots;
-    }
+
+    if(data.slots) state = data.slots;
+    if(data.locations) locations = data.locations;
   }
 
   render();
@@ -184,6 +208,7 @@ async function saveWeek(){
     therapistId: currentUser.uid,
     weekStart: weekKey,
     slots: state,
+    locations: locations,   // NUEVO
     updatedAt: serverTimestamp()
   });
 
