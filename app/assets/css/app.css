@@ -198,9 +198,11 @@ button {
 ========================= */
 
 .modal {
+  .modal {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,.35);
+  background: rgba(31, 41, 55, 0.55);
+  backdrop-filter: blur(4px);
   display: none;
   z-index: 1000;
   align-items: center;
