@@ -48,6 +48,7 @@ const amount = document.getElementById("amount");
 const suggestions = document.getElementById("suggestions");
 
 /* ================= HELPERS ================= */
+
 const pad = n => String(n).padStart(2,"0");
 const formatDate = d => d.toISOString().slice(0,10);
 
@@ -82,7 +83,6 @@ function setFieldsDisabled(disabled){
 
 function addViewInvoiceButton(invoiceId){
   removeViewInvoiceButton();
-
   const btn = document.createElement("button");
   btn.textContent = "Ver factura";
   btn.className = "btn-secondary";
@@ -90,7 +90,6 @@ function addViewInvoiceButton(invoiceId){
   btn.onclick = () => {
     window.location.href = `patient-invoices.html#${invoiceId}`;
   };
-
   document.querySelector(".modal-footer").prepend(btn);
 }
 
@@ -214,85 +213,6 @@ function openEdit(a){
 document.getElementById("close").onclick =
   () => modal.classList.remove("show");
 
-/* ================= AUTOCOMPLETE ================= */
-
-async function searchPatients(term){
-  if(!term || term.length < 2){
-    suggestions.innerHTML = "";
-    return;
-  }
-
-  const snap = await getDocs(query(
-    collection(db,"patients_normalized"),
-    where("keywords","array-contains",term.toLowerCase())
-  ));
-
-  suggestions.innerHTML = "";
-
-  snap.forEach(d=>{
-    const p = d.data();
-    const div = document.createElement("div");
-    div.textContent = `${p.nombre || ""} ${p.apellidos || ""} · ${p.telefono || ""}`;
-
-    div.onclick = () => {
-      selectedPatient = { id: d.id, ...p };
-
-      phone.value = p.telefono || "";
-      name.value = `${p.nombre || ""} ${p.apellidos || ""}`.trim();
-
-      const duration = p.patientType === "mutual" ? 30 : 60;
-      const [h,m] = start.value.split(":").map(Number);
-      end.value = timeString(h, m + duration);
-
-      if(p.patientType === "mutual"){
-        amount.value = p.mutual?.pricePerSession || 0;
-      }
-
-      suggestions.innerHTML = "";
-    };
-
-    suggestions.appendChild(div);
-  });
-}
-
-phone.oninput = e => searchPatients(e.target.value);
-name.oninput  = e => searchPatients(e.target.value);
-
-/* ================= VALIDACIONES ================= */
-
-function validateAvailability(availability, date, startTime, endTime){
-  const startMin = minutesOf(startTime);
-  const endMin = minutesOf(endTime);
-
-  for(let m = startMin; m < endMin; m += 30){
-    const h = Math.floor(m/60);
-    const min = m % 60;
-
-    const dayIndex = new Date(date).getDay();
-    const dayKey = DAYS[(dayIndex + 6) % 7];
-    const slotKey = `${dayKey}_${h}_${min}`;
-
-    if(!availability[slotKey]) return false;
-  }
-
-  return true;
-}
-
-function validateOverlap(appointments, date, startTime, endTime, ignoreId=null){
-  const startMin = minutesOf(startTime);
-  const endMin = minutesOf(endTime);
-
-  return appointments.some(a=>{
-    if(a.date !== date) return false;
-    if(ignoreId && a.id === ignoreId) return false;
-
-    const aStart = minutesOf(a.start);
-    const aEnd = minutesOf(a.end);
-
-    return startMin < aEnd && endMin > aStart;
-  });
-}
-
 /* ================= SAVE ================= */
 
 document.getElementById("save").onclick = async () => {
@@ -301,41 +221,43 @@ document.getElementById("save").onclick = async () => {
   if(!user || !currentSlot) return;
 
   const monday = mondayOf(baseDate);
-  const weekKey = formatDate(monday);
+  const weekStart = formatDate(monday);
 
-  const availRef = doc(db,"availability",`${user.uid}_${weekKey}`);
+  /* ===== CARGAR DISPONIBILIDAD ===== */
+
+  const availRef = doc(db,"availability",`${user.uid}_${weekStart}`);
   const availSnap = await getDoc(availRef);
   const availability = availSnap.exists() ? availSnap.data().slots : {};
 
   const startTime = start.value;
   const endTime = end.value;
 
-  if(!validateAvailability(availability,currentSlot.date,startTime,endTime)){
-    alert("Horario fuera de disponibilidad");
-    return;
+  /* ===== VALIDAR DISPONIBILIDAD ===== */
+
+  const startMin = minutesOf(startTime);
+  const endMin = minutesOf(endTime);
+
+  for(let m = startMin; m < endMin; m += 30){
+    const h = Math.floor(m/60);
+    const min = m % 60;
+
+    const dayIndex = new Date(currentSlot.date).getDay();
+    const dayKey = DAYS[(dayIndex + 6) % 7];
+
+    const slotKey = `${dayKey}_${h}_${min}`;
+
+    if(!availability[slotKey]){
+      alert("Horario fuera de disponibilidad");
+      return;
+    }
   }
 
-  const apptSnap = await getDocs(query(
-    collection(db,"appointments"),
-    where("therapistId","==",user.uid),
-    where("date","==",currentSlot.date)
-  ));
-
-  const appointments = [];
-  apptSnap.forEach(d=>appointments.push({ id:d.id, ...d.data() }));
-
-  if(validateOverlap(appointments,currentSlot.date,startTime,endTime,editingId)){
-    alert("Solapamiento con otra cita");
-    return;
-  }
-
-  const duration = selectedPatient?.patientType === "mutual" ? 30 : 60;
+  /* ===== CREAR / ACTUALIZAR ===== */
 
   const data = {
     therapistId: user.uid,
     patientId: selectedPatient?.id || null,
     patient: selectedPatient || null,
-    sessionDuration: duration,
     date: currentSlot.date,
     phone: phone.value,
     name: name.value,
@@ -352,17 +274,8 @@ document.getElementById("save").onclick = async () => {
   let id;
 
   if(editingId){
-
-    const oldSnap = await getDoc(doc(db,"appointments",editingId));
-    const oldData = oldSnap.data();
-
-    if(oldData.invoiceId){
-      await createInvoice(data, editingId, oldData.invoiceId);
-    }
-
     await updateDoc(doc(db,"appointments",editingId),data);
     id = editingId;
-
   }else{
     const ref = await addDoc(collection(db,"appointments"),{
       ...data,
@@ -384,19 +297,35 @@ document.getElementById("save").onclick = async () => {
 async function renderWeek(){
 
   grid.innerHTML = "";
+
   const monday = mondayOf(baseDate);
   weekLabel.textContent = monday.toLocaleDateString("es-ES");
 
   const user = auth.currentUser;
   if(!user) return;
 
+  const weekStart = formatDate(monday);
+  const weekEnd = formatDate(new Date(monday.getTime()+6*86400000));
+
+  /* ===== CARGAR DISPONIBILIDAD ===== */
+
+  const availRef = doc(db,"availability",`${user.uid}_${weekStart}`);
+  const availSnap = await getDoc(availRef);
+  const availability = availSnap.exists() ? availSnap.data().slots : {};
+
+  /* ===== CARGAR CITAS SEMANA ===== */
+
   const apptSnap = await getDocs(query(
     collection(db,"appointments"),
-    where("therapistId","==",user.uid)
+    where("therapistId","==",user.uid),
+    where("date",">=",weekStart),
+    where("date","<=",weekEnd)
   ));
 
   const appointments = [];
   apptSnap.forEach(d=>appointments.push({ id:d.id, ...d.data() }));
+
+  /* ===== HEADER ===== */
 
   grid.appendChild(document.createElement("div"));
 
@@ -404,18 +333,25 @@ async function renderWeek(){
     const d = new Date(monday);
     d.setDate(d.getDate()+i);
     const h = document.createElement("div");
+    h.className="day-label";
     h.textContent = d.toLocaleDateString("es-ES",{weekday:"short",day:"numeric"});
     grid.appendChild(h);
   });
 
+  /* ===== GRID ===== */
+
   HOURS.forEach(hour=>{
     MINUTES.forEach(minute=>{
+
       const label=document.createElement("div");
+      label.className="hour-label";
       label.textContent=timeString(hour,minute);
       grid.appendChild(label);
 
       DAYS.forEach(day=>{
         const date=formatDate(dayFromKey(monday,day));
+        const slotKey = `${day}_${hour}_${minute}`;
+
         const cell=document.createElement("div");
         cell.className="slot";
 
@@ -434,9 +370,13 @@ async function renderWeek(){
           );
           cell.innerHTML=`<strong>${appointment.name||"—"}</strong>`;
           cell.onclick=()=>openEdit(appointment);
-        }else{
+        }
+        else if(availability[slotKey]){
           cell.classList.add("available");
           cell.onclick=()=>openNew({date,hour,minute});
+        }
+        else{
+          cell.classList.add("disabled");
         }
 
         grid.appendChild(cell);
