@@ -69,20 +69,10 @@ let state = {};
 let currentUser = null;
 
 /* =========================
-   HELPERS
-========================= */
-
-function norm(key){
-  if (!state[key]) {
-    state[key] = false; // 🔥 solo boolean ahora
-  }
-}
-
-/* =========================
    RENDER
 ========================= */
 
-function render(hasAvailability = true){
+function render(){
 
   grid.innerHTML = "";
 
@@ -100,14 +90,11 @@ function render(hasAvailability = true){
     d.className = "day";
     d.textContent = l;
 
-    // 🔥 marcar día actual
     const today = new Date();
     const thisDay = new Date(currentMonday);
     thisDay.setDate(thisDay.getDate() + i);
 
-    if (
-      today.toDateString() === thisDay.toDateString()
-    ) {
+    if (today.toDateString() === thisDay.toDateString()) {
       d.style.background = "#1f6b4e";
       d.style.color = "#fff";
       d.style.borderRadius = "8px";
@@ -127,19 +114,19 @@ function render(hasAvailability = true){
       grid.appendChild(hourLabel);
 
       DAYS.forEach(day=>{
+
         const key = `${day}_${hour}_${minute}`;
-        norm(key);
 
         const cell = document.createElement("div");
         cell.className = "slot";
 
-        if(state[key]){
+        if(state[key] === true){
           cell.classList.add("available");
         }
 
         cell.onclick = ()=>{
           state[key] = !state[key];
-          render(true);
+          cell.classList.toggle("available");
         };
 
         grid.appendChild(cell);
@@ -164,10 +151,13 @@ async function loadWeek(){
   const snap = await getDoc(ref);
 
   if(snap.exists()){
-    state = snap.data().slots || {};
+    const data = snap.data();
+    if(data.slots){
+      state = data.slots;
+    }
   }
 
-  render(true);
+  render();
 }
 
 async function saveWeek(){
@@ -183,7 +173,7 @@ async function saveWeek(){
     updatedAt: serverTimestamp()
   });
 
-  alert("Disponibilidad guardada");
+  alert("Disponibilidad guardada correctamente");
 }
 
 /* =========================
