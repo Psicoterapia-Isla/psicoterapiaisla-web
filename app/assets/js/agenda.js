@@ -379,7 +379,9 @@ async function renderWeek(){
 
   const availRef = doc(db,"availability",`${user.uid}_${weekStart}`);
   const availSnap = await getDoc(availRef);
-  const availability = availSnap.exists() ? availSnap.data().slots : {};
+  const availabilityData = availSnap.exists() ? availSnap.data() : {};
+  const availabilitySlots = availabilityData.slots || {};
+  const availabilityLocations = availabilityData.locations || {};
 
   const apptSnap = await getDocs(query(
     collection(db,"appointments"),
