@@ -1,35 +1,39 @@
-/* =========================================================
-   PSICOTERAPIA ISLA – DESIGN SYSTEM GLOBAL
-   Versión Full Premium
-========================================================= */
+/* ======================================================
+   PSICOTERAPIA ISLA – AESTHETIC HEALTHCARE EXPERIENCE
+   Calm. Feminine. Premium. Soft Tech.
+====================================================== */
 
-/* ================= VARIABLES ================= */
+/* ================= DESIGN SYSTEM ================= */
 
 :root {
 
-  --bg-main: #f6f8f7;
+  /* Atmosphere */
+  --bg-main: #f9f8f6;
   --bg-surface: #ffffff;
-  --bg-soft: #f2f5f4;
+  --bg-soft: #f4f3f1;
 
-  --primary: #2e6f5e;
-  --primary-soft: #e4f1ed;
+  /* Brand */
+  --green-deep: #2e5f4f;
+  --green-soft: #dcebe5;
 
-  --accent: #c26a8d;
-  --accent-soft: #f7e6ee;
+  --rose-deep: #b46a85;
+  --rose-soft: #f4e7ec;
 
-  --text-main: #1f2937;
-  --text-soft: #6b7280;
+  /* Neutral */
+  --text-primary: #1c1c1c;
+  --text-muted: #7b7b7b;
+  --border-light: #ebe9e6;
 
-  --border: #e6e8ec;
+  /* UI */
+  --radius-xs: 8px;
+  --radius-sm: 14px;
+  --radius-md: 22px;
+  --radius-xl: 32px;
 
-  --radius-sm: 10px;
-  --radius-md: 16px;
-  --radius-lg: 24px;
+  --shadow-soft: 0 15px 40px rgba(0,0,0,0.04);
+  --shadow-hover: 0 25px 60px rgba(0,0,0,0.07);
 
-  --shadow-soft: 0 8px 24px rgba(0,0,0,.05);
-  --shadow-strong: 0 20px 60px rgba(0,0,0,.08);
-
-  --transition: all .2s ease;
+  --transition: 0.25s cubic-bezier(.4,0,.2,1);
 }
 
 /* ================= RESET ================= */
@@ -40,10 +44,11 @@
 
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, "Inter", sans-serif;
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
   background: var(--bg-main);
-  color: var(--text-main);
+  color: var(--text-primary);
   -webkit-font-smoothing: antialiased;
+  letter-spacing: -0.2px;
 }
 
 /* ================= LAYOUT ================= */
@@ -54,66 +59,56 @@ body {
   min-height: 100vh;
 }
 
+/* ================= SIDEBAR ================= */
+
 .app-menu {
   background: var(--bg-surface);
-  border-right: 1px solid var(--border);
-  padding: 32px 20px;
-  position: sticky;
-  top: 0;
-  height: 100vh;
+  border-right: 1px solid var(--border-light);
+  padding: 40px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
 }
-
-.app-content {
-  padding: 48px;
-  max-width: 1100px;
-  width: 100%;
-}
-
-/* ================= MENU ================= */
 
 .app-nav {
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 14px;
 }
 
 .nav-link {
-  display: block;
-  padding: 10px 14px;
-  border-radius: var(--radius-sm);
   font-size: 14px;
   text-decoration: none;
-  color: var(--text-main);
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
   transition: var(--transition);
 }
 
 .nav-link:hover {
-  background: var(--primary-soft);
-  color: var(--primary);
+  background: var(--green-soft);
+  color: var(--green-deep);
+  transform: translateX(4px);
 }
 
 .logout {
-  margin-top: 30px;
-  background: var(--accent-soft);
-  color: var(--accent);
-  text-align: center;
+  margin-top: auto;
+  background: var(--rose-soft);
+  color: var(--rose-deep);
 }
 
 /* Dropdown */
 
-.nav-dropdown {
-  display: flex;
-  flex-direction: column;
-}
-
 .dropdown-toggle {
   background: none;
   border: none;
+  font-size: 14px;
   text-align: left;
   padding: 10px 14px;
   border-radius: var(--radius-sm);
+  color: var(--text-muted);
   cursor: pointer;
-  font-size: 14px;
+  transition: var(--transition);
 }
 
 .dropdown-toggle:hover {
@@ -124,8 +119,8 @@ body {
   display: none;
   flex-direction: column;
   gap: 6px;
-  padding-left: 10px;
-  margin-top: 4px;
+  margin-top: 6px;
+  padding-left: 8px;
 }
 
 .dropdown-menu.open {
@@ -135,76 +130,77 @@ body {
 .dropdown-menu a {
   font-size: 13px;
   text-decoration: none;
-  color: var(--text-soft);
-  padding: 6px 10px;
-  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  padding: 6px 8px;
+  border-radius: var(--radius-xs);
 }
 
 .dropdown-menu a:hover {
-  background: var(--bg-soft);
-  color: var(--primary);
+  background: var(--green-soft);
+  color: var(--green-deep);
+}
+
+/* ================= MAIN CONTENT ================= */
+
+.app-content {
+  padding: 70px 80px;
+  max-width: 1200px;
 }
 
 /* ================= HEADERS ================= */
 
 h1 {
-  font-size: 30px;
-  font-weight: 600;
+  font-size: 34px;
+  font-weight: 500;
   margin-bottom: 8px;
 }
 
-h2 {
-  font-size: 22px;
-  margin-bottom: 12px;
-}
-
 .page-subtitle {
-  color: var(--text-soft);
-  margin-bottom: 32px;
+  font-size: 14px;
+  color: var(--text-muted);
+  margin-bottom: 50px;
 }
 
 /* ================= CARDS ================= */
 
 .card,
-.auth-card,
-.modal-card,
-.facturas-wrapper {
+.modal-card {
   background: var(--bg-surface);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-xl);
+  padding: 40px;
   box-shadow: var(--shadow-soft);
-  padding: 32px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-light);
+  transition: var(--transition);
 }
 
-/* ================= BOTONES ================= */
+.card:hover {
+  box-shadow: var(--shadow-hover);
+}
+
+/* ================= BUTTONS ================= */
 
 button {
   border: none;
   border-radius: var(--radius-md);
-  padding: 10px 18px;
+  padding: 12px 22px;
+  font-size: 14px;
   cursor: pointer;
-  font-weight: 500;
   transition: var(--transition);
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, var(--primary), #3e8f79);
+  background: var(--green-deep);
   color: white;
-  box-shadow: 0 8px 20px rgba(46,111,94,.25);
+  box-shadow: 0 10px 30px rgba(46,95,79,.25);
 }
 
 .btn-primary:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 12px 28px rgba(46,111,94,.35);
+  transform: translateY(-3px);
 }
 
 .btn-secondary {
-  background: var(--primary-soft);
-  color: var(--primary);
-}
-
-.btn-secondary:hover {
-  opacity: .85;
+  background: var(--green-soft);
+  color: var(--green-deep);
 }
 
 /* ================= INPUTS ================= */
@@ -213,10 +209,10 @@ input,
 select,
 textarea {
   width: 100%;
-  padding: 12px 14px;
+  padding: 14px 18px;
   border-radius: var(--radius-md);
-  border: 1px solid var(--border);
-  background: var(--bg-soft);
+  border: 1px solid var(--border-light);
+  background: #fcfbfa;
   font-size: 14px;
   transition: var(--transition);
 }
@@ -225,39 +221,20 @@ input:focus,
 select:focus,
 textarea:focus {
   outline: none;
-  border-color: var(--primary);
-  background: #fff;
-  box-shadow: 0 0 0 3px rgba(46,111,94,.15);
-}
-
-/* ================= TABLES ================= */
-
-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 14px;
-}
-
-th {
-  background: var(--bg-soft);
-  text-align: left;
-  padding: 12px;
-}
-
-td {
-  padding: 12px;
-  border-bottom: 1px solid var(--border);
+  background: #ffffff;
+  border-color: var(--green-deep);
+  box-shadow: 0 0 0 4px rgba(46,95,79,.12);
 }
 
 /* ================= MODAL ================= */
 
 .modal {
-  backdrop-filter: blur(6px);
-  background: rgba(20,25,35,.45);
+  backdrop-filter: blur(12px);
+  background: rgba(0,0,0,.35);
 }
 
 .modal-card {
-  box-shadow: var(--shadow-strong);
+  box-shadow: 0 30px 80px rgba(0,0,0,.12);
 }
 
 /* ================= AUTOCOMPLETE ================= */
@@ -265,72 +242,84 @@ td {
 .suggestions {
   position: absolute;
   width: 100%;
+  margin-top: 6px;
   background: white;
   border-radius: var(--radius-md);
-  box-shadow: 0 20px 40px rgba(0,0,0,.12);
-  border: 1px solid var(--border);
-  margin-top: 6px;
+  box-shadow: var(--shadow-soft);
+  border: 1px solid var(--border-light);
   max-height: 220px;
   overflow-y: auto;
-  z-index: 3000;
+  z-index: 5000;
 }
 
 .suggestions div {
-  padding: 12px 16px;
+  padding: 14px 18px;
   cursor: pointer;
+  transition: var(--transition);
 }
 
 .suggestions div:hover {
-  background: var(--bg-soft);
+  background: var(--green-soft);
 }
 
 /* ================= AGENDA ================= */
 
 .agenda-grid {
   display: grid;
-  grid-template-columns: 80px repeat(7, 1fr);
-  gap: 8px;
+  grid-template-columns: 90px repeat(7, 1fr);
+  gap: 12px;
 }
 
 .slot {
   border-radius: var(--radius-md);
-  padding: 6px;
+  padding: 8px;
   font-size: 13px;
   font-weight: 500;
   transition: var(--transition);
 }
 
 .slot.available {
-  background: var(--primary-soft);
-  color: var(--primary);
+  background: var(--green-soft);
+  color: var(--green-deep);
 }
 
 .slot.busy {
-  background: var(--accent-soft);
-  color: var(--accent);
+  background: var(--rose-soft);
+  color: var(--rose-deep);
 }
 
 .slot.done {
-  background: #e6edff;
-  color: #3b4cca;
+  background: #eef2ff;
+  color: #4c4fbf;
 }
 
 .slot.paid {
-  background: #d9f5ea;
-  color: #065f46;
+  background: #e3f8ef;
+  color: #0e6245;
 }
 
 .slot.available:hover {
-  transform: scale(1.03);
+  transform: scale(1.07);
 }
 
-/* ================= AUTH ================= */
+/* ================= TABLE ================= */
 
-.auth-layout {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 100vh;
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th {
+  text-align: left;
+  padding: 18px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+td {
+  padding: 18px;
+  border-bottom: 1px solid var(--border-light);
 }
 
 /* ================= RESPONSIVE ================= */
@@ -342,13 +331,12 @@ td {
   }
 
   .app-menu {
-    height: auto;
     border-right: none;
-    border-bottom: 1px solid var(--border);
+    border-bottom: 1px solid var(--border-light);
   }
 
   .app-content {
-    padding: 24px;
+    padding: 40px;
   }
 
 }
