@@ -1,136 +1,378 @@
-// app/assets/js/menu.js
+/* =====================================================
+   PSICOTERAPIA ISLA – SISTEMA GLOBAL ÚNICO
+   Este archivo controla TODA la estética de la app
+===================================================== */
 
-import {
-  getAuth,
-  onAuthStateChanged,
-  signOut
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+/* ========================
+   VARIABLES
+======================== */
 
-import { db } from "./firebase.js";
-import {
-  doc,
-  getDoc
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+:root {
 
-let unsubscribeAuth = null;
+  --color-bg: #f7f9f8;
+  --color-surface: #ffffff;
+  --color-border: #e5e7eb;
 
-export async function loadMenu() {
+  --color-primary: #2e6f5e;
+  --color-primary-soft: #cfe7df;
 
-  const container = document.querySelector(".app-menu");
-  if (!container) return;
+  --color-accent: #c26a8d;
+  --color-accent-soft: #f6e6ec;
 
-  const auth = getAuth();
-  if (unsubscribeAuth) return;
+  --color-text: #1f2937;
+  --color-text-soft: #6b7280;
 
-  unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-xl: 20px;
 
-    if (!user) {
-      container.innerHTML = "";
-      return;
-    }
+  --shadow-soft: 0 10px 30px rgba(0,0,0,0.04);
+  --shadow-light: 0 4px 12px rgba(0,0,0,0.06);
 
-    let role = "patient";
+  --transition: all .25s ease;
+}
 
-    try {
-      const snap = await getDoc(doc(db, "users", user.uid));
-      if (snap.exists() && snap.data().role) {
-        role = snap.data().role;
-      }
-    } catch {
-      console.warn("No se pudo leer rol.");
-    }
+/* ========================
+   RESET BASE
+======================== */
 
-    const isAdmin = role === "admin";
-    const isTherapist = role === "therapist" || isAdmin;
+* {
+  box-sizing: border-box;
+}
 
-    container.innerHTML = `
-      <nav class="app-nav">
-        <div class="nav-left">
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Inter", sans-serif;
+  background: var(--color-bg);
+  color: var(--color-text);
+}
 
-          <a href="index.html" class="nav-link">Inicio</a>
-          <a href="foro.html" class="nav-link">Foro</a>
+/* ========================
+   LAYOUT GLOBAL
+======================== */
 
-          ${
-            isTherapist ? `
-            <div class="nav-dropdown">
-              <button class="nav-link dropdown-toggle">
-                Espacio terapeuta
-              </button>
+.app-layout {
+  display: flex;
+  min-height: 100vh;
+}
 
-              <div class="dropdown-menu">
-                <a href="agenda.html">Agenda</a>
-                <a href="disponibilidad.html">Disponibilidad</a>
-                <hr>
-                <a href="patients-admin.html">Pacientes</a>
-                <a href="diario-terapeuta.html">Diarios pacientes</a>
-                <a href="entries-by-patient.html">Registros por paciente</a>
-                <hr>
-                <a href="patient-invoices.html">Facturación</a>
-                ${
-                  isAdmin ? `
-                  <hr>
-                  <a href="exercises-admin.html">Gestionar ejercicios</a>
-                  ` : ""
-                }
-              </div>
-            </div>
-            ` : `
-            <div class="nav-dropdown">
-              <button class="nav-link dropdown-toggle">
-                Mi espacio
-              </button>
-              <div class="dropdown-menu">
-                <a href="espacio.html">Espacio personal</a>
-                <a href="diario.html">Escribir diario</a>
-                <a href="mi-diario.html">Mi diario</a>
-                <a href="exercises-list.html">Ejercicios</a>
-                <hr>
-                <a href="reservar.html">Reservar cita</a>
-                <a href="agenda-paciente.html">Mis citas</a>
-              </div>
-            </div>
-            `
-          }
+.app-body {
+  margin: 0;
+  background: var(--color-bg);
+}
 
-        </div>
+.app-container,
+.app-content,
+.wrapper {
+  max-width: 1200px;
+  margin: auto;
+  padding: 32px 24px;
+}
 
-        <div class="nav-right">
-          <button id="logout-btn" class="nav-link logout">
-            Salir
-          </button>
-        </div>
-      </nav>
-    `;
+/* ========================
+   MENÚ LATERAL
+======================== */
 
-    /* ======================
-       DROPDOWN
-    ====================== */
+.app-menu {
+  width: 260px;
+  background: var(--color-surface);
+  border-right: 1px solid var(--color-border);
+  padding: 24px;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+}
 
-    document.querySelectorAll(".dropdown-toggle").forEach(btn => {
-      btn.addEventListener("click", e => {
-        e.stopPropagation();
-        const menu = btn.nextElementSibling;
-        closeAllDropdowns();
-        menu.classList.toggle("open");
-      });
-    });
+.nav {
+  width: 100%;
+}
 
-    document.addEventListener("click", closeAllDropdowns);
+.nav-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
 
-    function closeAllDropdowns() {
-      document.querySelectorAll(".dropdown-menu")
-        .forEach(m => m.classList.remove("open"));
-    }
+.nav-link {
+  text-decoration: none;
+  color: var(--color-text);
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  transition: var(--transition);
+  display: inline-block;
+  cursor: pointer;
+  font-size: 14px;
+}
 
-    /* ======================
-       LOGOUT
-    ====================== */
+.nav-link:hover {
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+}
 
-    document.getElementById("logout-btn")
-      ?.addEventListener("click", async () => {
-        await signOut(auth);
-        window.location.href = "login.html";
-      });
+.logout {
+  margin-top: 24px;
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
+}
 
-  });
+/* Dropdown */
+
+.nav-dropdown {
+  position: relative;
+}
+
+.dropdown-toggle {
+  background: none;
+  border: none;
+  font-size: 14px;
+  padding: 8px 12px;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+}
+
+.dropdown-menu {
+  display: none;
+  flex-direction: column;
+  gap: 6px;
+  padding-left: 12px;
+  margin-top: 4px;
+}
+
+.dropdown-menu.open {
+  display: flex;
+}
+
+.dropdown-menu a {
+  font-size: 13px;
+  text-decoration: none;
+  color: var(--color-text-soft);
+}
+
+.dropdown-menu a:hover {
+  color: var(--color-primary);
+}
+
+/* ========================
+   TIPOGRAFÍA
+======================== */
+
+h1 {
+  font-size: 28px;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+h3 {
+  margin: 0 0 8px 0;
+}
+
+.page-subtitle {
+  color: var(--color-text-soft);
+  margin-bottom: 24px;
+}
+
+/* ========================
+   BOTONES
+======================== */
+
+button {
+  border: none;
+  border-radius: var(--radius-md);
+  padding: 8px 16px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: var(--transition);
+}
+
+.btn-primary,
+.button-primary {
+  background: var(--color-primary);
+  color: white;
+}
+
+.btn-primary:hover,
+.button-primary:hover {
+  opacity: .9;
+}
+
+.btn-secondary,
+.button-secondary {
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+}
+
+.btn-secondary:hover,
+.button-secondary:hover {
+  opacity: .8;
+}
+
+/* ========================
+   INPUTS
+======================== */
+
+input,
+select,
+textarea {
+  width: 100%;
+  padding: 10px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  font-size: 14px;
+  background: white;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}
+
+/* ========================
+   TARJETAS
+======================== */
+
+.card,
+.auth-card,
+.modal-card {
+  background: var(--color-surface);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-soft);
+  padding: 24px;
+}
+
+/* ========================
+   AUTH PÁGINAS
+======================== */
+
+.auth-layout {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 80vh;
+}
+
+.auth-card {
+  max-width: 400px;
+  width: 100%;
+}
+
+/* ========================
+   MODAL GLOBAL
+======================== */
+
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.45);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 3000;
+}
+
+.modal.show {
+  display: flex;
+}
+
+.modal-card {
+  width: 100%;
+  max-width: 500px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+/* ========================
+   AGENDA BÁSICA
+======================== */
+
+.agenda-scroll {
+  overflow-x: auto;
+}
+
+.agenda-grid {
+  display: grid;
+  grid-template-columns: 80px repeat(7, 1fr);
+  min-width: 1000px;
+  gap: 6px;
+}
+
+.day-label {
+  text-align: center;
+  font-weight: 600;
+  padding: 8px 0;
+}
+
+.hour-label {
+  font-size: 12px;
+  color: var(--color-text-soft);
+  text-align: right;
+  padding-right: 8px;
+}
+
+.slot {
+  min-height: 40px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition);
+}
+
+.slot.available {
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+}
+
+.slot.available:hover {
+  transform: translateY(-2px);
+}
+
+.slot.busy {
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
+}
+
+.slot.done {
+  background: #e5ecff;
+  color: #4f46e5;
+}
+
+.slot.paid {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.slot.disabled {
+  background: #f3f4f6;
+  opacity: .6;
+  cursor: default;
+}
+
+/* ========================
+   RESPONSIVE
+======================== */
+
+@media (max-width: 1024px) {
+
+  .app-layout {
+    flex-direction: column;
+  }
+
+  .app-menu {
+    width: 100%;
+    height: auto;
+    border-right: none;
+    border-bottom: 1px solid var(--color-border);
+  }
+
 }
