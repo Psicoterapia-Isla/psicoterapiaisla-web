@@ -13,10 +13,8 @@ import {
 const list = document.getElementById("list");
 const summary = document.getElementById("summary");
 
-const typeFilter = document.getElementById("typeFilter");
 const patientFilter = document.getElementById("patientFilter");
-const fromDate = document.getElementById("fromDate");
-const toDate = document.getElementById("toDate");
+const monthFilter = document.getElementById("monthFilter");
 const applyBtn = document.getElementById("applyFilters");
 
 /* =========================
@@ -51,36 +49,27 @@ async function loadInvoices() {
     return;
   }
 
-  const type = typeFilter.value;
   const patientTerm = patientFilter.value.toLowerCase().trim();
-  const from = fromDate.value;
-  const to = toDate.value;
+  const month = monthFilter.value; // formato YYYY-MM
 
   let total = 0;
   let count = 0;
 
   snap.forEach(docSnap => {
+
     const i = docSnap.data();
     const date = i.issueDate?.toDate?.();
     if (!date) return;
-
-    /* ===== FILTRO TIPO ===== */
-    if (type) {
-      if (type === "mutual" && !i.patientType?.includes("mutual")) return;
-      if (type === "private" && i.patientType === "mutual") return;
-    }
 
     /* ===== FILTRO NOMBRE ===== */
     if (patientTerm) {
       if (!i.patientName?.toLowerCase().includes(patientTerm)) return;
     }
 
-    /* ===== FILTRO FECHA ===== */
-    if (from && date < new Date(from)) return;
-    if (to) {
-      const toDateObj = new Date(to);
-      toDateObj.setHours(23,59,59,999);
-      if (date > toDateObj) return;
+    /* ===== FILTRO MES ===== */
+    if (month) {
+      const invoiceMonth = date.toISOString().slice(0,7);
+      if (invoiceMonth !== month) return;
     }
 
     total += Number(i.totalAmount || 0);
@@ -92,7 +81,7 @@ async function loadInvoices() {
       <strong>${i.invoiceNumber}</strong><br>
       ${i.patientName || "—"}<br>
       ${i.concept || ""}<br><br>
-      <strong>${i.totalAmount?.toFixed(2)} €</strong><br>
+      <strong>${Number(i.totalAmount || 0).toFixed(2)} €</strong><br>
       <small>
         ${date.toLocaleDateString("es-ES")}
         · ${translateStatus(i.status)}
