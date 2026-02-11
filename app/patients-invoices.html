@@ -16,37 +16,38 @@
 
   <div class="card">
 
-    <label>Buscar paciente</label>
-    <input type="text" id="patientFilter" placeholder="Nombre del paciente">
-
     <label>Tipo de paciente</label>
     <select id="typeFilter">
       <option value="">Todos</option>
-      <option value="private">Privado</option>
       <option value="mutual">Mutua</option>
+      <option value="private">Privado</option>
     </select>
 
-    <label>Desde</label>
+    <label>Nombre paciente</label>
+    <input type="text" id="patientFilter" placeholder="Buscar paciente">
+
+    <label>Fecha desde</label>
     <input type="date" id="fromDate">
 
-    <label>Hasta</label>
+    <label>Fecha hasta</label>
     <input type="date" id="toDate">
 
-    <button id="applyFilters" class="btn btn-primary">
+    <button id="applyFilters" class="btn-primary">
       Aplicar filtros
     </button>
 
   </div>
 
-  <div id="invoiceList"></div>
+  <div id="summary" class="card"></div>
+  <div id="list"></div>
 
 </main>
 
 <script type="module">
-  import { requireAuth } from "./assets/js/auth.js";
-  import { loadMenu } from "./assets/js/menu.js";
-  await requireAuth();
-  await loadMenu();
+import { requireAuth } from "./assets/js/auth.js";
+import { loadMenu } from "./assets/js/menu.js";
+await requireAuth();
+await loadMenu();
 </script>
 
 <script type="module" src="assets/js/patient-invoices.js"></script>
