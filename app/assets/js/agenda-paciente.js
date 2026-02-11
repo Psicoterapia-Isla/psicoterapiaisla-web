@@ -14,6 +14,7 @@ import {
 ========================= */
 let currentDate = new Date();
 let currentUser = null;
+let patientProfile = null;
 
 function formatDate(date) {
   return date.toISOString().split("T")[0];
@@ -22,30 +23,47 @@ function formatDate(date) {
 /* =========================
    INICIALIZACIÓN
 ========================= */
-export function initAgendaPaciente(user) {
+export async function initAgendaPaciente(user) {
   if (!user) throw new Error("Usuario no inicializado");
+
   currentUser = user;
+
+  // 🔒 Obtener perfil real de paciente
+  const snap = await getDocs(
+    query(
+      collection(db, "patients_normalized"),
+      where("userId", "==", user.uid)
+    )
+  );
+
+  if (snap.empty) {
+    alert("Perfil de paciente no encontrado");
+    return;
+  }
+
+  const docData = snap.docs[0];
+  patientProfile = { id: docData.id, ...docData.data() };
 
   renderDate();
   bindDayNavigation();
+  await loadAgendaPaciente();
 }
 
 /* =========================
    NAVEGACIÓN DE DÍAS
 ========================= */
 function bindDayNavigation() {
+
   document.getElementById("prev-day")?.addEventListener("click", async () => {
     currentDate.setDate(currentDate.getDate() - 1);
     renderDate();
     await loadAgendaPaciente();
-    await loadAppointmentForDay();
   });
 
   document.getElementById("next-day")?.addEventListener("click", async () => {
     currentDate.setDate(currentDate.getDate() + 1);
     renderDate();
     await loadAgendaPaciente();
-    await loadAppointmentForDay();
   });
 }
 
@@ -65,12 +83,13 @@ function renderDate() {
 }
 
 /* =========================
-   CITA DEL DÍA
+   CITA DEL DÍA (CORREGIDO)
 ========================= */
 async function loadAppointmentForDay() {
+
   const box = document.getElementById("appointment-today");
   const content = document.getElementById("appointment-content");
-  if (!box || !content) return;
+  if (!box || !content || !patientProfile) return;
 
   box.style.display = "none";
   content.innerHTML = "";
@@ -79,7 +98,7 @@ async function loadAppointmentForDay() {
 
   const q = query(
     collection(db, "appointments"),
-    where("patientId", "==", currentUser.uid),
+    where("patientId", "==", patientProfile.id),
     where("date", "==", dateKey)
   );
 
@@ -92,25 +111,21 @@ async function loadAppointmentForDay() {
     <p><strong>${a.service || "Sesión terapéutica"}</strong></p>
     <p>${a.start} – ${a.end}</p>
     <p>${a.modality === "online" ? "Online" : "Presencial"}</p>
-    <p>
-      ${
-        a.completed
-          ? "✅ Sesión realizada"
-          : "🕒 Sesión pendiente"
-      }
-    </p>
+    <p>${a.completed ? "✅ Sesión realizada" : "🕒 Sesión pendiente"}</p>
   `;
 
   box.style.display = "block";
 }
 
 /* =========================
-   CARGAR AGENDA PACIENTE
+   CARGAR AGENDA
 ========================= */
 export async function loadAgendaPaciente() {
+
   if (!currentUser) return;
 
   const dateKey = formatDate(currentDate);
+
   const ref = doc(db, "agendaPaciente", `${currentUser.uid}_${dateKey}`);
   const snap = await getDoc(ref);
 
@@ -123,36 +138,34 @@ export async function loadAgendaPaciente() {
     .querySelectorAll('input[name="emocion"]')
     .forEach(r => r.checked = false);
 
-  if (!snap.exists()) {
-    await loadAppointmentForDay();
-    return;
+  if (snap.exists()) {
+    const data = snap.data();
+
+    Object.entries(data.plan || {}).forEach(([hour, value]) => {
+      const field = document.querySelector(`[data-hour="${hour}"]`);
+      if (field) field.value = value;
+    });
+
+    if (data.emocion) {
+      const radio = document.querySelector(
+        `input[name="emocion"][value="${data.emocion}"]`
+      );
+      if (radio) radio.checked = true;
+    }
+
+    document.getElementById("reto-diario").value = data.reto || "";
+    document.getElementById("notas-contactos").value = data.notas || "";
+    document.getElementById("tiempo-fuera").value = data.tiempoFuera || "";
   }
-
-  const data = snap.data();
-
-  Object.entries(data.plan || {}).forEach(([hour, value]) => {
-    const field = document.querySelector(`[data-hour="${hour}"]`);
-    if (field) field.value = value;
-  });
-
-  if (data.emocion) {
-    const radio = document.querySelector(
-      `input[name="emocion"][value="${data.emocion}"]`
-    );
-    if (radio) radio.checked = true;
-  }
-
-  document.getElementById("reto-diario").value = data.reto || "";
-  document.getElementById("notas-contactos").value = data.notas || "";
-  document.getElementById("tiempo-fuera").value = data.tiempoFuera || "";
 
   await loadAppointmentForDay();
 }
 
 /* =========================
-   GUARDAR AGENDA PACIENTE
+   GUARDAR AGENDA
 ========================= */
 export async function saveAgendaPaciente() {
+
   if (!currentUser) return;
 
   const dateKey = formatDate(currentDate);
@@ -179,5 +192,5 @@ export async function saveAgendaPaciente() {
     }
   );
 
-  alert("Planificador guardado");
+  alert("Planificador guardado correctamente");
 }
