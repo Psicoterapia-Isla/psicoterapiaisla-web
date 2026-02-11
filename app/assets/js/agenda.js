@@ -83,7 +83,75 @@ function setFieldsDisabled(disabled){
   [phone,name,service,modality,start,end,completed,paid,amount]
     .forEach(el => el.disabled = disabled);
 }
+/* ================= AUTOCOMPLETE ================= */
 
+async function searchPatients(term){
+
+  if(!term || term.length < 2){
+    suggestions.innerHTML = "";
+    return;
+  }
+
+  const snap = await getDocs(query(
+    collection(db,"patients_normalized"),
+    where("keywords","array-contains",term.toLowerCase())
+  ));
+
+  suggestions.innerHTML = "";
+
+  snap.forEach(d=>{
+    const p = d.data();
+
+    const item = document.createElement("div");
+    item.textContent =
+      `${p.nombre || ""} ${p.apellidos || ""} · ${p.telefono || ""}`;
+
+    item.onclick = () => {
+
+      selectedPatient = { id: d.id, ...p };
+
+      phone.value = p.telefono || "";
+      name.value =
+        `${p.nombre || ""} ${p.apellidos || ""}`.trim();
+
+      const duration =
+        p.patientType === "mutual" ? 30 : 60;
+
+      const [h,m] = start.value.split(":").map(Number);
+
+      const endDate = new Date(0,0,0,h,m+duration);
+      end.value =
+        timeString(endDate.getHours(),endDate.getMinutes());
+
+      if(p.patientType === "mutual"){
+        amount.value =
+          p.mutual?.pricePerSession || 0;
+      }
+
+      suggestions.innerHTML = "";
+    };
+
+    suggestions.appendChild(item);
+  });
+}
+
+/* LISTENERS */
+
+phone.addEventListener("input",
+  e => searchPatients(e.target.value)
+);
+
+name.addEventListener("input",
+  e => searchPatients(e.target.value)
+);
+
+/* Cerrar si se hace click fuera */
+
+document.addEventListener("click", (e)=>{
+  if(!e.target.closest(".autocomplete-wrapper")){
+    suggestions.innerHTML = "";
+  }
+});
 /* ================= FACTURACIÓN ================= */
 
 async function getNextInvoiceNumber(therapistId){
