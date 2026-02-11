@@ -1,175 +1,93 @@
-/* ======================================================
-   PSICOTERAPIA ISLA — DESIGN SYSTEM GLOBAL
-   Minimalismo premium · coherente · escalable
-====================================================== */
-
 /* =========================
-   TOKENS
+   PSICOTERAPIA ISLA SYSTEM
 ========================= */
 
 :root {
 
-  /* === COLORES === */
-  --color-primary: #1F6B4E;
-  --color-primary-soft: rgba(31,107,78,0.08);
+  /* PALETA */
+  --bg-main: #f7f9f8;
+  --bg-surface: #ffffff;
+  --bg-soft: #eef3f1;
 
-  --color-bg: #F6F8F7;
-  --color-surface: #FFFFFF;
+  --green-main: #2e6f5e;
+  --green-soft: #cfe7df;
 
-  --color-text: #1A1A1A;
-  --color-text-soft: #5E5E5E;
+  --rose-soft: #f6e6ec;
+  --rose-main: #c26a8d;
 
-  --color-border: rgba(0,0,0,0.06);
+  --text-main: #1f2937;
+  --text-soft: #6b7280;
 
-  /* === SOMBRAS === */
-  --shadow-soft: 0 8px 30px rgba(0,0,0,0.08);
-  --shadow-light: 0 2px 8px rgba(0,0,0,0.04);
+  --border-soft: #e5e7eb;
 
-  /* === RADIOS === */
-  --radius-xl: 20px;
-  --radius-lg: 16px;
+  --radius-lg: 18px;
   --radius-md: 12px;
-  --radius-sm: 8px;
 
-  /* === ESPACIADO (8pt system) === */
-  --space-1: 4px;
-  --space-2: 8px;
-  --space-3: 16px;
-  --space-4: 24px;
-  --space-5: 32px;
-  --space-6: 48px;
-
-  /* === TRANSICIONES === */
-  --transition-fast: 0.15s ease;
-  --transition-base: 0.25s ease;
-
+  --shadow-soft: 0 10px 30px rgba(0,0,0,0.04);
 }
 
 /* =========================
-   BASE GLOBAL
+   GLOBAL
 ========================= */
 
-* {
-  box-sizing: border-box;
-}
-
-body {
+body.app-body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
-  background: var(--color-bg);
-  color: var(--color-text);
-  -webkit-font-smoothing: antialiased;
+  background: var(--bg-main);
+  font-family: -apple-system, BlinkMacSystemFont, "Inter", sans-serif;
+  color: var(--text-main);
 }
 
-.app-container {
-  max-width: 1100px;
+.wrapper,
+.agenda-wrapper {
+  max-width: 1200px;
   margin: auto;
-  padding: var(--space-5) var(--space-4);
+  padding: 2rem 1.5rem;
 }
 
-.page-title {
-  font-size: 32px;
+/* =========================
+   TITULOS
+========================= */
+
+h1 {
+  font-size: 1.8rem;
   font-weight: 600;
-  margin-bottom: var(--space-5);
-  letter-spacing: -0.3px;
+  margin-bottom: 1rem;
 }
 
-/* =========================
-   NAVBAR
-========================= */
-
-.nav {
-  background: var(--color-surface);
-  border-bottom: 1px solid var(--color-border);
-  position: sticky;
-  top: 0;
-  z-index: 200;
-  backdrop-filter: blur(12px);
-}
-
-.nav-inner {
-  max-width: 1100px;
-  margin: auto;
-  padding: var(--space-3) var(--space-4);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.nav-left {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-}
-
-.nav-link {
-  font-size: 15px;
+h3 {
   font-weight: 500;
-  padding: 8px 14px;
-  border-radius: var(--radius-md);
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: var(--color-text);
-  transition: var(--transition-fast);
-}
-
-.nav-link:hover {
-  background: var(--color-primary-soft);
-  color: var(--color-primary);
-}
-
-.logout {
-  color: var(--color-text-soft);
+  color: var(--text-soft);
 }
 
 /* =========================
-   DROPDOWN
+   BOTONES
 ========================= */
 
-.nav-dropdown {
-  position: relative;
-}
-
-.dropdown-menu {
-  position: absolute;
-  top: 44px;
-  left: 0;
-  background: var(--color-surface);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-soft);
-  padding: var(--space-2) 0;
-  min-width: 240px;
-  opacity: 0;
-  transform: translateY(-6px);
-  pointer-events: none;
-  transition: var(--transition-base);
-}
-
-.dropdown-menu.open {
-  opacity: 1;
-  transform: translateY(0);
-  pointer-events: auto;
-}
-
-.dropdown-menu a {
-  display: block;
-  padding: 10px 18px;
-  font-size: 14px;
-  text-decoration: none;
-  color: var(--color-text);
-  transition: var(--transition-fast);
-}
-
-.dropdown-menu a:hover {
-  background: var(--color-primary-soft);
-  color: var(--color-primary);
-}
-
-.dropdown-menu hr {
+button {
   border: none;
-  border-top: 1px solid var(--color-border);
-  margin: var(--space-2) 0;
+  border-radius: 12px;
+  padding: .6rem 1.1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all .25s ease;
+}
+
+.btn-primary {
+  background: var(--green-main);
+  color: white;
+}
+
+.btn-primary:hover {
+  opacity: .9;
+}
+
+.btn-secondary {
+  background: var(--bg-soft);
+  color: var(--green-main);
+}
+
+.btn-secondary:hover {
+  background: var(--green-soft);
 }
 
 /* =========================
@@ -177,235 +95,179 @@ body {
 ========================= */
 
 .card {
-  background: var(--color-surface);
+  background: var(--bg-surface);
   border-radius: var(--radius-lg);
-  padding: var(--space-4);
-  box-shadow: var(--shadow-light);
-  transition: var(--transition-base);
-}
-
-.card:hover {
-  transform: translateY(-2px);
+  padding: 1.5rem;
   box-shadow: var(--shadow-soft);
+  margin-bottom: 1.5rem;
 }
 
 /* =========================
-   BOTONES
+   AGENDA
 ========================= */
-
-.button-primary {
-  background: var(--color-primary);
-  color: white;
-  border: none;
-  padding: 12px 20px;
-  border-radius: var(--radius-md);
-  font-weight: 500;
-  cursor: pointer;
-  transition: var(--transition-fast);
-}
-
-.button-primary:hover {
-  transform: translateY(-1px);
-  opacity: 0.95;
-}
-
-.button-secondary {
-  background: transparent;
-  border: 1px solid var(--color-border);
-  padding: 10px 16px;
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  transition: var(--transition-fast);
-}
-
-.button-secondary:hover {
-  background: var(--color-primary-soft);
-  border-color: var(--color-primary);
-  color: var(--color-primary);
-}
-
-/* =========================
-   FORMULARIOS
-========================= */
-
-input,
-select,
-textarea {
-  width: 100%;
-  padding: 12px 14px;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--color-border);
-  font-size: 14px;
-  transition: var(--transition-fast);
-}
-
-input:focus,
-select:focus,
-textarea:focus {
-  outline: none;
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px var(--color-primary-soft);
-}
-
-/* =========================
-   AGENDA GRID
-========================= */
-
-.slot {
-  border-radius: var(--radius-sm);
-  transition: var(--transition-fast);
-  cursor: pointer;
-}
-
-.slot.available {
-  background: var(--color-primary-soft);
-}
-
-.slot.available:hover {
-  background: var(--color-primary);
-  color: white;
-}
-
-.slot.busy {
-  background: rgba(0,0,0,0.08);
-}
-
-.slot.done {
-  background: #e0f5ec;
-}
-
-.slot.paid {
-  background: #cfeee0;
-}
-
-.slot.disabled {
-  background: #f1f1f1;
-  cursor: not-allowed;
-}
-
-/* =========================
-   TABLAS SIMPLES
-========================= */
-
-.table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.table th,
-.table td {
-  padding: 14px;
-  border-bottom: 1px solid var(--color-border);
-  text-align: left;
-  font-size: 14px;
-}
-
-/* =========================
-   RESPONSIVE
-========================= */
-
-@media (max-width: 768px) {
-
-  .nav-inner {
-    padding: var(--space-3);
-  }
-
-  .app-container {
-    padding: var(--space-4);
-  }
-
-  .page-title {
-    font-size: 24px;
-  }
-
-}
-/* ======================================================
-   AGENDA PRO
-====================================================== */
-
-.agenda-wrapper {
-  background: var(--color-surface);
-  border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-soft);
-  overflow: hidden;
-}
 
 .agenda-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 20px 28px;
-  border-bottom: 1px solid var(--color-border);
+  margin-bottom: 1rem;
 }
 
-.agenda-week-label {
-  font-size: 20px;
-  font-weight: 600;
+.agenda-nav {
+  display: flex;
+  gap: .5rem;
 }
 
-.agenda-nav button {
-  margin-left: 8px;
+.agenda-scroll {
+  overflow-x: auto;
+  padding-bottom: 12px;
 }
-
-/* GRID */
 
 .agenda-grid {
   display: grid;
   grid-template-columns: 80px repeat(7, 1fr);
-  position: relative;
+  min-width: 1100px;
+  gap: 8px;
 }
 
-.agenda-hour {
-  font-size: 12px;
-  color: var(--color-text-soft);
-  padding: 6px 10px;
-  border-top: 1px solid var(--color-border);
+/* LABELS */
+
+.hour-label {
+  text-align: right;
+  font-size: .75rem;
+  color: var(--text-soft);
+  padding-right: 8px;
 }
 
-.agenda-day-header {
+.day-label {
   text-align: center;
-  padding: 12px 0;
-  font-weight: 500;
-  border-bottom: 1px solid var(--color-border);
-  background: var(--color-bg);
+  font-weight: 600;
+  color: var(--green-main);
+  padding-bottom: .5rem;
 }
 
-.agenda-cell {
-  height: 40px;
-  border-top: 1px solid var(--color-border);
-  border-left: 1px solid var(--color-border);
-  position: relative;
+/* SLOTS */
+
+.slot {
+  min-height: 56px;
+  border-radius: var(--radius-md);
+  font-size: .75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  transition: all .2s ease;
+  box-shadow: 0 2px 6px rgba(0,0,0,.03);
 }
 
-.agenda-cell:last-child {
-  border-right: 1px solid var(--color-border);
+/* Estados refinados */
+
+.slot.available {
+  background: var(--green-soft);
+  color: var(--green-main);
 }
 
-/* BLOQUES DE CITA */
-
-.appointment-block {
-  position: absolute;
-  left: 6px;
-  right: 6px;
-  background: var(--color-primary);
-  color: white;
-  border-radius: 10px;
-  padding: 8px;
-  font-size: 12px;
-  box-shadow: var(--shadow-light);
-  cursor: pointer;
-  transition: var(--transition-base);
-}
-
-.appointment-block:hover {
+.slot.available:hover {
+  background: #bde1d6;
   transform: translateY(-2px);
-  box-shadow: var(--shadow-soft);
 }
 
-.appointment-block.done {
-  background: #7fbfa6;
+.slot.busy {
+  background: var(--rose-soft);
+  color: var(--rose-main);
 }
 
-.appointment-block.paid {
-  background: #4aa97f;
+.slot.done {
+  background: #e5ecff;
+  color: #4f46e5;
+}
+
+.slot.paid {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.slot.disabled {
+  background: #f3f4f6;
+  opacity: .6;
+  cursor: default;
+}
+
+/* =========================
+   MODAL
+========================= */
+
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.35);
+  display: none;
+  z-index: 1000;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal.show {
+  display: flex;
+}
+
+.modal-content {
+  background: var(--bg-surface);
+  width: 100%;
+  max-width: 440px;
+  border-radius: 22px;
+  box-shadow: 0 20px 60px rgba(0,0,0,.15);
+  overflow: hidden;
+}
+
+.modal-body {
+  padding: 1.8rem;
+}
+
+.modal-footer {
+  padding: 1.2rem;
+  border-top: 1px solid var(--border-soft);
+  display: flex;
+  justify-content: flex-end;
+  gap: .5rem;
+}
+
+/* =========================
+   INPUTS
+========================= */
+
+input,
+select {
+  width: 100%;
+  padding: .65rem;
+  border-radius: 12px;
+  border: 1px solid var(--border-soft);
+  margin-bottom: 1rem;
+  font-size: .85rem;
+  background: #fff;
+}
+
+input:focus,
+select:focus {
+  outline: none;
+  border-color: var(--green-main);
+}
+
+/* =========================
+   MOBILE
+========================= */
+
+@media (max-width: 768px) {
+
+  .agenda-wrapper {
+    padding: 1.2rem;
+  }
+
+  .agenda-grid {
+    min-width: 900px;
+  }
+
+  .modal-content {
+    border-radius: 20px 20px 0 0;
+  }
 }
