@@ -1,9 +1,12 @@
 import { auth, db } from "./firebase.js";
+
 import {
   doc,
   getDoc,
   setDoc,
-  serverTimestamp
+  serverTimestamp,
+  collection,
+  getDocs
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 import {
@@ -11,7 +14,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
 /* =====================================================
-   CONFIGURACIÓN
+   CONFIG
 ===================================================== */
 
 const START_HOUR = 9;
@@ -36,13 +39,26 @@ const LABELS = ["L","M","X","J","V","S","D"];
 
 const grid = document.getElementById("grid");
 const saveBtn = document.getElementById("save");
+const therapistSelect = document.getElementById("therapistSelect");
 
 const prevWeek = document.getElementById("prevWeek");
 const nextWeek = document.getElementById("nextWeek");
 const todayWeek = document.getElementById("todayWeek");
 
 /* =====================================================
-   FECHAS
+   STATE
+===================================================== */
+
+let baseDate = new Date();
+let currentMonday = mondayOf(baseDate);
+let weekKey = "";
+let state = {};
+let currentUser = null;
+let currentRole = "therapist";
+let selectedTherapistId = null;
+
+/* =====================================================
+   DATE HELPERS
 ===================================================== */
 
 function mondayOf(d){
@@ -53,41 +69,30 @@ function mondayOf(d){
   return x;
 }
 
+function formatDate(d){
+  return d.toISOString().slice(0,10);
+}
+
 function formatWeekLabel(monday){
   const end = new Date(monday);
-  end.setDate(end.getDate() + 6);
+  end.setDate(end.getDate()+6);
   return `${monday.toLocaleDateString("es-ES",{day:"numeric",month:"short"})} – ${end.toLocaleDateString("es-ES",{day:"numeric",month:"short",year:"numeric"})}`;
 }
 
-/* =====================================================
-   STATE
-===================================================== */
-
-let baseDate = new Date();
-let currentMonday = mondayOf(baseDate);
-let weekKey = currentMonday.toISOString().slice(0,10);
-let state = {};
-let currentUser = null;
-
-/* =====================================================
-   HELPERS
-===================================================== */
-
-function norm(k){
-  state[k] ??= false;
+function isPastWeek(monday){
+  const today = mondayOf(new Date());
+  return monday < today;
 }
 
-function isTodayInThisWeek(dayIndex){
+function isTodayColumn(index){
   const today = new Date();
-  const monday = currentMonday;
-
-  const thisDay = new Date(monday);
-  thisDay.setDate(monday.getDate() + dayIndex);
+  const d = new Date(currentMonday);
+  d.setDate(currentMonday.getDate() + index);
 
   return (
-    today.getFullYear() === thisDay.getFullYear() &&
-    today.getMonth() === thisDay.getMonth() &&
-    today.getDate() === thisDay.getDate()
+    today.getFullYear() === d.getFullYear() &&
+    today.getMonth() === d.getMonth() &&
+    today.getDate() === d.getDate()
   );
 }
 
@@ -95,66 +100,57 @@ function isTodayInThisWeek(dayIndex){
    RENDER
 ===================================================== */
 
-function render(hasAvailability=true){
+function render(){
 
   if (!grid) return;
+
   grid.innerHTML = "";
+  weekKey = formatDate(currentMonday);
 
   const label = document.getElementById("weekLabel");
   if (label) label.textContent = formatWeekLabel(currentMonday);
 
-  if(!hasAvailability){
-    const hint = document.createElement("div");
-    hint.className = "week-hint";
-    hint.textContent = "No hay disponibilidad definida para esta semana";
-    grid.appendChild(hint);
-  }
+  const isBlocked = isPastWeek(currentMonday);
 
-  /* ===== CABECERA ===== */
-
+  /* CABECERA */
   grid.appendChild(document.createElement("div"));
 
-  LABELS.forEach((labelText, index)=>{
+  LABELS.forEach((text,index)=>{
     const d = document.createElement("div");
     d.className = "day-label";
-
-    if (isTodayInThisWeek(index)) {
-      d.classList.add("today-column");
-    }
-
-    d.textContent = labelText;
+    if (isTodayColumn(index)) d.classList.add("today-column");
+    d.textContent = text;
     grid.appendChild(d);
   });
 
-  /* ===== GRID ===== */
-
+  /* GRID */
   TIME_SLOTS.forEach(time => {
 
-    const hl = document.createElement("div");
-    hl.className = "hour-label";
-    hl.textContent = time;
-    grid.appendChild(hl);
+    const hourLabel = document.createElement("div");
+    hourLabel.className = "hour-label";
+    hourLabel.textContent = time;
+    grid.appendChild(hourLabel);
 
-    DAYS.forEach((day, index) => {
+    DAYS.forEach((day,index)=>{
 
       const key = `${day}_${time}`;
-      norm(key);
+      if (!state[key]) state[key] = false;
 
       const cell = document.createElement("div");
       cell.className = "slot";
-
-      if (isTodayInThisWeek(index)) {
-        cell.classList.add("today-column");
-      }
+      if (isTodayColumn(index)) cell.classList.add("today-column");
 
       const btn = document.createElement("button");
       btn.className = `mode ${state[key] ? "on" : ""}`;
-      btn.textContent = state[key] ? "Disponible" : "";
 
-      btn.onclick = () => {
-        state[key] = !state[key];
-        render(true);
-      };
+      if (!isBlocked) {
+        btn.onclick = () => {
+          state[key] = !state[key];
+          btn.classList.toggle("on");
+        };
+      } else {
+        btn.disabled = true;
+      }
 
       cell.appendChild(btn);
       grid.appendChild(cell);
@@ -168,20 +164,23 @@ function render(hasAvailability=true){
 ===================================================== */
 
 async function loadWeek(){
-  if(!currentUser) return;
 
-  weekKey = currentMonday.toISOString().slice(0,10);
+  if (!selectedTherapistId) return;
+
   state = {};
+  weekKey = formatDate(currentMonday);
 
-  const ref = doc(db,"availability",`${currentUser.uid}_${weekKey}`);
+  const ref = doc(db,"availability",`${selectedTherapistId}_${weekKey}`);
   const snap = await getDoc(ref);
 
-  if(snap.exists()){
-    Object.assign(state, snap.data().slots || {});
-    render(true);
+  if (snap.exists()) {
+    state = snap.data().slots || {};
+    markSaved(true);
   } else {
-    render(false);
+    markSaved(false);
   }
+
+  render();
 }
 
 /* =====================================================
@@ -189,18 +188,67 @@ async function loadWeek(){
 ===================================================== */
 
 async function saveWeek(){
-  if(!currentUser) return;
 
-  const ref = doc(db,"availability",`${currentUser.uid}_${weekKey}`);
+  if (!selectedTherapistId) return;
+
+  if (isPastWeek(currentMonday)) {
+    alert("No puedes modificar semanas pasadas");
+    return;
+  }
+
+  const ref = doc(db,"availability",`${selectedTherapistId}_${weekKey}`);
 
   await setDoc(ref,{
-    therapistId: currentUser.uid,
+    therapistId: selectedTherapistId,
     weekStart: weekKey,
     slots: state,
     updatedAt: serverTimestamp()
   });
 
-  alert("Disponibilidad guardada correctamente");
+  markSaved(true);
+  alert("Disponibilidad guardada");
+}
+
+/* =====================================================
+   UI HELPERS
+===================================================== */
+
+function markSaved(saved){
+  const indicator = document.getElementById("weekStatus");
+  if (!indicator) return;
+
+  indicator.textContent = saved
+    ? "Semana guardada ✔"
+    : "Semana sin guardar";
+
+  indicator.style.color = saved ? "green" : "red";
+}
+
+/* =====================================================
+   TERAPEUTAS (ADMIN)
+===================================================== */
+
+async function loadTherapists(){
+
+  const snap = await getDocs(collection(db,"therapists"));
+  const therapists = snap.docs.map(d=>({ id:d.id, ...d.data() }));
+
+  if (!therapistSelect) return;
+
+  therapistSelect.innerHTML = "";
+
+  therapists.forEach(t=>{
+    const opt = document.createElement("option");
+    opt.value = t.id;
+    opt.textContent = t.name || t.email || t.id;
+    therapistSelect.appendChild(opt);
+  });
+
+  selectedTherapistId = therapists[0]?.id;
+  therapistSelect.onchange = async () => {
+    selectedTherapistId = therapistSelect.value;
+    await loadWeek();
+  };
 }
 
 /* =====================================================
@@ -233,8 +281,20 @@ if (todayWeek) {
 ===================================================== */
 
 onAuthStateChanged(auth, async user=>{
-  if(!user) return;
+  if (!user) return;
+
   currentUser = user;
+
+  const roleSnap = await getDoc(doc(db,"users",user.uid));
+  currentRole = roleSnap.exists() ? roleSnap.data().role : "therapist";
+
+  if (currentRole === "admin") {
+    await loadTherapists();
+  } else {
+    selectedTherapistId = user.uid;
+  }
+
   await loadWeek();
+
   if (saveBtn) saveBtn.onclick = saveWeek;
 });
