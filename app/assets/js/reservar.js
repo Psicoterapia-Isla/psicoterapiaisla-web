@@ -46,6 +46,7 @@ let baseDate = new Date();
 let currentUser = null;
 let patientProfile = null;
 let therapists = [];
+let availabilityCache = {};
 
 /* =========================
    FECHAS
@@ -78,6 +79,10 @@ function addMinutes(time, minutes){
 function timeToMinutes(t){
   const [h,m] = t.split(":").map(Number);
   return h*60+m;
+}
+
+function getDayKeyFromIndex(index){
+  return DAYS[index];
 }
 
 /* =========================
@@ -129,9 +134,9 @@ async function renderWeek(){
     where("weekStart","==",from))
   );
 
-  const availability = {};
+  availabilityCache = {};
   availSnap.forEach(d=>{
-    availability[d.data().therapistId] = d.data().slots || {};
+    availabilityCache[d.data().therapistId] = d.data().slots || {};
   });
 
   /* CITAS */
@@ -166,24 +171,22 @@ async function renderWeek(){
     hourLabel.textContent=time;
     grid.appendChild(hourLabel);
 
-    DAYS.forEach(day=>{
+    DAYS.forEach((day,dayIndex)=>{
 
       const date = formatDate(
-        new Date(monday.getTime()+DAYS.indexOf(day)*86400000)
+        new Date(monday.getTime()+dayIndex*86400000)
       );
 
       const cell = document.createElement("div");
       cell.className="slot";
 
+      const slotKey = `${day}_${time.replace(":","_")}`;
+      const currentMin = timeToMinutes(time);
+
       const freeTherapists = therapists.filter(t=>{
 
-        const slotKey = `${day}_${time.replace(":","_")}`;
-
-        const isAvailable = availability[t.id]?.[slotKey];
-
-        if(!isAvailable) return false;
-
-        const currentMin = timeToMinutes(time);
+        const therapistSlots = availabilityCache[t.id] || {};
+        if(!therapistSlots[slotKey]) return false;
 
         const conflict = appointments.some(a=>{
           if(a.therapistId !== t.id) return false;
@@ -206,7 +209,8 @@ async function renderWeek(){
         cell.onclick = ()=>createAppointment({
           date,
           start: time,
-          therapistsAvailable: freeTherapists
+          therapistsAvailable: freeTherapists,
+          dayKey: day
         });
       }
 
@@ -219,44 +223,29 @@ async function renderWeek(){
    CREAR CITA SEGURA
 ========================= */
 
-async function createAppointment({ date, start, therapistsAvailable }){
+async function createAppointment({ date, start, therapistsAvailable, dayKey }){
 
   const duration =
     patientProfile.patientType === "private" ? 60 : 30;
 
   const end = addMinutes(start,duration);
 
-  for(const therapistId of therapistsAvailable){
+  for(const therapist of therapistsAvailable){
+
+    const therapistSlots = availabilityCache[therapist.id] || {};
 
     if(duration === 60){
-
       const nextSlot = addMinutes(start,30);
-      const nextKey = nextSlot.replace(":","_");
+      const slotKey1 = `${dayKey}_${start.replace(":","_")}`;
+      const slotKey2 = `${dayKey}_${nextSlot.replace(":","_")}`;
 
-      const monday = mondayOf(baseDate);
-      const dayIndex = DAYS.indexOf(
-        new Date(date).toLocaleDateString("en-US",{weekday:"short"}).toLowerCase().slice(0,3)
-      );
-
-      const slotKey1 = `${DAYS[dayIndex]}_${start.replace(":","_")}`;
-      const slotKey2 = `${DAYS[dayIndex]}_${nextKey}`;
-
-      const availSnap = await getDocs(
-        query(collection(db,"availability"),
-        where("therapistId","==",therapistId),
-        where("weekStart","==",formatDate(monday)))
-      );
-
-      let slots = {};
-      availSnap.forEach(d=>slots=d.data().slots||{});
-
-      if(!slots[slotKey1] || !slots[slotKey2]){
+      if(!therapistSlots[slotKey1] || !therapistSlots[slotKey2]){
         continue;
       }
     }
 
     await addDoc(collection(db,"appointments"),{
-      therapistId,
+      therapistId: therapist.id,
       patientId: patientProfile.id,
       patientName: `${patientProfile.nombre || ""} ${patientProfile.apellidos || ""}`.trim(),
       modality: "viladecans",
