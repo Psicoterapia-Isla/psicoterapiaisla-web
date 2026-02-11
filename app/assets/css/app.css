@@ -476,3 +476,148 @@ td {
   }
 
 }
+/* =====================================================
+   PSICOTERAPIA ISLA — SIDEBAR PRO VERSION
+===================================================== */
+
+.app-menu {
+  width: 260px;
+  background: linear-gradient(180deg, #ffffff 0%, #fbfdfc 100%);
+  border-right: 1px solid #eef2f4;
+  padding: 32px 20px;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+/* NAV CONTAINER */
+.app-nav {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.nav-left {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* LINKS BASE */
+.nav-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #374151;
+  text-decoration: none;
+  transition: all 0.18s ease;
+}
+
+/* HOVER */
+.nav-link:hover {
+  background: #f3f7f6;
+  color: #2e6f5e;
+  transform: translateX(2px);
+}
+
+/* LINK ACTIVO (auto por URL) */
+.nav-link[href*="${location.pathname.split('/').pop()}"] {
+  background: #e7f3ef;
+  color: #2e6f5e;
+  font-weight: 600;
+}
+
+/* DROPDOWN BUTTON */
+.dropdown-toggle {
+  background: none;
+  border: none;
+  width: 100%;
+  text-align: left;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 10px 14px;
+  border-radius: 14px;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  color: #111827;
+}
+
+.dropdown-toggle:hover {
+  background: #f3f7f6;
+}
+
+/* DROPDOWN CONTAINER */
+.nav-dropdown {
+  display: flex;
+  flex-direction: column;
+}
+
+/* DROPDOWN MENU */
+.dropdown-menu {
+  display: none;
+  flex-direction: column;
+  gap: 4px;
+  padding-left: 10px;
+  margin-top: 6px;
+  border-left: 2px solid #e7f3ef;
+  animation: fadeIn 0.15s ease;
+}
+
+.dropdown-menu.open {
+  display: flex;
+}
+
+/* DROPDOWN LINKS */
+.dropdown-menu a {
+  font-size: 13px;
+  padding: 6px 10px;
+  border-radius: 10px;
+  color: #6b7280;
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+
+.dropdown-menu a:hover {
+  background: #f5faf8;
+  color: #2e6f5e;
+}
+
+/* SEPARADORES */
+.dropdown-menu hr {
+  border: none;
+  border-top: 1px solid #eef2f4;
+  margin: 6px 0;
+}
+
+/* LOGOUT */
+.nav-right {
+  margin-top: auto;
+}
+
+.logout {
+  background: #f6e6ec;
+  color: #b25072;
+  text-align: center;
+  border-radius: 14px;
+  padding: 10px 14px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.logout:hover {
+  background: #f3d9e2;
+  transform: translateY(-1px);
+}
+
+/* MICRO ANIMATION */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
