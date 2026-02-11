@@ -16,10 +16,12 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 /* ================= INIT ================= */
+
 await requireAuth();
 await loadMenu();
 
 /* ================= STATE ================= */
+
 let baseDate = new Date();
 let editingId = null;
 let selectedPatient = null;
@@ -27,11 +29,13 @@ let currentSlot = null;
 let currentInvoiceId = null;
 
 /* ================= CONFIG ================= */
+
 const HOURS = Array.from({ length: 12 }, (_, i) => i + 9);
 const MINUTES = [0, 30];
 const DAYS = ["mon","tue","wed","thu","fri","sat","sun"];
 
 /* ================= DOM ================= */
+
 const grid = document.getElementById("agendaGrid");
 const weekLabel = document.getElementById("weekLabel");
 
@@ -67,8 +71,7 @@ function dayFromKey(monday,key){
 }
 
 function timeString(h,m){
-  const date = new Date(0,0,0,h,m);
-  return `${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  return `${pad(h)}:${pad(m)}`;
 }
 
 function minutesOf(time){
@@ -79,23 +82,6 @@ function minutesOf(time){
 function setFieldsDisabled(disabled){
   [phone,name,service,modality,start,end,completed,paid,amount]
     .forEach(el => el.disabled = disabled);
-}
-
-function addViewInvoiceButton(invoiceId){
-  removeViewInvoiceButton();
-  const btn = document.createElement("button");
-  btn.textContent = "Ver factura";
-  btn.className = "btn-secondary";
-  btn.id = "viewInvoiceBtn";
-  btn.onclick = () => {
-    window.location.href = `patient-invoices.html#${invoiceId}`;
-  };
-  document.querySelector(".modal-footer").prepend(btn);
-}
-
-function removeViewInvoiceButton(){
-  const old = document.getElementById("viewInvoiceBtn");
-  if(old) old.remove();
 }
 
 /* ================= FACTURACIÓN ================= */
@@ -110,13 +96,12 @@ async function getNextInvoiceNumber(therapistId){
 
     if(snap.exists()){
       next = snap.data().lastNumber + 1;
-      tx.update(ref,{ lastNumber: next, updatedAt: Timestamp.now() });
+      tx.update(ref,{ lastNumber: next });
     }else{
       tx.set(ref,{
         therapistId,
         year,
-        lastNumber: 1,
-        createdAt: Timestamp.now()
+        lastNumber: 1
       });
     }
 
@@ -124,14 +109,15 @@ async function getNextInvoiceNumber(therapistId){
   });
 }
 
-async function createInvoice(data, appointmentId, rectifies=null){
+async function createInvoice(data, appointmentId){
+
+  if(data.invoiceId) return;
 
   const num = await getNextInvoiceNumber(data.therapistId);
 
-  const inv = await addDoc(collection(db,"invoices"),{
+  const invRef = await addDoc(collection(db,"invoices"),{
     therapistId: data.therapistId,
     appointmentId,
-    rectifiesInvoiceId: rectifies || null,
     invoiceNumber: num,
     issueDate: Timestamp.now(),
     patientId: data.patientId || null,
@@ -148,10 +134,8 @@ async function createInvoice(data, appointmentId, rectifies=null){
   });
 
   await updateDoc(doc(db,"appointments",appointmentId),{
-    invoiceId: inv.id
+    invoiceId: invRef.id
   });
-
-  return inv.id;
 }
 
 /* ================= MODAL ================= */
@@ -172,9 +156,7 @@ function resetModal(){
   paid.checked = false;
   amount.value = "";
   suggestions.innerHTML = "";
-
   setFieldsDisabled(false);
-  removeViewInvoiceButton();
 }
 
 function openNew(slot){
@@ -190,7 +172,6 @@ function openEdit(a){
   editingId = a.id;
   selectedPatient = a.patient || null;
   currentSlot = { date: a.date };
-  currentInvoiceId = a.invoiceId || null;
 
   phone.value = a.phone || "";
   name.value = a.name || "";
@@ -202,9 +183,8 @@ function openEdit(a){
   paid.checked = !!a.paid;
   amount.value = a.amount || "";
 
-  if(currentInvoiceId){
+  if(a.invoiceId){
     setFieldsDisabled(true);
-    addViewInvoiceButton(currentInvoiceId);
   }
 
   modal.classList.add("show");
@@ -222,8 +202,6 @@ document.getElementById("save").onclick = async () => {
 
   const monday = mondayOf(baseDate);
   const weekStart = formatDate(monday);
-
-  /* ===== CARGAR DISPONIBILIDAD ===== */
 
   const availRef = doc(db,"availability",`${user.uid}_${weekStart}`);
   const availSnap = await getDoc(availRef);
@@ -243,7 +221,6 @@ document.getElementById("save").onclick = async () => {
 
     const dayIndex = new Date(currentSlot.date).getDay();
     const dayKey = DAYS[(dayIndex + 6) % 7];
-
     const slotKey = `${dayKey}_${h}_${min}`;
 
     if(!availability[slotKey]){
@@ -252,7 +229,28 @@ document.getElementById("save").onclick = async () => {
     }
   }
 
-  /* ===== CREAR / ACTUALIZAR ===== */
+  /* ===== VALIDAR SOLAPAMIENTO ===== */
+
+  const apptSnap = await getDocs(query(
+    collection(db,"appointments"),
+    where("therapistId","==",user.uid),
+    where("date","==",currentSlot.date)
+  ));
+
+  const appointments = [];
+  apptSnap.forEach(d=>appointments.push({ id:d.id, ...d.data() }));
+
+  if(appointments.some(a=>{
+    if(editingId && a.id===editingId) return false;
+    const s=minutesOf(a.start);
+    const e=minutesOf(a.end);
+    return startMin < e && endMin > s;
+  })){
+    alert("Solapamiento con otra cita");
+    return;
+  }
+
+  /* ===== GUARDAR ===== */
 
   const data = {
     therapistId: user.uid,
@@ -299,21 +297,21 @@ async function renderWeek(){
   grid.innerHTML = "";
 
   const monday = mondayOf(baseDate);
-  weekLabel.textContent = monday.toLocaleDateString("es-ES");
+  const weekStart = formatDate(monday);
+  const weekEnd = formatDate(new Date(monday.getTime()+6*86400000));
+
+  weekLabel.textContent =
+    monday.toLocaleDateString("es-ES",{day:"numeric",month:"short"}) +
+    " – " +
+    new Date(monday.getTime()+6*86400000)
+      .toLocaleDateString("es-ES",{day:"numeric",month:"short",year:"numeric"});
 
   const user = auth.currentUser;
   if(!user) return;
 
-  const weekStart = formatDate(monday);
-  const weekEnd = formatDate(new Date(monday.getTime()+6*86400000));
-
-  /* ===== CARGAR DISPONIBILIDAD ===== */
-
   const availRef = doc(db,"availability",`${user.uid}_${weekStart}`);
   const availSnap = await getDoc(availRef);
   const availability = availSnap.exists() ? availSnap.data().slots : {};
-
-  /* ===== CARGAR CITAS SEMANA ===== */
 
   const apptSnap = await getDocs(query(
     collection(db,"appointments"),
@@ -325,8 +323,6 @@ async function renderWeek(){
   const appointments = [];
   apptSnap.forEach(d=>appointments.push({ id:d.id, ...d.data() }));
 
-  /* ===== HEADER ===== */
-
   grid.appendChild(document.createElement("div"));
 
   DAYS.forEach((_,i)=>{
@@ -337,8 +333,6 @@ async function renderWeek(){
     h.textContent = d.toLocaleDateString("es-ES",{weekday:"short",day:"numeric"});
     grid.appendChild(h);
   });
-
-  /* ===== GRID ===== */
 
   HOURS.forEach(hour=>{
     MINUTES.forEach(minute=>{
@@ -357,10 +351,8 @@ async function renderWeek(){
 
         const appointment = appointments.find(a=>{
           if(a.date !== date) return false;
-          const startMin=minutesOf(a.start);
-          const endMin=minutesOf(a.end);
           const cur=hour*60+minute;
-          return cur>=startMin && cur<endMin;
+          return cur>=minutesOf(a.start) && cur<minutesOf(a.end);
         });
 
         if(appointment){
