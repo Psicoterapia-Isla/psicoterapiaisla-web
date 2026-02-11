@@ -24,8 +24,9 @@ let baseDate = new Date();
 let editingId = null;
 let selectedPatient = null;
 let currentSlot = null;
+let currentInvoiceId = null;
 
-/* ===== MEDIA HORA REAL ===== */
+/* ================= CONFIG ================= */
 const HOURS = Array.from({ length: 12 }, (_, i) => i + 9);
 const MINUTES = [0, 30];
 const DAYS = ["mon","tue","wed","thu","fri","sat","sun"];
@@ -74,6 +75,30 @@ function minutesOf(time){
   return h*60 + m;
 }
 
+function setFieldsDisabled(disabled){
+  [phone,name,service,modality,start,end,completed,paid,amount]
+    .forEach(el => el.disabled = disabled);
+}
+
+function addViewInvoiceButton(invoiceId){
+  removeViewInvoiceButton();
+
+  const btn = document.createElement("button");
+  btn.textContent = "Ver factura";
+  btn.className = "btn-secondary";
+  btn.id = "viewInvoiceBtn";
+  btn.onclick = () => {
+    window.location.href = `patient-invoices.html#${invoiceId}`;
+  };
+
+  document.querySelector(".modal-footer").prepend(btn);
+}
+
+function removeViewInvoiceButton(){
+  const old = document.getElementById("viewInvoiceBtn");
+  if(old) old.remove();
+}
+
 /* ================= FACTURACIÓN ================= */
 
 async function getNextInvoiceNumber(therapistId){
@@ -100,43 +125,43 @@ async function getNextInvoiceNumber(therapistId){
   });
 }
 
-async function maybeCreateInvoice(id,data){
-
-  if(!data.completed || !data.paid || !data.amount) return;
+async function createInvoice(data, appointmentId, rectifies=null){
 
   const num = await getNextInvoiceNumber(data.therapistId);
 
   const inv = await addDoc(collection(db,"invoices"),{
     therapistId: data.therapistId,
-    appointmentId: id,
+    appointmentId,
+    rectifiesInvoiceId: rectifies || null,
     invoiceNumber: num,
     issueDate: Timestamp.now(),
-
     patientId: data.patientId || null,
     patientName: data.name || null,
     patientType: data.patient?.patientType || "private",
     mutualName: data.patient?.mutual?.name || null,
-
     concept: data.service,
     baseAmount: data.amount,
     vatRate: 0,
     vatExemptReason: "Exento IVA – Art. 20.3 Ley 37/1992",
     totalAmount: data.amount,
     status: "paid",
-
     createdAt: Timestamp.now()
   });
 
-  await updateDoc(doc(db,"appointments",id),{
+  await updateDoc(doc(db,"appointments",appointmentId),{
     invoiceId: inv.id
   });
+
+  return inv.id;
 }
 
 /* ================= MODAL ================= */
+
 function resetModal(){
   editingId = null;
   selectedPatient = null;
   currentSlot = null;
+  currentInvoiceId = null;
 
   phone.value = "";
   name.value = "";
@@ -148,15 +173,16 @@ function resetModal(){
   paid.checked = false;
   amount.value = "";
   suggestions.innerHTML = "";
+
+  setFieldsDisabled(false);
+  removeViewInvoiceButton();
 }
 
 function openNew(slot){
   resetModal();
   currentSlot = slot;
-
   start.value = timeString(slot.hour, slot.minute);
   end.value = timeString(slot.hour, slot.minute + 60);
-
   modal.classList.add("show");
 }
 
@@ -165,6 +191,7 @@ function openEdit(a){
   editingId = a.id;
   selectedPatient = a.patient || null;
   currentSlot = { date: a.date };
+  currentInvoiceId = a.invoiceId || null;
 
   phone.value = a.phone || "";
   name.value = a.name || "";
@@ -176,6 +203,11 @@ function openEdit(a){
   paid.checked = !!a.paid;
   amount.value = a.amount || "";
 
+  if(currentInvoiceId){
+    setFieldsDisabled(true);
+    addViewInvoiceButton(currentInvoiceId);
+  }
+
   modal.classList.add("show");
 }
 
@@ -183,6 +215,7 @@ document.getElementById("close").onclick =
   () => modal.classList.remove("show");
 
 /* ================= AUTOCOMPLETE ================= */
+
 async function searchPatients(term){
   if(!term || term.length < 2){
     suggestions.innerHTML = "";
@@ -202,14 +235,12 @@ async function searchPatients(term){
     div.textContent = `${p.nombre || ""} ${p.apellidos || ""} · ${p.telefono || ""}`;
 
     div.onclick = () => {
-
       selectedPatient = { id: d.id, ...p };
 
       phone.value = p.telefono || "";
       name.value = `${p.nombre || ""} ${p.apellidos || ""}`.trim();
 
       const duration = p.patientType === "mutual" ? 30 : 60;
-
       const [h,m] = start.value.split(":").map(Number);
       end.value = timeString(h, m + duration);
 
@@ -228,8 +259,8 @@ phone.oninput = e => searchPatients(e.target.value);
 name.oninput  = e => searchPatients(e.target.value);
 
 /* ================= VALIDACIONES ================= */
-function validateAvailability(availability, date, startTime, endTime){
 
+function validateAvailability(availability, date, startTime, endTime){
   const startMin = minutesOf(startTime);
   const endMin = minutesOf(endTime);
 
@@ -241,16 +272,13 @@ function validateAvailability(availability, date, startTime, endTime){
     const dayKey = DAYS[(dayIndex + 6) % 7];
     const slotKey = `${dayKey}_${h}_${min}`;
 
-    if(!availability[slotKey]){
-      return false;
-    }
+    if(!availability[slotKey]) return false;
   }
 
   return true;
 }
 
 function validateOverlap(appointments, date, startTime, endTime, ignoreId=null){
-
   const startMin = minutesOf(startTime);
   const endMin = minutesOf(endTime);
 
@@ -266,6 +294,7 @@ function validateOverlap(appointments, date, startTime, endTime, ignoreId=null){
 }
 
 /* ================= SAVE ================= */
+
 document.getElementById("save").onclick = async () => {
 
   const user = auth.currentUser;
@@ -323,8 +352,17 @@ document.getElementById("save").onclick = async () => {
   let id;
 
   if(editingId){
+
+    const oldSnap = await getDoc(doc(db,"appointments",editingId));
+    const oldData = oldSnap.data();
+
+    if(oldData.invoiceId){
+      await createInvoice(data, editingId, oldData.invoiceId);
+    }
+
     await updateDoc(doc(db,"appointments",editingId),data);
     id = editingId;
+
   }else{
     const ref = await addDoc(collection(db,"appointments"),{
       ...data,
@@ -333,13 +371,16 @@ document.getElementById("save").onclick = async () => {
     id = ref.id;
   }
 
-  await maybeCreateInvoice(id,data);
+  if(data.completed && data.paid && data.amount){
+    await createInvoice(data,id);
+  }
 
   modal.classList.remove("show");
   await renderWeek();
 };
 
 /* ================= RENDER ================= */
+
 async function renderWeek(){
 
   grid.innerHTML = "";
@@ -349,17 +390,9 @@ async function renderWeek(){
   const user = auth.currentUser;
   if(!user) return;
 
-  const weekKey = formatDate(monday);
-
-  const availRef = doc(db,"availability",`${user.uid}_${weekKey}`);
-  const availSnap = await getDoc(availRef);
-  const availability = availSnap.exists() ? availSnap.data().slots : {};
-
   const apptSnap = await getDocs(query(
     collection(db,"appointments"),
-    where("therapistId","==",user.uid),
-    where("date",">=",formatDate(monday)),
-    where("date","<=",formatDate(new Date(monday.getTime()+6*86400000)))
+    where("therapistId","==",user.uid)
   ));
 
   const appointments = [];
@@ -377,14 +410,12 @@ async function renderWeek(){
 
   HOURS.forEach(hour=>{
     MINUTES.forEach(minute=>{
-
       const label=document.createElement("div");
       label.textContent=timeString(hour,minute);
       grid.appendChild(label);
 
       DAYS.forEach(day=>{
         const date=formatDate(dayFromKey(monday,day));
-        const slotKey=`${day}_${hour}_${minute}`;
         const cell=document.createElement("div");
         cell.className="slot";
 
@@ -403,13 +434,9 @@ async function renderWeek(){
           );
           cell.innerHTML=`<strong>${appointment.name||"—"}</strong>`;
           cell.onclick=()=>openEdit(appointment);
-        }
-        else if(availability[slotKey]){
+        }else{
           cell.classList.add("available");
           cell.onclick=()=>openNew({date,hour,minute});
-        }
-        else{
-          cell.classList.add("disabled");
         }
 
         grid.appendChild(cell);
@@ -420,6 +447,7 @@ async function renderWeek(){
 }
 
 /* ================= NAV ================= */
+
 prevWeek.onclick=()=>{
   baseDate.setDate(baseDate.getDate()-7);
   renderWeek();
