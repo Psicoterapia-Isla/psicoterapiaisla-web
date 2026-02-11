@@ -7,6 +7,7 @@ import {
   query,
   where,
   getDocs,
+  getDoc,
   addDoc,
   updateDoc,
   doc,
@@ -67,6 +68,11 @@ function timeString(h,m){
   return `${pad(h)}:${pad(m)}`;
 }
 
+function minutesOf(time){
+  const [h,m] = time.split(":").map(Number);
+  return h*60 + m;
+}
+
 /* ================= MODAL ================= */
 function resetModal(){
   editingId = null;
@@ -90,10 +96,7 @@ function openNew(slot){
   currentSlot = slot;
 
   start.value = timeString(slot.hour, slot.minute);
-
-  const duration = selectedPatient?.sessionDuration || 60;
-  const endDate = new Date(0,0,0,slot.hour,slot.minute + duration);
-  end.value = timeString(endDate.getHours(), endDate.getMinutes());
+  end.value = timeString(slot.hour, slot.minute + 60);
 
   modal.classList.add("show");
 }
@@ -146,13 +149,11 @@ async function searchPatients(term){
       phone.value = p.telefono || "";
       name.value = `${p.nombre || ""} ${p.apellidos || ""}`.trim();
 
-      const duration = p.sessionDuration || (p.patientType === "mutual" ? 30 : 60);
+      const duration = p.patientType === "mutual" ? 30 : 60;
 
-      if(start.value){
-        const [h,m] = start.value.split(":").map(Number);
-        const endDate = new Date(0,0,0,h,m + duration);
-        end.value = timeString(endDate.getHours(), endDate.getMinutes());
-      }
+      const [h,m] = start.value.split(":").map(Number);
+      const endDate = new Date(0,0,0,h,m + duration);
+      end.value = timeString(endDate.getHours(), endDate.getMinutes());
 
       if(p.patientType === "mutual"){
         amount.value = p.mutual?.pricePerSession || 0;
@@ -168,86 +169,41 @@ async function searchPatients(term){
 phone.oninput = e => searchPatients(e.target.value);
 name.oninput  = e => searchPatients(e.target.value);
 
-/* ================= WHATSAPP ================= */
-function openWhatsAppNotification(data){
+/* ================= VALIDACIONES ================= */
+function validateAvailability(availability, date, startTime, endTime){
 
-  if(!data.phone) return;
+  const startMin = minutesOf(startTime);
+  const endMin = minutesOf(endTime);
 
-  let cleanPhone = data.phone.replace(/\s+/g,"");
+  for(let m = startMin; m < endMin; m += 30){
+    const h = Math.floor(m/60);
+    const min = m % 60;
 
-  if(!cleanPhone.startsWith("+")){
-    if(cleanPhone.startsWith("6") || cleanPhone.startsWith("7")){
-      cleanPhone = "34" + cleanPhone;
+    const dayIndex = new Date(date).getDay();
+    const dayKey = DAYS[(dayIndex + 6) % 7];
+    const slotKey = `${dayKey}_${h}_${min}`;
+
+    if(!availability[slotKey]){
+      return false;
     }
   }
 
-  const msg = `
-Hola ${data.name || ""} 😊
-
-Te confirmo tu cita en *Psicoterapia Isla*:
-
-📅 ${data.date}
-⏰ ${data.start} – ${data.end}
-📍 ${data.modality}
-
-Si necesitas modificarla, escríbeme.
-`.trim();
-
-  window.open(
-    "https://wa.me/" + cleanPhone + "?text=" + encodeURIComponent(msg),
-    "_blank"
-  );
+  return true;
 }
 
-/* ================= FACTURACIÓN ================= */
-async function getNextInvoiceNumber(therapistId){
-  const year = new Date().getFullYear();
-  const ref = doc(db,"invoice_counters",`${therapistId}_${year}`);
+function validateOverlap(appointments, date, startTime, endTime, ignoreId=null){
 
-  return await runTransaction(db, async tx => {
-    const snap = await tx.get(ref);
-    let next = 1;
+  const startMin = minutesOf(startTime);
+  const endMin = minutesOf(endTime);
 
-    if(snap.exists()){
-      next = snap.data().lastNumber + 1;
-      tx.update(ref,{ lastNumber: next, updatedAt: Timestamp.now() });
-    }else{
-      tx.set(ref,{
-        therapistId,
-        year,
-        lastNumber: 1,
-        createdAt: Timestamp.now()
-      });
-    }
+  return appointments.some(a=>{
+    if(a.date !== date) return false;
+    if(ignoreId && a.id === ignoreId) return false;
 
-    return `PI-${year}-${String(next).padStart(4,"0")}`;
-  });
-}
+    const aStart = minutesOf(a.start);
+    const aEnd = minutesOf(a.end);
 
-async function maybeCreateInvoice(id,data){
-
-  if(!data.completed || !data.paid || !data.amount) return;
-
-  const num = await getNextInvoiceNumber(data.therapistId);
-
-  const inv = await addDoc(collection(db,"invoices"),{
-    therapistId: data.therapistId,
-    appointmentId: id,
-    invoiceNumber: num,
-    issueDate: Timestamp.now(),
-    patientId: data.patientId || null,
-    patientName: data.name || null,
-    concept: data.service,
-    baseAmount: data.amount,
-    vatRate: 0,
-    vatExemptReason: "Exento IVA – Art. 20.3 Ley 37/1992",
-    totalAmount: data.amount,
-    status: "paid",
-    createdAt: Timestamp.now()
-  });
-
-  await updateDoc(doc(db,"appointments",id),{
-    invoiceId: inv.id
+    return startMin < aEnd && endMin > aStart;
   });
 }
 
@@ -257,18 +213,49 @@ document.getElementById("save").onclick = async () => {
   const user = auth.currentUser;
   if(!user || !currentSlot) return;
 
+  const monday = mondayOf(baseDate);
+  const weekKey = formatDate(monday);
+
+  const availRef = doc(db,"availability",`${user.uid}_${weekKey}`);
+  const availSnap = await getDoc(availRef);
+  const availability = availSnap.exists() ? availSnap.data().slots : {};
+
+  const startTime = start.value;
+  const endTime = end.value;
+
+  if(!validateAvailability(availability,currentSlot.date,startTime,endTime)){
+    alert("Horario fuera de disponibilidad");
+    return;
+  }
+
+  const apptSnap = await getDocs(query(
+    collection(db,"appointments"),
+    where("therapistId","==",user.uid),
+    where("date","==",currentSlot.date)
+  ));
+
+  const appointments = [];
+  apptSnap.forEach(d=>appointments.push({ id:d.id, ...d.data() }));
+
+  if(validateOverlap(appointments,currentSlot.date,startTime,endTime,editingId)){
+    alert("Solapamiento con otra cita");
+    return;
+  }
+
+  const duration = selectedPatient?.patientType === "mutual" ? 30 : 60;
+
   const data = {
     therapistId: user.uid,
     patientId: selectedPatient?.id || null,
     patient: selectedPatient || null,
-    sessionDuration: selectedPatient?.sessionDuration || 60,
+    sessionDuration: duration,
     date: currentSlot.date,
     phone: phone.value,
     name: name.value,
     service: service.value,
     modality: modality.value,
-    start: start.value,
-    end: end.value,
+    start: startTime,
+    end: endTime,
     completed: completed.checked,
     paid: paid.checked,
     amount: Number(amount.value || 0),
@@ -281,19 +268,15 @@ document.getElementById("save").onclick = async () => {
     await updateDoc(doc(db,"appointments",editingId),data);
     id = editingId;
   }else{
-    const ref = await addDoc(
-      collection(db,"appointments"),
-      { ...data, createdAt: Timestamp.now() }
-    );
+    const ref = await addDoc(collection(db,"appointments"),{
+      ...data,
+      createdAt: Timestamp.now()
+    });
     id = ref.id;
   }
 
-  await maybeCreateInvoice(id,data);
-
   modal.classList.remove("show");
   await renderWeek();
-
-  openWhatsAppNotification(data);
 };
 
 /* ================= RENDER ================= */
@@ -306,19 +289,12 @@ async function renderWeek(){
   const user = auth.currentUser;
   if(!user) return;
 
-  /* Cargar disponibilidad */
-  const availSnap = await getDocs(query(
-    collection(db,"availability"),
-    where("therapistId","==",user.uid),
-    where("weekStart","==",formatDate(monday))
-  ));
+  const weekKey = formatDate(monday);
 
-  let availability = {};
-  availSnap.forEach(d=>{
-    availability = d.data().slots || {};
-  });
+  const availRef = doc(db,"availability",`${user.uid}_${weekKey}`);
+  const availSnap = await getDoc(availRef);
+  const availability = availSnap.exists() ? availSnap.data().slots : {};
 
-  /* Cargar citas */
   const apptSnap = await getDocs(query(
     collection(db,"appointments"),
     where("therapistId","==",user.uid),
@@ -354,10 +330,8 @@ async function renderWeek(){
 
         const appointment = appointments.find(a=>{
           if(a.date !== date) return false;
-          const [sh,sm]=a.start.split(":").map(Number);
-          const [eh,em]=a.end.split(":").map(Number);
-          const startMin=sh*60+sm;
-          const endMin=eh*60+em;
+          const startMin=minutesOf(a.start);
+          const endMin=minutesOf(a.end);
           const cur=hour*60+minute;
           return cur>=startMin && cur<endMin;
         });
