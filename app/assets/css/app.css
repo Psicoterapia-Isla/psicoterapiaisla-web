@@ -563,7 +563,21 @@ textarea:focus {
     border-right: none;
     border-bottom: 1px solid #e6e8ec;
   }
+.suggestions {
+  position: absolute;
+  width: 100%;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  box-shadow: 0 8px 20px rgba(0,0,0,.08);
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 3000;
+}
 
+.modal-body {
+  position: relative;
+}
   .app-content {
     padding: 24px;
   }
