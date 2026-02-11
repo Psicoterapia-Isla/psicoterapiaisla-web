@@ -8,9 +8,7 @@ import {
   Timestamp
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-/* =========================
-   CONFIGURACIÓN HORARIA
-========================= */
+/* ================= CONFIG ================= */
 
 const START_HOUR = 9;
 const END_HOUR = 21;
@@ -27,30 +25,24 @@ function generateSlots() {
 const TIME_SLOTS = generateSlots();
 const DAYS = ["mon","tue","wed","thu","fri","sat","sun"];
 
-/* =========================
-   DOM
-========================= */
+/* ================= DOM ================= */
 
 const grid = document.getElementById("agendaGrid");
 const weekLabel = document.getElementById("weekLabel");
-
 const prevWeek = document.getElementById("prevWeek");
 const nextWeek = document.getElementById("nextWeek");
 const todayBtn = document.getElementById("today");
 
-/* =========================
-   STATE
-========================= */
+/* ================= STATE ================= */
 
 let baseDate = new Date();
 let currentUser = null;
 let patientProfile = null;
 let therapists = [];
 let availabilityCache = {};
+let weeklyAppointments = [];
 
-/* =========================
-   FECHAS
-========================= */
+/* ================= DATE HELPERS ================= */
 
 function mondayOf(d){
   const x = new Date(d);
@@ -81,16 +73,11 @@ function timeToMinutes(t){
   return h*60+m;
 }
 
-function getDayKeyFromIndex(index){
-  return DAYS[index];
-}
-
-/* =========================
-   AUTH + PERFIL
-========================= */
+/* ================= AUTH ================= */
 
 auth.onAuthStateChanged(async user=>{
   if(!user) return;
+
   currentUser = user;
 
   const pSnap = await getDocs(
@@ -109,26 +96,18 @@ auth.onAuthStateChanged(async user=>{
   const tSnap = await getDocs(collection(db,"therapists"));
   therapists = tSnap.docs.map(d=>({ id:d.id, ...d.data() }));
 
-  renderWeek();
+  await renderWeek();
 });
 
-/* =========================
-   RENDER
-========================= */
+/* ================= LOAD WEEK DATA ================= */
 
-async function renderWeek(){
-
-  if(!grid) return;
-
-  grid.innerHTML = "";
-
-  const monday = mondayOf(baseDate);
-  if(weekLabel) weekLabel.textContent = formatWeekLabel(monday);
+async function loadWeekData(monday){
 
   const from = formatDate(monday);
   const to = formatDate(new Date(monday.getTime()+6*86400000));
 
   /* DISPONIBILIDAD */
+
   const availSnap = await getDocs(
     query(collection(db,"availability"),
     where("weekStart","==",from))
@@ -140,23 +119,43 @@ async function renderWeek(){
   });
 
   /* CITAS */
+
   const apptSnap = await getDocs(
     query(collection(db,"appointments"),
     where("date",">=",from),
     where("date","<=",to))
   );
 
-  const appointments = [];
+  weeklyAppointments = [];
   apptSnap.forEach(d=>{
-    appointments.push({ id:d.id, ...d.data() });
+    weeklyAppointments.push({ id:d.id, ...d.data() });
   });
+}
 
-  /* CABECERA */
+/* ================= RENDER ================= */
+
+async function renderWeek(){
+
+  if(!grid) return;
+
+  grid.innerHTML = "";
+
+  const monday = mondayOf(baseDate);
+
+  if(weekLabel){
+    weekLabel.textContent = formatWeekLabel(monday);
+  }
+
+  await loadWeekData(monday);
+
+  /* HEADER */
+
   grid.appendChild(document.createElement("div"));
 
   DAYS.forEach((_,i)=>{
     const d = new Date(monday);
     d.setDate(d.getDate()+i);
+
     const el = document.createElement("div");
     el.className="day-label";
     el.textContent=d.toLocaleDateString("es-ES",{weekday:"short",day:"numeric"});
@@ -164,6 +163,7 @@ async function renderWeek(){
   });
 
   /* GRID */
+
   TIME_SLOTS.forEach(time=>{
 
     const hourLabel = document.createElement("div");
@@ -186,9 +186,10 @@ async function renderWeek(){
       const freeTherapists = therapists.filter(t=>{
 
         const therapistSlots = availabilityCache[t.id] || {};
+
         if(!therapistSlots[slotKey]) return false;
 
-        const conflict = appointments.some(a=>{
+        const conflict = weeklyAppointments.some(a=>{
           if(a.therapistId !== t.id) return false;
           if(a.date !== date) return false;
 
@@ -219,9 +220,7 @@ async function renderWeek(){
   });
 }
 
-/* =========================
-   CREAR CITA SEGURA
-========================= */
+/* ================= CREATE APPOINTMENT ================= */
 
 async function createAppointment({ date, start, therapistsAvailable, dayKey }){
 
@@ -234,15 +233,39 @@ async function createAppointment({ date, start, therapistsAvailable, dayKey }){
 
     const therapistSlots = availabilityCache[therapist.id] || {};
 
+    /* VALIDAR SEGUNDA MEDIA HORA SI ES 60 */
+
     if(duration === 60){
+
       const nextSlot = addMinutes(start,30);
+
       const slotKey1 = `${dayKey}_${start.replace(":","_")}`;
       const slotKey2 = `${dayKey}_${nextSlot.replace(":","_")}`;
 
       if(!therapistSlots[slotKey1] || !therapistSlots[slotKey2]){
         continue;
       }
+
+      /* VALIDAR QUE NO HAYA CONFLICTO EN SEGUNDA MEDIA HORA */
+
+      const nextMin = timeToMinutes(nextSlot);
+
+      const conflictSecondHalf = weeklyAppointments.some(a=>{
+        if(a.therapistId !== therapist.id) return false;
+        if(a.date !== date) return false;
+
+        const startMin = timeToMinutes(a.start);
+        const endMin = timeToMinutes(a.end);
+
+        return nextMin >= startMin && nextMin < endMin;
+      });
+
+      if(conflictSecondHalf){
+        continue;
+      }
     }
+
+    /* CREAR CITA */
 
     await addDoc(collection(db,"appointments"),{
       therapistId: therapist.id,
@@ -258,16 +281,14 @@ async function createAppointment({ date, start, therapistsAvailable, dayKey }){
     });
 
     alert("Cita reservada correctamente");
-    renderWeek();
+    await renderWeek();
     return;
   }
 
   alert("No hay disponibilidad completa para esa duración.");
 }
 
-/* =========================
-   NAV
-========================= */
+/* ================= NAV ================= */
 
 if(prevWeek){
   prevWeek.onclick=()=>{
