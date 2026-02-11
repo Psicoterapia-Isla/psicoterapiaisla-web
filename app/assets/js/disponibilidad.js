@@ -10,9 +10,9 @@ import {
   onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-/* =========================
-   CONFIGURACIÓN 30 MIN
-========================= */
+/* =====================================================
+   CONFIGURACIÓN
+===================================================== */
 
 const START_HOUR = 9;
 const END_HOUR = 21;
@@ -30,9 +30,9 @@ const TIME_SLOTS = generateSlots();
 const DAYS = ["mon","tue","wed","thu","fri","sat","sun"];
 const LABELS = ["L","M","X","J","V","S","D"];
 
-/* =========================
+/* =====================================================
    DOM
-========================= */
+===================================================== */
 
 const grid = document.getElementById("grid");
 const saveBtn = document.getElementById("save");
@@ -41,9 +41,9 @@ const prevWeek = document.getElementById("prevWeek");
 const nextWeek = document.getElementById("nextWeek");
 const todayWeek = document.getElementById("todayWeek");
 
-/* =========================
+/* =====================================================
    FECHAS
-========================= */
+===================================================== */
 
 function mondayOf(d){
   const x = new Date(d);
@@ -59,9 +59,9 @@ function formatWeekLabel(monday){
   return `${monday.toLocaleDateString("es-ES",{day:"numeric",month:"short"})} – ${end.toLocaleDateString("es-ES",{day:"numeric",month:"short",year:"numeric"})}`;
 }
 
-/* =========================
+/* =====================================================
    STATE
-========================= */
+===================================================== */
 
 let baseDate = new Date();
 let currentMonday = mondayOf(baseDate);
@@ -69,9 +69,9 @@ let weekKey = currentMonday.toISOString().slice(0,10);
 let state = {};
 let currentUser = null;
 
-/* =========================
+/* =====================================================
    HELPERS
-========================= */
+===================================================== */
 
 function norm(k){
   state[k] ??= false;
@@ -91,9 +91,9 @@ function isTodayInThisWeek(dayIndex){
   );
 }
 
-/* =========================
+/* =====================================================
    RENDER
-========================= */
+===================================================== */
 
 function render(hasAvailability=true){
 
@@ -149,7 +149,7 @@ function render(hasAvailability=true){
 
       const btn = document.createElement("button");
       btn.className = `mode ${state[key] ? "on" : ""}`;
-      btn.textContent = state[key] ? "Disponible" : "—";
+      btn.textContent = state[key] ? "Disponible" : "";
 
       btn.onclick = () => {
         state[key] = !state[key];
@@ -163,9 +163,9 @@ function render(hasAvailability=true){
   });
 }
 
-/* =========================
+/* =====================================================
    LOAD
-========================= */
+===================================================== */
 
 async function loadWeek(){
   if(!currentUser) return;
@@ -184,9 +184,9 @@ async function loadWeek(){
   }
 }
 
-/* =========================
+/* =====================================================
    SAVE
-========================= */
+===================================================== */
 
 async function saveWeek(){
   if(!currentUser) return;
@@ -203,9 +203,9 @@ async function saveWeek(){
   alert("Disponibilidad guardada correctamente");
 }
 
-/* =========================
+/* =====================================================
    NAV
-========================= */
+===================================================== */
 
 if (prevWeek) {
   prevWeek.onclick = () => {
@@ -228,9 +228,9 @@ if (todayWeek) {
   };
 }
 
-/* =========================
+/* =====================================================
    AUTH
-========================= */
+===================================================== */
 
 onAuthStateChanged(auth, async user=>{
   if(!user) return;
