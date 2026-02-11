@@ -15,23 +15,36 @@
 
   <h1>Facturación</h1>
 
-  <div class="card">
+ <div class="card">
 
-    <label>Paciente</label>
-    <input type="text" id="patientFilter" placeholder="Nombre del paciente">
+  <label>Paciente</label>
+  <input type="text" id="patientFilter" placeholder="Nombre del paciente">
 
-    <label>Mes</label>
-    <input type="month" id="monthFilter">
+  <label>Tipo</label>
+  <select id="typeFilter">
+    <option value="">Todos</option>
+    <option value="private">Privado</option>
+    <option value="mutual">Mutua</option>
+  </select>
 
-    <button id="applyFilters" class="btn-primary">
-      Filtrar
-    </button>
-
+  <div id="mutualWrapper" style="display:none;">
+    <label>Mutua</label>
+    <select id="mutualFilter">
+      <option value="">Todas</option>
+    </select>
   </div>
 
-  <div id="summary" class="card"></div>
+  <label>Mes</label>
+  <input type="month" id="monthFilter">
 
-  <div id="list"></div>
+  <button id="applyFilters" class="btn-primary">
+    Filtrar
+  </button>
+
+</div>
+
+<div id="summary" class="card"></div>
+<div id="list"></div>
 
 </main>
 
