@@ -24,6 +24,7 @@ function formatDate(date) {
    INICIALIZACIÓN
 ========================= */
 export async function initAgendaPaciente(user) {
+
   if (!user) throw new Error("Usuario no inicializado");
 
   currentUser = user;
@@ -71,6 +72,7 @@ function bindDayNavigation() {
    FECHA
 ========================= */
 function renderDate() {
+
   const el = document.getElementById("current-day");
   if (!el) return;
 
@@ -83,12 +85,13 @@ function renderDate() {
 }
 
 /* =========================
-   CITA DEL DÍA (CORREGIDO)
+   CITA DEL DÍA (MODALIDAD COMPLETA)
 ========================= */
 async function loadAppointmentForDay() {
 
   const box = document.getElementById("appointment-today");
   const content = document.getElementById("appointment-content");
+
   if (!box || !content || !patientProfile) return;
 
   box.style.display = "none";
@@ -107,10 +110,21 @@ async function loadAppointmentForDay() {
 
   const a = snap.docs[0].data();
 
+  /* 🔥 Mostrar modalidad real */
+  let modalityLabel = "Presencial";
+
+  if (a.modality === "online") {
+    modalityLabel = "Online";
+  } else if (a.modality === "viladecans") {
+    modalityLabel = "Presencial · Viladecans";
+  } else if (a.modality === "badalona") {
+    modalityLabel = "Presencial · Badalona";
+  }
+
   content.innerHTML = `
     <p><strong>${a.service || "Sesión terapéutica"}</strong></p>
     <p>${a.start} – ${a.end}</p>
-    <p>${a.modality === "online" ? "Online" : "Presencial"}</p>
+    <p>${modalityLabel}</p>
     <p>${a.completed ? "✅ Sesión realizada" : "🕒 Sesión pendiente"}</p>
   `;
 
@@ -118,7 +132,7 @@ async function loadAppointmentForDay() {
 }
 
 /* =========================
-   CARGAR AGENDA
+   CARGAR AGENDA PERSONAL
 ========================= */
 export async function loadAgendaPaciente() {
 
@@ -129,7 +143,8 @@ export async function loadAgendaPaciente() {
   const ref = doc(db, "agendaPaciente", `${currentUser.uid}_${dateKey}`);
   const snap = await getDoc(ref);
 
-  // limpiar
+  /* LIMPIAR CAMPOS */
+
   document.querySelectorAll("[data-hour]").forEach(t => t.value = "");
   document.getElementById("reto-diario").value = "";
   document.getElementById("notas-contactos").value = "";
@@ -138,7 +153,10 @@ export async function loadAgendaPaciente() {
     .querySelectorAll('input[name="emocion"]')
     .forEach(r => r.checked = false);
 
+  /* RELLENAR SI EXISTE */
+
   if (snap.exists()) {
+
     const data = snap.data();
 
     Object.entries(data.plan || {}).forEach(([hour, value]) => {
@@ -162,7 +180,7 @@ export async function loadAgendaPaciente() {
 }
 
 /* =========================
-   GUARDAR AGENDA
+   GUARDAR AGENDA PERSONAL
 ========================= */
 export async function saveAgendaPaciente() {
 
