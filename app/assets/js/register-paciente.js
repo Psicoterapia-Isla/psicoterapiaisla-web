@@ -1,30 +1,65 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8">
-  <title>Registro paciente | Psicoterapia Isla</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="./assets/css/app.css">
-</head>
+import { auth, db } from "./firebase.js";
+import {
+  createUserWithEmailAndPassword
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-<body class="auth-layout">
+import {
+  doc,
+  setDoc,
+  serverTimestamp
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-  <div class="auth-card">
-    <h2>Crear cuenta</h2>
+const nombreInput = document.getElementById("nombre");
+const apellidosInput = document.getElementById("apellidos");
+const emailInput = document.getElementById("email");
+const passwordInput = document.getElementById("password");
+const registerBtn = document.getElementById("registerBtn");
+const errorMsg = document.getElementById("errorMsg");
 
-    <input id="nombre" placeholder="Nombre">
-    <input id="apellidos" placeholder="Apellidos">
-    <input id="email" type="email" placeholder="Email">
-    <input id="password" type="password" placeholder="Contraseña">
+registerBtn.addEventListener("click", async () => {
 
-    <button id="registerBtn" class="btn-primary">
-      Crear cuenta
-    </button>
+  errorMsg.textContent = "";
 
-    <p id="errorMsg" class="error-text"></p>
-  </div>
+  const nombre = nombreInput.value.trim();
+  const apellidos = apellidosInput.value.trim();
+  const email = emailInput.value.trim();
+  const password = passwordInput.value.trim();
 
-  <script type="module" src="./assets/js/register-paciente.js"></script>
+  if (!nombre || !email || !password) {
+    errorMsg.textContent = "Completa los campos obligatorios";
+    return;
+  }
 
-</body>
-</html>
+  try {
+
+    // 1️⃣ Crear usuario en Auth
+    const cred = await createUserWithEmailAndPassword(auth, email, password);
+    const user = cred.user;
+
+    // 2️⃣ Crear documento en users
+    await setDoc(doc(db, "users", user.uid), {
+      role: "patient",
+      createdAt: serverTimestamp()
+    });
+
+    // 3️⃣ Crear perfil paciente
+    await setDoc(doc(db, "patients_normalized", user.uid), {
+      userId: user.uid,
+      nombre,
+      apellidos,
+      patientType: "private",
+      sessionDuration: 60,
+      keywords: [
+        nombre.toLowerCase(),
+        apellidos.toLowerCase()
+      ],
+      createdAt: serverTimestamp()
+    });
+
+    window.location.href = "mis-citas.html";
+
+  } catch (error) {
+    errorMsg.textContent = error.message;
+  }
+
+});
