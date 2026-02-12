@@ -10,9 +10,7 @@ import {
   onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-/* =========================
-   CONSTANTES
-========================= */
+/* ================= CONSTANTES ================= */
 
 const DAYS = ["mon","tue","wed","thu","fri","sat","sun"];
 const LABELS = ["L","M","X","J","V","S","D"];
@@ -20,9 +18,7 @@ const LABELS = ["L","M","X","J","V","S","D"];
 const HOURS = Array.from({ length: 12 }, (_, i) => i + 9);
 const MINUTES = [0, 30];
 
-/* =========================
-   DOM
-========================= */
+/* ================= DOM ================= */
 
 const grid = document.getElementById("grid");
 const saveBtn = document.getElementById("save");
@@ -32,21 +28,17 @@ const nextWeek = document.getElementById("nextWeek");
 const todayWeek = document.getElementById("todayWeek");
 const weekLabel = document.getElementById("weekLabel");
 
-/* =========================
-   STATE
-========================= */
+/* ================= STATE ================= */
 
 let baseDate = new Date();
 let currentMonday = mondayOf(baseDate);
 let weekKey = formatDate(currentMonday);
 
-let state = {};        // slots disponibles
-let locations = {};    // configuración de sede por día
+let state = {};      // slots
+let locations = {};  // { mon:{base:"viladecans"} }
 let currentUser = null;
 
-/* =========================
-   FECHAS
-========================= */
+/* ================= FECHAS ================= */
 
 function mondayOf(d){
   const x = new Date(d);
@@ -71,9 +63,20 @@ function formatWeekLabel(monday){
    – ${end.toLocaleDateString("es-ES",{day:"numeric",month:"short",year:"numeric"})}`;
 }
 
-/* =========================
-   LOCATION POR DÍA
-========================= */
+/* ================= TOGGLE SLOT ================= */
+
+function toggleSlot(key, cell){
+
+  if(state[key]){
+    delete state[key];
+    cell.classList.remove("available");
+  } else {
+    state[key] = true;
+    cell.classList.add("available");
+  }
+}
+
+/* ================= CAMBIAR SEDE POR DÍA ================= */
 
 function cycleLocation(day){
 
@@ -93,24 +96,7 @@ function cycleLocation(day){
   render();
 }
 
-/* =========================
-   TOGGLE SLOT
-========================= */
-
-function toggleSlot(key, cell){
-
-  if(state[key]){
-    delete state[key];
-    cell.classList.remove("available");
-  } else {
-    state[key] = true;
-    cell.classList.add("available");
-  }
-}
-
-/* =========================
-   RENDER
-========================= */
+/* ================= RENDER ================= */
 
 function render(){
 
@@ -129,10 +115,9 @@ function render(){
 
     const dayCell = document.createElement("div");
     dayCell.className = "day-label";
-
     dayCell.innerHTML = `
       <div>${label}</div>
-      <small style="cursor:pointer;font-weight:600;">
+      <small style="cursor:pointer;font-weight:500;">
         ${base}
       </small>
     `;
@@ -172,9 +157,7 @@ function render(){
   });
 }
 
-/* =========================
-   LOAD / SAVE
-========================= */
+/* ================= LOAD / SAVE ================= */
 
 async function loadWeek(){
 
@@ -213,9 +196,7 @@ async function saveWeek(){
   alert("Disponibilidad guardada correctamente");
 }
 
-/* =========================
-   NAV
-========================= */
+/* ================= NAV ================= */
 
 prevWeek.onclick = ()=>{
   currentMonday.setDate(currentMonday.getDate() - 7);
@@ -232,9 +213,7 @@ todayWeek.onclick = ()=>{
   loadWeek();
 };
 
-/* =========================
-   AUTH
-========================= */
+/* ================= AUTH ================= */
 
 onAuthStateChanged(auth, async user=>{
   if(!user) return;
