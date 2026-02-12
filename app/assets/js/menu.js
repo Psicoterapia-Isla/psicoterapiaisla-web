@@ -16,7 +16,16 @@ let unsubscribeAuth = null;
 
 export async function loadMenu() {
 
-  const container = document.querySelector(".app-menu");
+  let container = document.querySelector(".app-menu");
+
+  // 🔥 Si existe aside lo convertimos en header superior
+  if (container && container.tagName.toLowerCase() === "aside") {
+    const header = document.createElement("header");
+    header.className = "app-header";
+    container.replaceWith(header);
+    container = header;
+  }
+
   if (!container) return;
 
   const auth = getAuth();
