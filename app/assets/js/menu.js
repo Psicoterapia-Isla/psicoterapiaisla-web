@@ -44,87 +44,44 @@ export async function loadMenu() {
     const isTherapist = role === "therapist" || isAdmin;
 
     container.innerHTML = `
-      <nav class="app-nav">
-        <div class="nav-left">
+      <nav class="top-nav">
 
+        <div class="top-left">
           <a href="index.html" class="nav-link">Inicio</a>
           <a href="foro.html" class="nav-link">Foro</a>
 
           ${
             isTherapist ? `
-            <div class="nav-dropdown">
-              <button class="nav-link dropdown-toggle">
-                Espacio terapeuta
-              </button>
-
-              <div class="dropdown-menu">
-                <a href="agenda.html">Agenda</a>
-                <a href="disponibilidad.html">Disponibilidad</a>
-                <hr>
-                <a href="patients-admin.html">Pacientes</a>
-                <a href="diario-terapeuta.html">Diarios pacientes</a>
-                <a href="entries-by-patient.html">Registros por paciente</a>
-                <hr>
-                <a href="patient-invoices.html">Facturación</a>
-                ${
-                  isAdmin ? `
-                  <hr>
-                  <a href="exercises-admin.html">Gestionar ejercicios</a>
-                  ` : ""
-                }
-              </div>
-            </div>
-            ` : `
-            <div class="nav-dropdown">
-              <button class="nav-link dropdown-toggle">
-                Mi espacio
-              </button>
-              <div class="dropdown-menu">
-                <a href="espacio.html">Espacio personal</a>
-                <a href="diario.html">Escribir diario</a>
-                <a href="mi-diario.html">Mi diario</a>
-                <a href="exercises-list.html">Ejercicios</a>
-                <hr>
-                <a href="reservar.html">Reservar cita</a>
-                <a href="agenda-paciente.html">Mis citas</a>
-              </div>
-            </div>
+              <a href="agenda.html" class="nav-link">Agenda</a>
+              <a href="disponibilidad.html" class="nav-link">Disponibilidad</a>
+              <a href="patients-admin.html" class="nav-link">Pacientes</a>
+              <a href="add-patient.html" class="nav-link nav-highlight">
+                + Añadir paciente
+              </a>
+              <a href="patient-invoices.html" class="nav-link">Facturación</a>
+              ${
+                isAdmin
+                  ? `<a href="exercises-admin.html" class="nav-link">Ejercicios</a>`
+                  : ""
+              }
+            `
+            :
+            `
+              <a href="espacio.html" class="nav-link">Mi espacio</a>
+              <a href="reservar.html" class="nav-link">Reservar</a>
+              <a href="agenda-paciente.html" class="nav-link">Mis citas</a>
             `
           }
-
         </div>
 
-        <div class="nav-right">
+        <div class="top-right">
           <button id="logout-btn" class="nav-link logout">
             Salir
           </button>
         </div>
+
       </nav>
     `;
-
-    /* ======================
-       DROPDOWN
-    ====================== */
-
-    document.querySelectorAll(".dropdown-toggle").forEach(btn => {
-      btn.addEventListener("click", e => {
-        e.stopPropagation();
-        const menu = btn.nextElementSibling;
-        closeAllDropdowns();
-        menu.classList.toggle("open");
-      });
-    });
-
-    document.addEventListener("click", closeAllDropdowns);
-
-    function closeAllDropdowns() {
-      document.querySelectorAll(".dropdown-menu")
-        .forEach(m => m.classList.remove("open"));
-    }
-
-    /* ======================
-       LOGOUT
-    ====================== */
 
     document.getElementById("logout-btn")
       ?.addEventListener("click", async () => {
