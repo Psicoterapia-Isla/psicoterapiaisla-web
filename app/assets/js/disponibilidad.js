@@ -10,9 +10,7 @@ import {
   onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-/* =========================
-   CONSTANTES
-========================= */
+/* ================= CONSTANTES ================= */
 
 const DAYS = ["mon","tue","wed","thu","fri","sat","sun"];
 const LABELS = ["L","M","X","J","V","S","D"];
@@ -20,9 +18,7 @@ const LABELS = ["L","M","X","J","V","S","D"];
 const HOURS = Array.from({ length: 12 }, (_, i) => i + 9);
 const MINUTES = [0, 30];
 
-/* =========================
-   DOM
-========================= */
+/* ================= DOM ================= */
 
 const grid = document.getElementById("grid");
 const saveBtn = document.getElementById("save");
@@ -32,21 +28,17 @@ const nextWeek = document.getElementById("nextWeek");
 const todayWeek = document.getElementById("todayWeek");
 const weekLabel = document.getElementById("weekLabel");
 
-/* =========================
-   STATE
-========================= */
+/* ================= STATE ================= */
 
 let baseDate = new Date();
 let currentMonday = mondayOf(baseDate);
 let weekKey = formatDate(currentMonday);
 
-let state = {};      // slots
-let locations = {};  // NUEVO: config por día
+let state = {};
+let locations = {};
 let currentUser = null;
 
-/* =========================
-   FECHAS
-========================= */
+/* ================= FECHAS ================= */
 
 function mondayOf(d){
   const x = new Date(d);
@@ -71,27 +63,9 @@ function formatWeekLabel(monday){
    – ${end.toLocaleDateString("es-ES",{day:"numeric",month:"short",year:"numeric"})}`;
 }
 
-/* =========================
-   TOGGLE SLOT
-========================= */
-
-function toggleSlot(key, cell){
-
-  if(state[key]){
-    delete state[key];
-    cell.classList.remove("available");
-  } else {
-    state[key] = true;
-    cell.classList.add("available");
-  }
-}
-
-/* =========================
-   CAMBIAR SEDE POR DÍA
-========================= */
+/* ================= LOCATION ================= */
 
 function cycleLocation(day){
-
   const current = locations[day]?.base || "viladecans";
 
   const next =
@@ -102,15 +76,24 @@ function cycleLocation(day){
         : "viladecans";
 
   if(!locations[day]) locations[day] = {};
-
   locations[day].base = next;
 
   render();
 }
 
-/* =========================
-   RENDER
-========================= */
+/* ================= TOGGLE SLOT ================= */
+
+function toggleSlot(key, cell){
+  if(state[key]){
+    delete state[key];
+    cell.classList.remove("available");
+  } else {
+    state[key] = true;
+    cell.classList.add("available");
+  }
+}
+
+/* ================= RENDER ================= */
 
 function render(){
 
@@ -125,21 +108,20 @@ function render(){
   LABELS.forEach((label,i)=>{
 
     const dayKey = DAYS[i];
+    const base = locations[dayKey]?.base || "viladecans";
 
     const dayCell = document.createElement("div");
     dayCell.className = "day-label";
 
-    const base = locations[dayKey]?.base || "viladecans";
-
     dayCell.innerHTML = `
       <div>${label}</div>
-      <small style="cursor:pointer;font-weight:500;">
+      <small style="cursor:pointer;font-weight:600;">
         ${base}
       </small>
     `;
 
-    dayCell.querySelector("small").onclick = () =>
-      cycleLocation(dayKey);
+    dayCell.querySelector("small").onclick =
+      () => cycleLocation(dayKey);
 
     grid.appendChild(dayCell);
   });
@@ -162,20 +144,15 @@ function render(){
           cell.classList.add("available");
         }
 
-        cell.addEventListener("click", ()=>{
-          toggleSlot(key, cell);
-        });
+        cell.onclick = ()=> toggleSlot(key,cell);
 
         grid.appendChild(cell);
       });
-
     });
   });
 }
 
-/* =========================
-   LOAD / SAVE
-========================= */
+/* ================= LOAD / SAVE ================= */
 
 async function loadWeek(){
 
@@ -190,7 +167,6 @@ async function loadWeek(){
 
   if(snap.exists()){
     const data = snap.data();
-
     if(data.slots) state = data.slots;
     if(data.locations) locations = data.locations;
   }
@@ -208,16 +184,14 @@ async function saveWeek(){
     therapistId: currentUser.uid,
     weekStart: weekKey,
     slots: state,
-    locations: locations,   // NUEVO
+    locations: locations,
     updatedAt: serverTimestamp()
   });
 
   alert("Disponibilidad guardada correctamente");
 }
 
-/* =========================
-   NAV
-========================= */
+/* ================= NAV ================= */
 
 prevWeek.onclick = ()=>{
   currentMonday.setDate(currentMonday.getDate() - 7);
@@ -234,9 +208,7 @@ todayWeek.onclick = ()=>{
   loadWeek();
 };
 
-/* =========================
-   AUTH
-========================= */
+/* ================= AUTH ================= */
 
 onAuthStateChanged(auth, async user=>{
   if(!user) return;
