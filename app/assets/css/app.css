@@ -839,3 +839,44 @@ td {
   border:none;
   cursor:pointer;
 }
+/* ===== TOP NAV ===== */
+
+.app-header {
+  width: 100%;
+  background: white;
+  border-bottom: 1px solid #eee;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+}
+
+.top-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 40px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.top-left {
+  display: flex;
+  gap: 18px;
+  align-items: center;
+}
+
+.top-right {
+  display: flex;
+  align-items: center;
+}
+
+.nav-highlight {
+  background: #1f6b4e;
+  color: white;
+  padding: 8px 14px;
+  border-radius: 8px;
+}
+
+.nav-highlight:hover {
+  opacity: .9;
+}
