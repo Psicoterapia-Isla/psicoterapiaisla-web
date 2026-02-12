@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Añadir paciente | Psicoterapia Isla</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="assets/css/app.css">
+</head>
+
+<body class="app-layout">
+
+<aside class="app-menu"></aside>
+
+<main class="app-content">
+
+  <h1>Añadir paciente</h1>
+
+  <div class="card" style="max-width:600px;">
+
+    <label>Nombre *</label>
+    <input id="nombre" type="text">
+
+    <label>Apellidos</label>
+    <input id="apellidos" type="text">
+
+    <label>Teléfono</label>
+    <input id="telefono" type="text">
+
+    <label>Tipo paciente</label>
+    <select id="patientType">
+      <option value="private">Privado</option>
+      <option value="mutual">Mutua</option>
+    </select>
+
+    <br><br>
+
+    <button id="savePatient" class="btn-primary">
+      Crear paciente
+    </button>
+
+    <p id="errorMsg" style="color:#b91c1c;margin-top:10px;"></p>
+
+  </div>
+
+</main>
+
+<script type="module">
+import { requireAuth } from "./assets/js/auth.js";
+import { loadMenu } from "./assets/js/menu.js";
+await requireAuth();
+await loadMenu();
+</script>
+
+<script type="module" src="assets/js/add-patient.js"></script>
+
+</body>
+</html>
