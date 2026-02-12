@@ -40,6 +40,8 @@ const grid = document.getElementById("agendaGrid");
 const weekLabel = document.getElementById("weekLabel");
 
 const modal = document.getElementById("modal");
+const closeBtn = document.getElementById("close");
+
 const phone = document.getElementById("phone");
 const name = document.getElementById("name");
 const service = document.getElementById("service");
@@ -50,6 +52,12 @@ const completed = document.getElementById("completed");
 const paid = document.getElementById("paid");
 const amount = document.getElementById("amount");
 const suggestions = document.getElementById("suggestions");
+
+/* NAV DOM SAFE */
+
+const prevWeek = document.getElementById("prevWeek");
+const nextWeek = document.getElementById("nextWeek");
+const todayBtn = document.getElementById("today");
 
 /* ================= HELPERS ================= */
 
@@ -81,7 +89,7 @@ function minutesOf(time){
 
 function setFieldsDisabled(disabled){
   [phone,name,service,modality,start,end,completed,paid,amount]
-    .forEach(el => el.disabled = disabled);
+    .forEach(el => el && (el.disabled = disabled));
 }
 
 /* ================= AUTOCOMPLETE ================= */
@@ -119,14 +127,13 @@ async function searchPatients(term){
         p.patientType === "mutual" ? 30 : 60;
 
       const [h,m] = start.value.split(":").map(Number);
-
       const endDate = new Date(0,0,0,h,m+duration);
+
       end.value =
         timeString(endDate.getHours(),endDate.getMinutes());
 
       if(p.patientType === "mutual"){
-        amount.value =
-          p.mutual?.pricePerSession || 0;
+        amount.value = p.mutual?.pricePerSession || 0;
       }
 
       suggestions.innerHTML = "";
@@ -136,8 +143,8 @@ async function searchPatients(term){
   });
 }
 
-phone.addEventListener("input", e => searchPatients(e.target.value));
-name.addEventListener("input", e => searchPatients(e.target.value));
+phone?.addEventListener("input", e => searchPatients(e.target.value));
+name?.addEventListener("input", e => searchPatients(e.target.value));
 
 document.addEventListener("click", (e)=>{
   if(!e.target.closest(".autocomplete-wrapper")){
@@ -148,10 +155,12 @@ document.addEventListener("click", (e)=>{
 /* ================= FACTURACIÓN ================= */
 
 async function getNextInvoiceNumber(therapistId){
+
   const year = new Date().getFullYear();
   const ref = doc(db,"invoice_counters",`${therapistId}_${year}`);
 
   return await runTransaction(db, async tx => {
+
     const snap = await tx.get(ref);
     let next = 1;
 
@@ -195,120 +204,183 @@ async function createInvoice(data, appointmentId){
   });
 }
 
-/* ================= SAVE ================= */
+/* ================= MODAL ================= */
 
-document.getElementById("save").onclick = async () => {
+function resetModal(){
 
-  const user = auth.currentUser;
-  if(!user || !currentSlot) return;
+  editingId = null;
+  selectedPatient = null;
+  currentSlot = null;
+  currentInvoiceId = null;
+
+  phone.value = "";
+  name.value = "";
+  service.value = "Sesión de psicología sanitaria";
+  modality.value = "viladecans";
+  start.value = "";
+  end.value = "";
+  completed.checked = false;
+  paid.checked = false;
+  amount.value = "";
+  suggestions.innerHTML = "";
+  setFieldsDisabled(false);
+}
+
+function openNew(slot){
+  resetModal();
+  currentSlot = slot;
+  start.value = timeString(slot.hour, slot.minute);
+  end.value = timeString(slot.hour, slot.minute + 60);
+  modal.classList.add("show");
+}
+
+function openEdit(a){
+
+  resetModal();
+
+  editingId = a.id;
+  selectedPatient = a.patient || null;
+  currentSlot = { date: a.date };
+
+  phone.value = a.phone || "";
+  name.value = a.name || "";
+  service.value = a.service || "";
+  modality.value = a.modality;
+  start.value = a.start;
+  end.value = a.end;
+  completed.checked = !!a.completed;
+  paid.checked = !!a.paid;
+  amount.value = a.amount || "";
+
+  if(a.invoiceId){
+    setFieldsDisabled(true);
+  }
+
+  modal.classList.add("show");
+}
+
+closeBtn?.addEventListener("click",()=>{
+  modal.classList.remove("show");
+});
+
+/* ================= RENDER ================= */
+
+async function renderWeek(){
+
+  if(!grid) return;
+
+  grid.innerHTML = "";
 
   const monday = mondayOf(baseDate);
   const weekStart = formatDate(monday);
+  const weekEnd = formatDate(new Date(monday.getTime()+6*86400000));
+
+  if(weekLabel){
+    weekLabel.textContent =
+      monday.toLocaleDateString("es-ES",{day:"numeric",month:"short"}) +
+      " – " +
+      new Date(monday.getTime()+6*86400000)
+        .toLocaleDateString("es-ES",{day:"numeric",month:"short",year:"numeric"});
+  }
+
+  const user = auth.currentUser;
+  if(!user) return;
 
   const availRef = doc(db,"availability",`${user.uid}_${weekStart}`);
   const availSnap = await getDoc(availRef);
-
-  const availabilityData = availSnap.exists() ? availSnap.data() : {};
-  const availabilitySlots = availabilityData.slots || {};
-  const availabilityLocations = availabilityData.locations || {};
-
-  const startTime = start.value;
-  const endTime = end.value;
-
-  const startMin = minutesOf(startTime);
-  const endMin = minutesOf(endTime);
-
-  const dayIndex = new Date(currentSlot.date).getDay();
-  const dayKey = DAYS[(dayIndex + 6) % 7];
-
-  /* VALIDAR SEDE DEL DÍA */
-
-  const baseLocation = availabilityLocations[dayKey]?.base || "viladecans";
-
-  if(modality.value !== "online" && modality.value !== baseLocation){
-    alert("La modalidad no coincide con la sede configurada para ese día");
-    return;
-  }
-
-  /* VALIDAR DISPONIBILIDAD */
-
-  for(let m = startMin; m < endMin; m += 30){
-    const h = Math.floor(m/60);
-    const min = m % 60;
-    const slotKey = `${dayKey}_${h}_${min}`;
-
-    if(!availabilitySlots[slotKey]){
-      alert("Horario fuera de disponibilidad");
-      return;
-    }
-  }
-
-  /* VALIDAR SOLAPAMIENTO */
+  const availability = availSnap.exists() ? availSnap.data().slots : {};
 
   const apptSnap = await getDocs(query(
     collection(db,"appointments"),
     where("therapistId","==",user.uid),
-    where("date","==",currentSlot.date)
+    where("date",">=",weekStart),
+    where("date","<=",weekEnd)
   ));
 
   const appointments = [];
   apptSnap.forEach(d=>appointments.push({ id:d.id, ...d.data() }));
 
-  if(appointments.some(a=>{
-    if(editingId && a.id===editingId) return false;
-    const s=minutesOf(a.start);
-    const e=minutesOf(a.end);
-    return startMin < e && endMin > s;
-  })){
-    alert("Solapamiento con otra cita");
-    return;
-  }
+  grid.appendChild(document.createElement("div"));
 
-  /* GUARDAR */
+  DAYS.forEach((_,i)=>{
+    const d = new Date(monday);
+    d.setDate(d.getDate()+i);
+    const h = document.createElement("div");
+    h.className="day-label";
+    h.textContent = d.toLocaleDateString("es-ES",{weekday:"short",day:"numeric"});
+    grid.appendChild(h);
+  });
 
-  const data = {
-    therapistId: user.uid,
-    patientId: selectedPatient?.id || null,
-    patient: selectedPatient || null,
-    date: currentSlot.date,
-    phone: phone.value,
-    name: name.value,
-    service: service.value,
-    modality: modality.value,
-    start: startTime,
-    end: endTime,
-    completed: completed.checked,
-    paid: paid.checked,
-    amount: Number(amount.value || 0),
-    updatedAt: Timestamp.now()
-  };
+  HOURS.forEach(hour=>{
+    MINUTES.forEach(minute=>{
 
-  let id;
+      const label=document.createElement("div");
+      label.className="hour-label";
+      label.textContent=timeString(hour,minute);
+      grid.appendChild(label);
 
-  if(editingId){
-    await updateDoc(doc(db,"appointments",editingId),data);
-    id = editingId;
-  }else{
-    const ref = await addDoc(collection(db,"appointments"),{
-      ...data,
-      createdAt: Timestamp.now()
+      DAYS.forEach(day=>{
+
+        const date=formatDate(dayFromKey(monday,day));
+        const slotKey = `${day}_${hour}_${minute}`;
+
+        const cell=document.createElement("div");
+        cell.className="slot";
+
+        const appointment = appointments.find(a=>{
+          if(a.date !== date) return false;
+          const cur=hour*60+minute;
+          return cur>=minutesOf(a.start) && cur<minutesOf(a.end);
+        });
+
+        if(appointment){
+
+          cell.classList.add(
+            appointment.paid ? "paid" :
+            appointment.completed ? "done" : "busy"
+          );
+
+          cell.innerHTML=`<strong>${appointment.name||"—"}</strong>`;
+          cell.onclick=()=>openEdit(appointment);
+
+        } else if(availability[slotKey]){
+
+          cell.classList.add("available");
+          cell.onclick=()=>openNew({date,hour,minute});
+
+        } else {
+
+          cell.classList.add("disabled");
+        }
+
+        grid.appendChild(cell);
+      });
+
     });
-    id = ref.id;
-  }
+  });
+}
 
-  if(data.completed && data.paid && data.amount){
-    await createInvoice(data,id);
-  }
+/* ================= NAV SAFE ================= */
 
-  /* ENVÍO WHATSAPP RESTAURADO */
+if(prevWeek){
+  prevWeek.onclick=()=>{
+    baseDate.setDate(baseDate.getDate()-7);
+    renderWeek();
+  };
+}
 
-  if(phone.value){
-    const text = encodeURIComponent(
-      `Hola ${name.value}, te confirmo tu cita el ${currentSlot.date} de ${startTime} a ${endTime}.`
-    );
-    window.open(`https://wa.me/${phone.value}?text=${text}`, "_blank");
-  }
+if(nextWeek){
+  nextWeek.onclick=()=>{
+    baseDate.setDate(baseDate.getDate()+7);
+    renderWeek();
+  };
+}
 
-  modal.classList.remove("show");
-  await renderWeek();
-};
+if(todayBtn){
+  todayBtn.onclick=()=>{
+    baseDate=new Date();
+    renderWeek();
+  };
+}
+
+renderWeek();
