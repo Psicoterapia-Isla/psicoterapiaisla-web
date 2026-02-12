@@ -83,6 +83,7 @@ function setFieldsDisabled(disabled){
   [phone,name,service,modality,start,end,completed,paid,amount]
     .forEach(el => el.disabled = disabled);
 }
+
 /* ================= AUTOCOMPLETE ================= */
 
 async function searchPatients(term){
@@ -135,23 +136,15 @@ async function searchPatients(term){
   });
 }
 
-/* LISTENERS */
-
-phone.addEventListener("input",
-  e => searchPatients(e.target.value)
-);
-
-name.addEventListener("input",
-  e => searchPatients(e.target.value)
-);
-
-/* Cerrar si se hace click fuera */
+phone.addEventListener("input", e => searchPatients(e.target.value));
+name.addEventListener("input", e => searchPatients(e.target.value));
 
 document.addEventListener("click", (e)=>{
   if(!e.target.closest(".autocomplete-wrapper")){
     suggestions.innerHTML = "";
   }
 });
+
 /* ================= FACTURACIÓN ================= */
 
 async function getNextInvoiceNumber(therapistId){
@@ -166,11 +159,7 @@ async function getNextInvoiceNumber(therapistId){
       next = snap.data().lastNumber + 1;
       tx.update(ref,{ lastNumber: next });
     }else{
-      tx.set(ref,{
-        therapistId,
-        year,
-        lastNumber: 1
-      });
+      tx.set(ref,{ therapistId, year, lastNumber: 1 });
     }
 
     return `PI-${year}-${String(next).padStart(4,"0")}`;
@@ -227,11 +216,15 @@ function resetModal(){
   setFieldsDisabled(false);
 }
 
-function openNew(slot){
+function openNew(slot, baseLocation){
   resetModal();
   currentSlot = slot;
   start.value = timeString(slot.hour, slot.minute);
   end.value = timeString(slot.hour, slot.minute + 60);
+
+  // 🔥 Asignar modalidad según día
+  modality.value = baseLocation || "viladecans";
+
   modal.classList.add("show");
 }
 
@@ -244,7 +237,7 @@ function openEdit(a){
   phone.value = a.phone || "";
   name.value = a.name || "";
   service.value = a.service || "";
-  modality.value = a.modality;
+  modality.value = a.modality || "viladecans";
   start.value = a.start;
   end.value = a.end;
   completed.checked = !!a.completed;
@@ -273,52 +266,37 @@ document.getElementById("save").onclick = async () => {
 
   const availRef = doc(db,"availability",`${user.uid}_${weekStart}`);
   const availSnap = await getDoc(availRef);
-  const availability = availSnap.exists() ? availSnap.data().slots : {};
+  const availabilityData = availSnap.exists() ? availSnap.data() : {};
+  const availabilitySlots = availabilityData.slots || {};
+  const availabilityLocations = availabilityData.locations || {};
 
   const startTime = start.value;
   const endTime = end.value;
 
-  /* ===== VALIDAR DISPONIBILIDAD ===== */
-
   const startMin = minutesOf(startTime);
   const endMin = minutesOf(endTime);
+
+  const dayIndex = new Date(currentSlot.date).getDay();
+  const dayKey = DAYS[(dayIndex + 6) % 7];
+
+  const baseLocation = availabilityLocations[dayKey]?.base || "viladecans";
+
+  // 🔥 VALIDAR MODALIDAD
+  if(modality.value !== baseLocation && modality.value !== "online"){
+    alert(`Ese día la sede base es ${baseLocation}`);
+    return;
+  }
 
   for(let m = startMin; m < endMin; m += 30){
     const h = Math.floor(m/60);
     const min = m % 60;
-
-    const dayIndex = new Date(currentSlot.date).getDay();
-    const dayKey = DAYS[(dayIndex + 6) % 7];
     const slotKey = `${dayKey}_${h}_${min}`;
 
-    if(!availability[slotKey]){
+    if(!availabilitySlots[slotKey]){
       alert("Horario fuera de disponibilidad");
       return;
     }
   }
-
-  /* ===== VALIDAR SOLAPAMIENTO ===== */
-
-  const apptSnap = await getDocs(query(
-    collection(db,"appointments"),
-    where("therapistId","==",user.uid),
-    where("date","==",currentSlot.date)
-  ));
-
-  const appointments = [];
-  apptSnap.forEach(d=>appointments.push({ id:d.id, ...d.data() }));
-
-  if(appointments.some(a=>{
-    if(editingId && a.id===editingId) return false;
-    const s=minutesOf(a.start);
-    const e=minutesOf(a.end);
-    return startMin < e && endMin > s;
-  })){
-    alert("Solapamiento con otra cita");
-    return;
-  }
-
-  /* ===== GUARDAR ===== */
 
   const data = {
     therapistId: user.uid,
@@ -433,9 +411,10 @@ async function renderWeek(){
           cell.innerHTML=`<strong>${appointment.name||"—"}</strong>`;
           cell.onclick=()=>openEdit(appointment);
         }
-        else if(availability[slotKey]){
+        else if(availabilitySlots[slotKey]){
+          const baseLocation = availabilityLocations[day]?.base || "viladecans";
           cell.classList.add("available");
-          cell.onclick=()=>openNew({date,hour,minute});
+          cell.onclick=()=>openNew({date,hour,minute}, baseLocation);
         }
         else{
           cell.classList.add("disabled");
