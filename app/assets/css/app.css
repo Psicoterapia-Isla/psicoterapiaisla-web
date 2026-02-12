@@ -670,3 +670,68 @@ td {
   max-height: 90vh;
   overflow-y: auto;
 }
+/* ================= MODAL OVERLAY ================= */
+
+#modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(17, 24, 39, 0.45); /* gris elegante */
+  backdrop-filter: blur(4px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 1rem;
+}
+
+#modal.show {
+  display: flex;
+}
+
+/* ================= MODAL CARD ================= */
+
+#modal .modal-content {
+  background: #ffffff;
+  width: 100%;
+  max-width: 520px;
+  border-radius: 24px;
+  padding: 2rem;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+}
+
+/* Botón cerrar */
+
+#modal #close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: #e6f3ef;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+/* Inputs más premium */
+
+#modal input,
+#modal select {
+  width: 100%;
+  padding: .8rem 1rem;
+  border-radius: 14px;
+  border: 1px solid #e5e7eb;
+  margin-bottom: 1rem;
+  font-size: .95rem;
+}
+
+#modal input:focus,
+#modal select:focus {
+  outline: none;
+  border-color: #1f6b4e;
+  box-shadow: 0 0 0 3px rgba(31,107,78,0.15);
+}
