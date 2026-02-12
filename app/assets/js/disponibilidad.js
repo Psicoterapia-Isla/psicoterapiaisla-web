@@ -200,16 +200,16 @@ async function saveWeek(){
 /* ================= NAV ================= */
 
 prevWeek.onclick = ()=>{
-  currentMonday = mondayOf(
-    new Date(currentMonday.getTime() - 7 * 86400000)
-  );
+  const newDate = new Date(currentMonday);
+  newDate.setDate(newDate.getDate() - 7);
+  currentMonday = mondayOf(newDate);
   loadWeek();
 };
 
 nextWeek.onclick = ()=>{
-  currentMonday = mondayOf(
-    new Date(currentMonday.getTime() + 7 * 86400000)
-  );
+  const newDate = new Date(currentMonday);
+  newDate.setDate(newDate.getDate() + 7);
+  currentMonday = mondayOf(newDate);
   loadWeek();
 };
 
