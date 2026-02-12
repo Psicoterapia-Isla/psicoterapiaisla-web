@@ -32,7 +32,7 @@ let currentInvoiceId = null;
 
 const HOURS = Array.from({ length: 12 }, (_, i) => i + 9);
 const MINUTES = [0, 30];
-const DAYS = ["mon","tue","wed","thu","fri","sat","sun"];
+const DAYS = ["mon","tue","wed","thu","fri"];
 
 /* ================= DOM ================= */
 
@@ -269,7 +269,7 @@ document.getElementById("save")?.addEventListener("click", async () => {
   const user = auth.currentUser;
   if(!user || !currentSlot) return;
 
-  const monday = mondayOf(baseDate);
+  const monday = mondayOf(new Date(currentSlot.date));
   const weekStart = formatDate(monday);
 
   const availRef = doc(db,"availability",`${user.uid}_${weekStart}`);
