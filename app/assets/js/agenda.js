@@ -382,13 +382,13 @@ async function renderWeek(){
 
   const monday = mondayOf(baseDate);
   const weekStart = formatDate(monday);
-  const weekEnd = formatDate(new Date(monday.getTime()+6*86400000));
+  const weekEnd = formatDate(new Date(monday.getTime()+4*86400000));
 
   if(weekLabel){
     weekLabel.textContent =
       monday.toLocaleDateString("es-ES",{day:"numeric",month:"short"}) +
       " – " +
-      new Date(monday.getTime()+6*86400000)
+      new Date(monday.getTime()+4*86400000)
         .toLocaleDateString("es-ES",{day:"numeric",month:"short",year:"numeric"});
   }
 
