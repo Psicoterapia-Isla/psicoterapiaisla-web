@@ -290,36 +290,36 @@ document.getElementById("save")?.addEventListener("click", async () => {
 
   /* VALIDAR DISPONIBILIDAD */
 
-  for(let m = startMin; m < endMin; m += 30){
+for (let m = startMin; m < endMin; m += 30) {
 
-    const h = Math.floor(m/60);
-    const min = m % 60;
+  const h = Math.floor(m / 60);
+  const min = m % 60;
 
-   const [year,month,day] = currentSlot.date.split("-");
-const jsDay = new Date(year, month-1, day).getDay();
-const jsDay = new Date(y, m-1, d).getDay();; // 0–6
-const map = {
-  1: "mon",
-  2: "tue",
-  3: "wed",
-  4: "thu",
-  5: "fri"
-};
+  const [year, month, day] = currentSlot.date.split("-");
+  const jsDay = new Date(year, month - 1, day).getDay(); // 0–6
 
-const dayKey = map[jsDay];
+  const map = {
+    1: "mon",
+    2: "tue",
+    3: "wed",
+    4: "thu",
+    5: "fri"
+  };
 
-if (!dayKey) {
-  alert("Día no permitido");
-  return;
-}
-    const slotKey = `${dayKey}_${h}_${min}`;
+  const dayKey = map[jsDay];
 
-    if(!availability[slotKey]){
-      alert("Horario fuera de disponibilidad");
-      return;
-    }
+  if (!dayKey) {
+    alert("Día no permitido");
+    return;
   }
 
+  const slotKey = `${dayKey}_${h}_${min}`;
+
+  if (!availability[slotKey]) {
+    alert("Horario fuera de disponibilidad");
+    return;
+  }
+}
   /* VALIDAR SOLAPAMIENTO */
 
   const apptSnap = await getDocs(query(
