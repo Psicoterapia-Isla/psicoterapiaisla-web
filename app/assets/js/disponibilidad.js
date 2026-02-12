@@ -12,8 +12,8 @@ import {
 
 /* ================= CONSTANTES ================= */
 
-const DAYS = ["mon","tue","wed","thu","fri","sat","sun"];
-const LABELS = ["L","M","X","J","V","S","D"];
+const DAYS = ["mon","tue","wed","thu","fri"];
+const LABELS = ["L","M","X","J","V"];
 
 const HOURS = Array.from({ length: 12 }, (_, i) => i + 9);
 const MINUTES = [0, 30];
@@ -34,8 +34,8 @@ let baseDate = new Date();
 let currentMonday = mondayOf(baseDate);
 let weekKey = formatDate(currentMonday);
 
-let state = {};      // slots
-let locations = {};  // { mon:{base:"viladecans"} }
+let state = {};
+let locations = {};
 let currentUser = null;
 
 /* ================= FECHAS ================= */
@@ -58,7 +58,7 @@ function pad(n){
 
 function formatWeekLabel(monday){
   const end = new Date(monday);
-  end.setDate(end.getDate() + 6);
+  end.setDate(end.getDate() + 4); // 🔥 SOLO HASTA VIERNES
   return `${monday.toLocaleDateString("es-ES",{day:"numeric",month:"short"})}
    – ${end.toLocaleDateString("es-ES",{day:"numeric",month:"short",year:"numeric"})}`;
 }
@@ -90,7 +90,6 @@ function cycleLocation(day){
         : "viladecans";
 
   if(!locations[day]) locations[day] = {};
-
   locations[day].base = next;
 
   render();
@@ -99,6 +98,8 @@ function cycleLocation(day){
 /* ================= RENDER ================= */
 
 function render(){
+
+  if(!grid) return;
 
   grid.innerHTML = "";
 
@@ -198,20 +199,20 @@ async function saveWeek(){
 
 /* ================= NAV ================= */
 
-prevWeek.onclick = ()=>{
+prevWeek?.addEventListener("click", ()=>{
   currentMonday.setDate(currentMonday.getDate() - 7);
   loadWeek();
-};
+});
 
-nextWeek.onclick = ()=>{
+nextWeek?.addEventListener("click", ()=>{
   currentMonday.setDate(currentMonday.getDate() + 7);
   loadWeek();
-};
+});
 
-todayWeek.onclick = ()=>{
+todayWeek?.addEventListener("click", ()=>{
   currentMonday = mondayOf(new Date());
   loadWeek();
-};
+});
 
 /* ================= AUTH ================= */
 
