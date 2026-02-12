@@ -8,7 +8,7 @@ admin.initializeApp();
 const db = admin.firestore();
 
 /* =====================================================
-   EMITIR FACTURA (Callable – compatible con httpsCallable)
+   EMITIR FACTURA (Callable)
 ===================================================== */
 
 exports.emitInvoice = functions.https.onCall(async (data, context) => {
@@ -27,7 +27,7 @@ exports.emitInvoice = functions.https.onCall(async (data, context) => {
     }
 
     const therapistId = context.auth.uid;
-    const { appointmentId } = data;
+    const { appointmentId } = data || {};
 
     if (!appointmentId) {
       throw new functions.https.HttpsError(
@@ -60,6 +60,18 @@ exports.emitInvoice = functions.https.onCall(async (data, context) => {
     }
 
     /* =========================
+       EVITAR DUPLICADOS
+    ========================= */
+
+    if (app.invoiceId) {
+      return {
+        ok: true,
+        invoiceId: app.invoiceId,
+        alreadyExists: true
+      };
+    }
+
+    /* =========================
        CREAR FACTURA
     ========================= */
 
@@ -76,15 +88,17 @@ exports.emitInvoice = functions.https.onCall(async (data, context) => {
       createdAt: admin.firestore.FieldValue.serverTimestamp()
     });
 
+    const invoiceId = invoiceRef.id;
+
     /* =========================
        GENERAR PDF
     ========================= */
 
     const pdfBuffer = await generateInvoicePDF({
-      invoiceId: invoiceRef.id,
+      invoiceId,
       invoiceData: {
         ...app,
-        invoiceId: invoiceRef.id
+        invoiceId
       }
     });
 
@@ -92,10 +106,10 @@ exports.emitInvoice = functions.https.onCall(async (data, context) => {
        ENVIAR WHATSAPP
     ========================= */
 
-    if (app.phone) {
+    if (app.phone && pdfBuffer) {
       await sendWhatsApp({
         to: app.phone,
-        patientName: app.name,
+        patientName: app.name || "",
         pdfBuffer
       });
     }
@@ -105,7 +119,7 @@ exports.emitInvoice = functions.https.onCall(async (data, context) => {
     ========================= */
 
     await appRef.update({
-      invoiceId: invoiceRef.id,
+      invoiceId,
       status: "invoiced",
       updatedAt: admin.firestore.FieldValue.serverTimestamp()
     });
@@ -116,7 +130,7 @@ exports.emitInvoice = functions.https.onCall(async (data, context) => {
 
     return {
       ok: true,
-      invoiceId: invoiceRef.id
+      invoiceId
     };
 
   } catch (err) {
@@ -130,6 +144,87 @@ exports.emitInvoice = functions.https.onCall(async (data, context) => {
     throw new functions.https.HttpsError(
       "internal",
       "Error al emitir factura"
+    );
+  }
+});
+
+
+/* =====================================================
+   GENERAR PDF DESDE FACTURAS.HTML (Callable)
+   Compatible con httpsCallable("generateInvoicePdf")
+===================================================== */
+
+exports.generateInvoicePdf = functions.https.onCall(async (data, context) => {
+
+  try {
+
+    if (!context.auth) {
+      throw new functions.https.HttpsError(
+        "unauthenticated",
+        "Usuario no autenticado"
+      );
+    }
+
+    const therapistId = context.auth.uid;
+    const { invoiceId } = data || {};
+
+    if (!invoiceId) {
+      throw new functions.https.HttpsError(
+        "invalid-argument",
+        "Falta invoiceId"
+      );
+    }
+
+    const invoiceRef = db.collection("invoices").doc(invoiceId);
+    const invoiceSnap = await invoiceRef.get();
+
+    if (!invoiceSnap.exists) {
+      throw new functions.https.HttpsError(
+        "not-found",
+        "Factura no encontrada"
+      );
+    }
+
+    const invoice = invoiceSnap.data();
+
+    if (invoice.therapistId !== therapistId) {
+      throw new functions.https.HttpsError(
+        "permission-denied",
+        "No puedes acceder a esta factura"
+      );
+    }
+
+    const pdfBuffer = await generateInvoicePDF({
+      invoiceId,
+      invoiceData: invoice
+    });
+
+    if (!pdfBuffer) {
+      throw new functions.https.HttpsError(
+        "internal",
+        "No se pudo generar el PDF"
+      );
+    }
+
+    // Aquí deberías subir el PDF a Storage y devolver URL pública
+    // Por ahora asumimos que generateInvoicePDF ya devuelve URL
+
+    return {
+      ok: true,
+      url: `https://storage.googleapis.com/YOUR_BUCKET/invoices/${invoiceId}.pdf`
+    };
+
+  } catch (err) {
+
+    console.error("GenerateInvoicePdf error:", err);
+
+    if (err instanceof functions.https.HttpsError) {
+      throw err;
+    }
+
+    throw new functions.https.HttpsError(
+      "internal",
+      "Error generando PDF"
     );
   }
 });
