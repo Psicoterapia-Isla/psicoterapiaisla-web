@@ -22,18 +22,21 @@ import {
 await requireAuth();
 await loadMenu();
 
-const user = auth.currentUser;
 const tbody = document.getElementById("facturasBody");
 
 const functions = getFunctions();
-const generateInvoicePdf =
-  httpsCallable(functions, "generateInvoicePdf");
+const generateInvoicePdf = httpsCallable(
+  functions,
+  "generateInvoicePdf"
+);
 
 /* =========================
    LOAD FACTURAS
 ========================= */
 
 async function loadInvoices() {
+
+  const user = auth.currentUser;
 
   if (!tbody || !user) return;
 
@@ -43,70 +46,98 @@ async function loadInvoices() {
     </tr>
   `;
 
-  const snap = await getDocs(
-    query(
-      collection(db, "invoices"),
-      where("therapistId", "==", user.uid),
-      orderBy("createdAt", "desc")
-    )
-  );
+  try {
 
-  if (snap.empty) {
-    tbody.innerHTML = `
-      <tr>
-        <td colspan="6">No hay facturas todavía.</td>
-      </tr>
-    `;
-    return;
-  }
+    const snap = await getDocs(
+      query(
+        collection(db, "invoices"),
+        where("therapistId", "==", user.uid),
+        orderBy("createdAt", "desc")
+      )
+    );
 
-  tbody.innerHTML = "";
+    if (snap.empty) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="6">No hay facturas todavía.</td>
+        </tr>
+      `;
+      return;
+    }
 
-  snap.forEach(docSnap => {
+    tbody.innerHTML = "";
 
-    const f = docSnap.data();
-    const tr = document.createElement("tr");
+    snap.forEach(docSnap => {
 
-    const date = f.issueDate?.toDate
-      ? f.issueDate.toDate().toLocaleDateString("es-ES")
-      : "—";
+      const f = docSnap.data();
+      const tr = document.createElement("tr");
 
-    const statusLabel =
-      f.status === "paid"
-        ? `<span class="status status-paid">Pagada</span>`
-        : `<span class="status status-issued">Emitida</span>`;
+      const date = f.issueDate?.toDate
+        ? f.issueDate.toDate().toLocaleDateString("es-ES")
+        : "—";
 
-    tr.innerHTML = `
-      <td>${f.invoiceNumber || "—"}</td>
-      <td>${f.patientName || "—"}</td>
-      <td>${date}</td>
-      <td>${Number(f.totalAmount || 0).toFixed(2)} €</td>
-      <td>${statusLabel}</td>
-      <td>
-        <button class="btn-link" data-id="${docSnap.id}">
-          Descargar PDF
-        </button>
-      </td>
-    `;
+      const statusLabel =
+        f.status === "paid"
+          ? `<span class="status status-paid">Pagada</span>`
+          : f.status === "draft"
+            ? `<span class="status">Borrador</span>`
+            : `<span class="status status-issued">Emitida</span>`;
 
-    tr.querySelector("button").onclick = async () => {
-      try {
-        const res = await generateInvoicePdf({
-          invoiceId: docSnap.id
-        });
+      tr.innerHTML = `
+        <td>${f.invoiceNumber || "—"}</td>
+        <td>${f.patientName || "—"}</td>
+        <td>${date}</td>
+        <td>${Number(f.totalAmount || 0).toFixed(2)} €</td>
+        <td>${statusLabel}</td>
+        <td>
+          <button class="btn-link" data-id="${docSnap.id}">
+            Descargar PDF
+          </button>
+        </td>
+      `;
 
-        if (res.data?.url) {
-          window.open(res.data.url, "_blank");
+      const button = tr.querySelector("button");
+
+      button.addEventListener("click", async () => {
+
+        button.disabled = true;
+        button.textContent = "Generando...";
+
+        try {
+
+          const res = await generateInvoicePdf({
+            invoiceId: docSnap.id
+          });
+
+          if (res.data?.url) {
+            window.open(res.data.url, "_blank");
+          } else {
+            alert("No se recibió URL del PDF.");
+          }
+
+        } catch (err) {
+          console.error("Error generando PDF:", err);
+          alert("Error generando factura.");
         }
 
-      } catch (err) {
-        console.error("Error generando PDF:", err);
-        alert("No se pudo generar el PDF.");
-      }
-    };
+        button.disabled = false;
+        button.textContent = "Descargar PDF";
 
-    tbody.appendChild(tr);
-  });
+      });
+
+      tbody.appendChild(tr);
+    });
+
+  } catch (error) {
+
+    console.error("Error cargando facturas:", error);
+
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="6">Error cargando facturas.</td>
+      </tr>
+    `;
+  }
 }
 
 /* =========================
