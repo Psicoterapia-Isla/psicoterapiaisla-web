@@ -10,7 +10,31 @@
 
   <!-- AGENDA PRO -->
   <link rel="stylesheet" href="./assets/css/agenda.css">
+<style>
+  #modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.35);
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+  }
 
+  #modal.show {
+    display: flex;
+  }
+
+  .modal-content {
+    background: #fff;
+    width: 95%;
+    max-width: 520px;
+    border-radius: 20px;
+    padding: 1.5rem;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+</style>
 </head>
 
 <body class="app-layout">
