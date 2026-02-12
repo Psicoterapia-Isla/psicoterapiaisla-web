@@ -294,7 +294,8 @@ document.getElementById("save")?.addEventListener("click", async () => {
     const h = Math.floor(m/60);
     const min = m % 60;
 
-   const jsDay = new Date(currentSlot.date).getDay(); // 0–6
+   const [y,m,d] = currentSlot.date.split("-");
+const jsDay = new Date(y, m-1, d).getDay();; // 0–6
 const map = {
   1: "mon",
   2: "tue",
