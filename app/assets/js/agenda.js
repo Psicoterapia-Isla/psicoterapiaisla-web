@@ -289,8 +289,21 @@ document.getElementById("save")?.addEventListener("click", async () => {
     const h = Math.floor(m/60);
     const min = m % 60;
 
-    const dayIndex = new Date(currentSlot.date).getDay();
-    const dayKey = DAYS[(dayIndex + 6) % 7];
+   const jsDay = new Date(currentSlot.date).getDay(); // 0–6
+const map = {
+  1: "mon",
+  2: "tue",
+  3: "wed",
+  4: "thu",
+  5: "fri"
+};
+
+const dayKey = map[jsDay];
+
+if (!dayKey) {
+  alert("Día no permitido");
+  return;
+}
     const slotKey = `${dayKey}_${h}_${min}`;
 
     if(!availability[slotKey]){
