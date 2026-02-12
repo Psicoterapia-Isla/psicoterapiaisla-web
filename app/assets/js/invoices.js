@@ -15,6 +15,10 @@ import {
   httpsCallable
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-functions.js";
 
+import {
+  onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
 /* =========================
    INIT SEGURO
 ========================= */
@@ -24,7 +28,12 @@ await loadMenu();
 
 const tbody = document.getElementById("facturasBody");
 
-const functions = getFunctions();
+/* =========================
+   FUNCTIONS (REGIÓN CORRECTA)
+========================= */
+
+const functions = getFunctions(undefined, "us-central1");
+
 const generateInvoicePdf = httpsCallable(
   functions,
   "generateInvoicePdf"
@@ -34,9 +43,7 @@ const generateInvoicePdf = httpsCallable(
    LOAD FACTURAS
 ========================= */
 
-async function loadInvoices() {
-
-  const user = auth.currentUser;
+async function loadInvoices(user) {
 
   if (!tbody || !user) return;
 
@@ -116,8 +123,14 @@ async function loadInvoices() {
           }
 
         } catch (err) {
+
           console.error("Error generando PDF:", err);
-          alert("Error generando factura.");
+
+          if (err.code === "unauthenticated") {
+            alert("Sesión expirada. Recarga la página.");
+          } else {
+            alert("Error generando factura.");
+          }
         }
 
         button.disabled = false;
@@ -141,7 +154,17 @@ async function loadInvoices() {
 }
 
 /* =========================
-   START
+   ESPERAR AUTENTICACIÓN REAL
 ========================= */
 
-await loadInvoices();
+onAuthStateChanged(auth, (user) => {
+  if (user) {
+    loadInvoices(user);
+  } else {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="6">Usuario no autenticado.</td>
+      </tr>
+    `;
+  }
+});
