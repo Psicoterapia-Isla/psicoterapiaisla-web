@@ -1,4 +1,7 @@
+import { requireAuth } from "./auth.js";
+import { loadMenu } from "./menu.js";
 import { auth, db } from "./firebase.js";
+
 import {
   collection,
   query,
@@ -7,127 +10,107 @@ import {
   orderBy
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-/* =========================
-   DOM
-========================= */
-const list = document.getElementById("list");
-const summary = document.getElementById("summary");
-
-const typeFilter = document.getElementById("typeFilter");
-const patientFilter = document.getElementById("patientFilter");
-const fromDate = document.getElementById("fromDate");
-const toDate = document.getElementById("toDate");
-const applyBtn = document.getElementById("applyFilters");
+import {
+  getFunctions,
+  httpsCallable
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-functions.js";
 
 /* =========================
-   INIT
+   INIT SEGURO
 ========================= */
-auth.onAuthStateChanged(user => {
-  if (!user) return;
-  loadInvoices();
-});
+
+await requireAuth();
+await loadMenu();
+
+const user = auth.currentUser;
+const tbody = document.getElementById("facturasBody");
+
+const functions = getFunctions();
+const generateInvoicePdf =
+  httpsCallable(functions, "generateInvoicePdf");
 
 /* =========================
    LOAD FACTURAS
 ========================= */
+
 async function loadInvoices() {
 
-  list.innerHTML = "";
-  summary.innerHTML = "Cargando…";
+  if (!tbody || !user) return;
 
-  const user = auth.currentUser;
-  if (!user) return;
+  tbody.innerHTML = `
+    <tr>
+      <td colspan="6">Cargando facturas…</td>
+    </tr>
+  `;
 
   const snap = await getDocs(
     query(
       collection(db, "invoices"),
       where("therapistId", "==", user.uid),
-      orderBy("issueDate", "desc")
+      orderBy("createdAt", "desc")
     )
   );
 
   if (snap.empty) {
-    summary.innerHTML = "No hay facturas.";
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="6">No hay facturas todavía.</td>
+      </tr>
+    `;
     return;
   }
 
-  const type = typeFilter.value;
-  const patientTerm = patientFilter.value.toLowerCase().trim();
-  const from = fromDate.value;
-  const to = toDate.value;
-
-  let total = 0;
-  let count = 0;
+  tbody.innerHTML = "";
 
   snap.forEach(docSnap => {
 
-    const i = docSnap.data();
-    const date = i.issueDate?.toDate?.();
-    if (!date) return;
+    const f = docSnap.data();
+    const tr = document.createElement("tr");
 
-    /* ===== FILTRO TIPO ===== */
-    if (type) {
-      if (type === "mutual" && i.patientType !== "mutual") return;
-      if (type === "private" && i.patientType === "mutual") return;
-    }
+    const date = f.issueDate?.toDate
+      ? f.issueDate.toDate().toLocaleDateString("es-ES")
+      : "—";
 
-    /* ===== FILTRO NOMBRE ===== */
-    if (patientTerm) {
-      if (!i.patientName?.toLowerCase().includes(patientTerm)) return;
-    }
+    const statusLabel =
+      f.status === "paid"
+        ? `<span class="status status-paid">Pagada</span>`
+        : `<span class="status status-issued">Emitida</span>`;
 
-    /* ===== FILTRO FECHA ===== */
-    if (from && date < new Date(from)) return;
-    if (to) {
-      const toDateObj = new Date(to);
-      toDateObj.setHours(23,59,59,999);
-      if (date > toDateObj) return;
-    }
-
-    total += Number(i.totalAmount || 0);
-    count++;
-
-    const div = document.createElement("div");
-    div.className = "card";
-    div.innerHTML = `
-      <strong>${i.invoiceNumber}</strong><br>
-      ${i.patientName || "—"}<br>
-      ${i.concept || ""}<br><br>
-      <strong>${Number(i.totalAmount).toFixed(2)} €</strong><br>
-      <small>
-        ${date.toLocaleDateString("es-ES")}
-        · ${translateStatus(i.status)}
-      </small>
+    tr.innerHTML = `
+      <td>${f.invoiceNumber || "—"}</td>
+      <td>${f.patientName || "—"}</td>
+      <td>${date}</td>
+      <td>${Number(f.totalAmount || 0).toFixed(2)} €</td>
+      <td>${statusLabel}</td>
+      <td>
+        <button class="btn-link" data-id="${docSnap.id}">
+          Descargar PDF
+        </button>
+      </td>
     `;
 
-    list.appendChild(div);
+    tr.querySelector("button").onclick = async () => {
+      try {
+        const res = await generateInvoicePdf({
+          invoiceId: docSnap.id
+        });
+
+        if (res.data?.url) {
+          window.open(res.data.url, "_blank");
+        }
+
+      } catch (err) {
+        console.error("Error generando PDF:", err);
+        alert("No se pudo generar el PDF.");
+      }
+    };
+
+    tbody.appendChild(tr);
   });
-
-  if (!count) {
-    summary.innerHTML = "No hay facturas con esos filtros.";
-    return;
-  }
-
-  summary.innerHTML = `
-    <strong>Total facturado:</strong><br>
-    ${total.toFixed(2)} €<br>
-    ${count} facturas
-  `;
 }
 
 /* =========================
-   HELPERS
+   START
 ========================= */
-function translateStatus(status) {
-  switch (status) {
-    case "draft": return "Borrador";
-    case "issued": return "Emitida";
-    case "paid": return "Pagada";
-    default: return "—";
-  }
-}
 
-/* =========================
-   EVENTS
-========================= */
-applyBtn.onclick = loadInvoices;
+await loadInvoices();
