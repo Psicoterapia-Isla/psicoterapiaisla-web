@@ -199,20 +199,24 @@ async function saveWeek(){
 
 /* ================= NAV ================= */
 
-prevWeek?.addEventListener("click", ()=>{
-  currentMonday.setDate(currentMonday.getDate() - 7);
+prevWeek.onclick = ()=>{
+  currentMonday = mondayOf(
+    new Date(currentMonday.getTime() - 7 * 86400000)
+  );
   loadWeek();
-});
+};
 
-nextWeek?.addEventListener("click", ()=>{
-  currentMonday.setDate(currentMonday.getDate() + 7);
+nextWeek.onclick = ()=>{
+  currentMonday = mondayOf(
+    new Date(currentMonday.getTime() + 7 * 86400000)
+  );
   loadWeek();
-});
+};
 
-todayWeek?.addEventListener("click", ()=>{
+todayWeek.onclick = ()=>{
   currentMonday = mondayOf(new Date());
   loadWeek();
-});
+};
 
 /* ================= AUTH ================= */
 
