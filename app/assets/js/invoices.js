@@ -19,18 +19,18 @@ import {
   onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-/* =========================
+/* =====================================================
    INIT SEGURO
-========================= */
+===================================================== */
 
 await requireAuth();
 await loadMenu();
 
 const tbody = document.getElementById("facturasBody");
 
-/* =========================
+/* =====================================================
    FUNCTIONS (REGIÓN CORRECTA)
-========================= */
+===================================================== */
 
 const functions = getFunctions(undefined, "us-central1");
 
@@ -39,9 +39,9 @@ const generateInvoicePdf = httpsCallable(
   "generateInvoicePdf"
 );
 
-/* =========================
+/* =====================================================
    LOAD FACTURAS
-========================= */
+===================================================== */
 
 async function loadInvoices(user) {
 
@@ -97,7 +97,7 @@ async function loadInvoices(user) {
         <td>${Number(f.totalAmount || 0).toFixed(2)} €</td>
         <td>${statusLabel}</td>
         <td>
-          <button class="btn-link" data-id="${docSnap.id}">
+          <button class="btn-link">
             Descargar PDF
           </button>
         </td>
@@ -111,6 +111,9 @@ async function loadInvoices(user) {
         button.textContent = "Generando...";
 
         try {
+
+          // 🔥 Forzar refresh del token antes de llamar
+          await user.getIdToken(true);
 
           const res = await generateInvoicePdf({
             invoiceId: docSnap.id
@@ -131,14 +134,17 @@ async function loadInvoices(user) {
           } else {
             alert("Error generando factura.");
           }
-        }
 
-        button.disabled = false;
-        button.textContent = "Descargar PDF";
+        } finally {
+
+          button.disabled = false;
+          button.textContent = "Descargar PDF";
+        }
 
       });
 
       tbody.appendChild(tr);
+
     });
 
   } catch (error) {
@@ -153,18 +159,27 @@ async function loadInvoices(user) {
   }
 }
 
-/* =========================
+/* =====================================================
    ESPERAR AUTENTICACIÓN REAL
-========================= */
+===================================================== */
 
-onAuthStateChanged(auth, (user) => {
-  if (user) {
-    loadInvoices(user);
-  } else {
+onAuthStateChanged(auth, async (user) => {
+
+  if (!user) {
     tbody.innerHTML = `
       <tr>
         <td colspan="6">Usuario no autenticado.</td>
       </tr>
     `;
+    return;
   }
+
+  try {
+    // 🔥 Aseguramos token válido antes de cargar nada
+    await user.getIdToken(true);
+    await loadInvoices(user);
+  } catch (err) {
+    console.error("Error inicializando facturas:", err);
+  }
+
 });
