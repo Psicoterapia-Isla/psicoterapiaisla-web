@@ -262,7 +262,103 @@ function openEdit(a){
 closeBtn?.addEventListener("click",()=>{
   modal.classList.remove("show");
 });
+/* ================= SAVE ================= */
 
+document.getElementById("save")?.addEventListener("click", async () => {
+
+  const user = auth.currentUser;
+  if(!user || !currentSlot) return;
+
+  const monday = mondayOf(baseDate);
+  const weekStart = formatDate(monday);
+
+  const availRef = doc(db,"availability",`${user.uid}_${weekStart}`);
+  const availSnap = await getDoc(availRef);
+  const availability = availSnap.exists() ? availSnap.data().slots : {};
+
+  const startTime = start.value;
+  const endTime = end.value;
+
+  const startMin = minutesOf(startTime);
+  const endMin = minutesOf(endTime);
+
+  /* VALIDAR DISPONIBILIDAD */
+
+  for(let m = startMin; m < endMin; m += 30){
+
+    const h = Math.floor(m/60);
+    const min = m % 60;
+
+    const dayIndex = new Date(currentSlot.date).getDay();
+    const dayKey = DAYS[(dayIndex + 6) % 7];
+    const slotKey = `${dayKey}_${h}_${min}`;
+
+    if(!availability[slotKey]){
+      alert("Horario fuera de disponibilidad");
+      return;
+    }
+  }
+
+  /* VALIDAR SOLAPAMIENTO */
+
+  const apptSnap = await getDocs(query(
+    collection(db,"appointments"),
+    where("therapistId","==",user.uid),
+    where("date","==",currentSlot.date)
+  ));
+
+  const appointments = [];
+  apptSnap.forEach(d=>appointments.push({ id:d.id, ...d.data() }));
+
+  if(appointments.some(a=>{
+    if(editingId && a.id===editingId) return false;
+    const s=minutesOf(a.start);
+    const e=minutesOf(a.end);
+    return startMin < e && endMin > s;
+  })){
+    alert("Solapamiento con otra cita");
+    return;
+  }
+
+  /* GUARDAR */
+
+  const data = {
+    therapistId: user.uid,
+    patientId: selectedPatient?.id || null,
+    patient: selectedPatient || null,
+    date: currentSlot.date,
+    phone: phone.value,
+    name: name.value,
+    service: service.value,
+    modality: modality.value,
+    start: startTime,
+    end: endTime,
+    completed: completed.checked,
+    paid: paid.checked,
+    amount: Number(amount.value || 0),
+    updatedAt: Timestamp.now()
+  };
+
+  let id;
+
+  if(editingId){
+    await updateDoc(doc(db,"appointments",editingId),data);
+    id = editingId;
+  }else{
+    const ref = await addDoc(collection(db,"appointments"),{
+      ...data,
+      createdAt: Timestamp.now()
+    });
+    id = ref.id;
+  }
+
+  if(data.completed && data.paid && data.amount){
+    await createInvoice(data,id);
+  }
+
+  modal.classList.remove("show");
+  await renderWeek();
+});
 /* ================= RENDER ================= */
 
 async function renderWeek(){
