@@ -62,7 +62,12 @@ const todayBtn = document.getElementById("today");
 /* ================= HELPERS ================= */
 
 const pad = n => String(n).padStart(2,"0");
-const formatDate = d => d.toISOString().slice(0,10);
+function formatDate(d){
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2,"0");
+  const day = String(d.getDate()).padStart(2,"0");
+  return `${year}-${month}-${day}`;
+}
 
 function mondayOf(d){
   const x = new Date(d);
