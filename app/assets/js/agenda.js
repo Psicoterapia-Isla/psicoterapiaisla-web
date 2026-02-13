@@ -298,6 +298,11 @@ for (let minCursor = startMin; minCursor < endMin; minCursor += 30) {
     }
   }
 
-  modal.classList.remove("show");
-  await renderWeek();
+import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+onAuthStateChanged(auth, (user) => {
+  if (user) {
+    renderWeek();
+  }
+});
 });
