@@ -1,5 +1,3 @@
-import { requireAuth } from "./auth.js";
-import { loadMenu } from "./menu.js";
 import { auth, db } from "./firebase.js";
 
 import {
@@ -14,7 +12,10 @@ import {
   Timestamp,
   runTransaction
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-;
+
+import {
+  onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
 /* ================= STATE ================= */
 
@@ -112,8 +113,6 @@ async function getNextInvoiceNumber(therapistId){
 }
 
 async function createInvoice(data, appointmentId) {
-
-  if (data.invoiceId) return;
 
   const num = await getNextInvoiceNumber(data.therapistId);
 
@@ -213,33 +212,23 @@ document.getElementById("save")?.addEventListener("click", async () => {
   const startMin = minutesOf(start.value);
   const endMin = minutesOf(end.value);
 
-  /* VALIDAR DISPONIBILIDAD */
+  const realDate = new Date(y, Number(m)-1, d);
+  const dayNumber = realDate.getDay();
+  const map = {1:"mon",2:"tue",3:"wed",4:"thu",5:"fri"};
+  const dayKey = map[dayNumber];
 
-const realDate = new Date(y, Number(m) - 1, d);
-const dayNumber = realDate.getDay();
+  if (!dayKey) return alert("Día no permitido");
 
-const map = {1:"mon",2:"tue",3:"wed",4:"thu",5:"fri"};
-const dayKey = map[dayNumber];
+  for (let minCursor = startMin; minCursor < endMin; minCursor += 30) {
 
-if (!dayKey) {
-  alert("Día no permitido");
-  return;
-}
+    const h = Math.floor(minCursor / 60);
+    const min = minCursor % 60;
+    const slotKey = `${dayKey}_${h}_${min}`;
 
-for (let minCursor = startMin; minCursor < endMin; minCursor += 30) {
-
-  const h = Math.floor(minCursor / 60);
-  const min = minCursor % 60;
-
-  const slotKey = `${dayKey}_${h}_${min}`;
-
-  if (!availability[slotKey] && !editingId) {
-    alert("Horario fuera de disponibilidad");
-    return;
+    if (!availability[slotKey] && !editingId) {
+      return alert("Horario fuera de disponibilidad");
+    }
   }
-}
-
-  /* VALIDAR SOLAPAMIENTO */
 
   const apptSnap = await getDocs(query(
     collection(db,"appointments"),
@@ -289,7 +278,7 @@ for (let minCursor = startMin; minCursor < endMin; minCursor += 30) {
     id = ref.id;
   }
 
-  if (data.completed && data.paid && data.amount) {
+  if (data.completed && data.paid && data.amount > 0) {
     try {
       await createInvoice(data, id);
     } catch (err) {
@@ -298,11 +287,128 @@ for (let minCursor = startMin; minCursor < endMin; minCursor += 30) {
     }
   }
 
-import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+  modal.classList.remove("show");
+  await renderWeek();
+});
+
+/* ================= RENDER ================= */
+
+async function renderWeek(){
+
+  if(!grid) return;
+
+  grid.innerHTML = "";
+
+  const monday = mondayOf(baseDate);
+  const weekStart = formatDate(monday);
+  const weekEnd = formatDate(new Date(monday.getTime()+4*86400000));
+
+  if(weekLabel){
+    weekLabel.textContent =
+      monday.toLocaleDateString("es-ES",{day:"numeric",month:"short"}) +
+      " – " +
+      new Date(monday.getTime()+4*86400000)
+        .toLocaleDateString("es-ES",{day:"numeric",month:"short",year:"numeric"});
+  }
+
+  const user = auth.currentUser;
+  if(!user) return;
+
+  const availRef = doc(db,"availability",`${user.uid}_${weekStart}`);
+  const availSnap = await getDoc(availRef);
+  const availability = availSnap.exists() ? availSnap.data().slots : {};
+
+  const apptSnap = await getDocs(query(
+    collection(db,"appointments"),
+    where("therapistId","==",user.uid),
+    where("date",">=",weekStart),
+    where("date","<=",weekEnd)
+  ));
+
+  const appointments = [];
+  apptSnap.forEach(d=>appointments.push({ id:d.id, ...d.data() }));
+
+  grid.appendChild(document.createElement("div"));
+
+  DAYS.forEach((_,i)=>{
+    const d = new Date(monday);
+    d.setDate(d.getDate()+i);
+    const h = document.createElement("div");
+    h.className="day-label";
+    h.textContent = d.toLocaleDateString("es-ES",{weekday:"short",day:"numeric"});
+    grid.appendChild(h);
+  });
+
+  HOURS.forEach(hour=>{
+    MINUTES.forEach(minute=>{
+
+      const label=document.createElement("div");
+      label.className="hour-label";
+      label.textContent=timeString(hour,minute);
+      grid.appendChild(label);
+
+      DAYS.forEach(day=>{
+
+        const date=formatDate(dayFromKey(monday,day));
+        const slotKey = `${day}_${hour}_${minute}`;
+
+        const cell=document.createElement("div");
+        cell.className="slot";
+
+        const appointment = appointments.find(a=>{
+          if(a.date !== date) return false;
+          const cur=hour*60+minute;
+          return cur>=minutesOf(a.start) && cur<minutesOf(a.end);
+        });
+
+        if(appointment){
+
+          cell.classList.add(
+            appointment.paid ? "paid" :
+            appointment.completed ? "done" : "busy"
+          );
+
+          cell.innerHTML=`<strong>${appointment.name||"—"}</strong>`;
+          cell.onclick=()=>openEdit(appointment);
+
+        } else if(availability[slotKey]){
+
+          cell.classList.add("available");
+          cell.onclick=()=>openNew({date,hour,minute});
+
+        } else {
+
+          cell.classList.add("disabled");
+        }
+
+        grid.appendChild(cell);
+      });
+
+    });
+  });
+}
+
+/* ================= NAV ================= */
+
+prevWeek?.addEventListener("click", ()=>{
+  baseDate.setDate(baseDate.getDate()-7);
+  renderWeek();
+});
+
+nextWeek?.addEventListener("click", ()=>{
+  baseDate.setDate(baseDate.getDate()+7);
+  renderWeek();
+});
+
+todayBtn?.addEventListener("click", ()=>{
+  baseDate = new Date();
+  renderWeek();
+});
+
+/* ================= AUTH INIT ================= */
 
 onAuthStateChanged(auth, (user) => {
   if (user) {
     renderWeek();
   }
-});
 });
