@@ -26,7 +26,6 @@ let baseDate = new Date();
 let editingId = null;
 let selectedPatient = null;
 let currentSlot = null;
-let currentInvoiceId = null;
 
 /* ================= CONFIG ================= */
 
@@ -53,8 +52,6 @@ const paid = document.getElementById("paid");
 const amount = document.getElementById("amount");
 const suggestions = document.getElementById("suggestions");
 
-/* NAV DOM SAFE */
-
 const prevWeek = document.getElementById("prevWeek");
 const nextWeek = document.getElementById("nextWeek");
 const todayBtn = document.getElementById("today");
@@ -62,11 +59,9 @@ const todayBtn = document.getElementById("today");
 /* ================= HELPERS ================= */
 
 const pad = n => String(n).padStart(2,"0");
+
 function formatDate(d){
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2,"0");
-  const day = String(d.getDate()).padStart(2,"0");
-  return `${year}-${month}-${day}`;
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
 }
 
 function mondayOf(d){
@@ -97,66 +92,6 @@ function setFieldsDisabled(disabled){
     .forEach(el => el && (el.disabled = disabled));
 }
 
-/* ================= AUTOCOMPLETE ================= */
-
-async function searchPatients(term){
-
-  if(!term || term.length < 2){
-    suggestions.innerHTML = "";
-    return;
-  }
-
-  const snap = await getDocs(query(
-    collection(db,"patients_normalized"),
-    where("keywords","array-contains",term.toLowerCase())
-  ));
-
-  suggestions.innerHTML = "";
-
-  snap.forEach(d=>{
-    const p = d.data();
-
-    const item = document.createElement("div");
-    item.textContent =
-      `${p.nombre || ""} ${p.apellidos || ""} · ${p.telefono || ""}`;
-
-    item.onclick = () => {
-
-      selectedPatient = { id: d.id, ...p };
-
-      phone.value = p.telefono || "";
-      name.value =
-        `${p.nombre || ""} ${p.apellidos || ""}`.trim();
-
-      const duration =
-        p.patientType === "mutual" ? 30 : 60;
-
-      const [h,m] = start.value.split(":").map(Number);
-      const endDate = new Date(0,0,0,h,m+duration);
-
-      end.value =
-        timeString(endDate.getHours(),endDate.getMinutes());
-
-      if(p.patientType === "mutual"){
-        amount.value = p.mutual?.pricePerSession || 0;
-      }
-
-      suggestions.innerHTML = "";
-    };
-
-    suggestions.appendChild(item);
-  });
-}
-
-phone?.addEventListener("input", e => searchPatients(e.target.value));
-name?.addEventListener("input", e => searchPatients(e.target.value));
-
-document.addEventListener("click", (e)=>{
-  if(!e.target.closest(".autocomplete-wrapper")){
-    suggestions.innerHTML = "";
-  }
-});
-
 /* ================= FACTURACIÓN ================= */
 
 async function getNextInvoiceNumber(therapistId){
@@ -182,7 +117,13 @@ async function getNextInvoiceNumber(therapistId){
 
 async function createInvoice(data, appointmentId){
 
-  if(data.invoiceId) return;
+  // 🔒 evitar duplicados
+  const existing = await getDocs(query(
+    collection(db,"invoices"),
+    where("appointmentId","==",appointmentId)
+  ));
+
+  if (!existing.empty) return;
 
   const num = await getNextInvoiceNumber(data.therapistId);
 
@@ -212,11 +153,9 @@ async function createInvoice(data, appointmentId){
 /* ================= MODAL ================= */
 
 function resetModal(){
-
   editingId = null;
   selectedPatient = null;
   currentSlot = null;
-  currentInvoiceId = null;
 
   phone.value = "";
   name.value = "";
@@ -240,9 +179,7 @@ function openNew(slot){
 }
 
 function openEdit(a){
-
   resetModal();
-
   editingId = a.id;
   selectedPatient = a.patient || null;
   currentSlot = { date: a.date };
@@ -267,6 +204,7 @@ function openEdit(a){
 closeBtn?.addEventListener("click",()=>{
   modal.classList.remove("show");
 });
+
 /* ================= SAVE ================= */
 
 document.getElementById("save")?.addEventListener("click", async () => {
@@ -282,44 +220,35 @@ document.getElementById("save")?.addEventListener("click", async () => {
   const availSnap = await getDoc(availRef);
   const availability = availSnap.exists() ? availSnap.data().slots : {};
 
-  const startTime = start.value;
-  const endTime = end.value;
-
-  const startMin = minutesOf(startTime);
-  const endMin = minutesOf(endTime);
+  const startMin = minutesOf(start.value);
+  const endMin = minutesOf(end.value);
 
   /* VALIDAR DISPONIBILIDAD */
 
-for (let m = startMin; m < endMin; m += 30) {
+const realDate = new Date(y, Number(m) - 1, d);
+const dayNumber = realDate.getDay();
 
-  const h = Math.floor(m / 60);
-  const min = m % 60;
+const map = {1:"mon",2:"tue",3:"wed",4:"thu",5:"fri"};
+const dayKey = map[dayNumber];
 
-  const [year, month, day] = currentSlot.date.split("-");
-  const jsDay = new Date(year, month - 1, day).getDay(); // 0–6
+if (!dayKey) {
+  alert("Día no permitido");
+  return;
+}
 
-  const map = {
-    1: "mon",
-    2: "tue",
-    3: "wed",
-    4: "thu",
-    5: "fri"
-  };
+for (let minCursor = startMin; minCursor < endMin; minCursor += 30) {
 
-  const dayKey = map[jsDay];
-
-  if (!dayKey) {
-    alert("Día no permitido");
-    return;
-  }
+  const h = Math.floor(minCursor / 60);
+  const min = minCursor % 60;
 
   const slotKey = `${dayKey}_${h}_${min}`;
 
- if (!availability[slotKey] && !editingId) {
-  alert("Horario fuera de disponibilidad");
-  return;
+  if (!availability[slotKey] && !editingId) {
+    alert("Horario fuera de disponibilidad");
+    return;
+  }
 }
-}
+
   /* VALIDAR SOLAPAMIENTO */
 
   const apptSnap = await getDocs(query(
@@ -337,11 +266,8 @@ for (let m = startMin; m < endMin; m += 30) {
     const e=minutesOf(a.end);
     return startMin < e && endMin > s;
   })){
-    alert("Solapamiento con otra cita");
-    return;
+    return alert("Solapamiento con otra cita");
   }
-
-  /* GUARDAR */
 
   const data = {
     therapistId: user.uid,
@@ -352,8 +278,8 @@ for (let m = startMin; m < endMin; m += 30) {
     name: name.value,
     service: service.value,
     modality: modality.value,
-    start: startTime,
-    end: endTime,
+    start: start.value,
+    end: end.value,
     completed: completed.checked,
     paid: paid.checked,
     amount: Number(amount.value || 0),
@@ -373,131 +299,15 @@ for (let m = startMin; m < endMin; m += 30) {
     id = ref.id;
   }
 
-  if(data.completed && data.paid && data.amount){
-    await createInvoice(data,id);
+  if (data.completed && data.paid && data.amount) {
+    try {
+      await createInvoice(data, id);
+    } catch (err) {
+      console.error("Error creando factura:", err);
+      alert("La cita se guardó pero la factura falló.");
+    }
   }
 
   modal.classList.remove("show");
   await renderWeek();
 });
-/* ================= RENDER ================= */
-
-async function renderWeek(){
-
-  if(!grid) return;
-
-  grid.innerHTML = "";
-
-  const monday = mondayOf(baseDate);
-  const weekStart = formatDate(monday);
-  const weekEnd = formatDate(new Date(monday.getTime()+4*86400000));
-
-  if(weekLabel){
-    weekLabel.textContent =
-      monday.toLocaleDateString("es-ES",{day:"numeric",month:"short"}) +
-      " – " +
-      new Date(monday.getTime()+4*86400000)
-        .toLocaleDateString("es-ES",{day:"numeric",month:"short",year:"numeric"});
-  }
-
-  const user = auth.currentUser;
-  if(!user) return;
-
-  const availRef = doc(db,"availability",`${user.uid}_${weekStart}`);
-  const availSnap = await getDoc(availRef);
-  const availability = availSnap.exists() ? availSnap.data().slots : {};
-
-  const apptSnap = await getDocs(query(
-    collection(db,"appointments"),
-    where("therapistId","==",user.uid),
-    where("date",">=",weekStart),
-    where("date","<=",weekEnd)
-  ));
-
-  const appointments = [];
-  apptSnap.forEach(d=>appointments.push({ id:d.id, ...d.data() }));
-
-  grid.appendChild(document.createElement("div"));
-
-  DAYS.forEach((_,i)=>{
-    const d = new Date(monday);
-    d.setDate(d.getDate()+i);
-    const h = document.createElement("div");
-    h.className="day-label";
-    h.textContent = d.toLocaleDateString("es-ES",{weekday:"short",day:"numeric"});
-    grid.appendChild(h);
-  });
-
-  HOURS.forEach(hour=>{
-    MINUTES.forEach(minute=>{
-
-      const label=document.createElement("div");
-      label.className="hour-label";
-      label.textContent=timeString(hour,minute);
-      grid.appendChild(label);
-
-      DAYS.forEach(day=>{
-
-        const date=formatDate(dayFromKey(monday,day));
-        const slotKey = `${day}_${hour}_${minute}`;
-
-        const cell=document.createElement("div");
-        cell.className="slot";
-
-        const appointment = appointments.find(a=>{
-          if(a.date !== date) return false;
-          const cur=hour*60+minute;
-          return cur>=minutesOf(a.start) && cur<minutesOf(a.end);
-        });
-
-        if(appointment){
-
-          cell.classList.add(
-            appointment.paid ? "paid" :
-            appointment.completed ? "done" : "busy"
-          );
-
-          cell.innerHTML=`<strong>${appointment.name||"—"}</strong>`;
-          cell.onclick=()=>openEdit(appointment);
-
-        } else if(availability[slotKey]){
-
-          cell.classList.add("available");
-          cell.onclick=()=>openNew({date,hour,minute});
-
-        } else {
-
-          cell.classList.add("disabled");
-        }
-
-        grid.appendChild(cell);
-      });
-
-    });
-  });
-}
-
-/* ================= NAV SAFE ================= */
-
-if(prevWeek){
-  prevWeek.onclick=()=>{
-    baseDate.setDate(baseDate.getDate()-7);
-    renderWeek();
-  };
-}
-
-if(nextWeek){
-  nextWeek.onclick=()=>{
-    baseDate.setDate(baseDate.getDate()+7);
-    renderWeek();
-  };
-}
-
-if(todayBtn){
-  todayBtn.onclick=()=>{
-    baseDate=new Date();
-    renderWeek();
-  };
-}
-
-renderWeek();
