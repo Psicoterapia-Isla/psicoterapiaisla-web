@@ -1,3 +1,5 @@
+import { requireAuth } from "./auth.js";
+import { loadMenu } from "./menu.js";
 import { auth, db } from "./firebase.js";
 
 import {
@@ -14,8 +16,23 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 import {
-  onAuthStateChanged
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+  getFunctions,
+  httpsCallable
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-functions.js";
+
+/* ================= INIT ================= */
+
+await requireAuth();
+await loadMenu();
+
+/* ================= FUNCTIONS ================= */
+
+const functions = getFunctions(undefined, "us-central1");
+
+const sendAppointmentNotification = httpsCallable(
+  functions,
+  "sendAppointmentNotification"
+);
 
 /* ================= STATE ================= */
 
@@ -89,6 +106,66 @@ function setFieldsDisabled(disabled){
     .forEach(el => el && (el.disabled = disabled));
 }
 
+/* ================= AUTOCOMPLETE ================= */
+
+async function searchPatients(term){
+
+  if(!term || term.length < 2){
+    suggestions.innerHTML = "";
+    return;
+  }
+
+  const snap = await getDocs(query(
+    collection(db,"patients_normalized"),
+    where("keywords","array-contains",term.toLowerCase())
+  ));
+
+  suggestions.innerHTML = "";
+
+  snap.forEach(d=>{
+    const p = d.data();
+
+    const item = document.createElement("div");
+    item.textContent =
+      `${p.nombre || ""} ${p.apellidos || ""} · ${p.telefono || ""}`;
+
+    item.onclick = () => {
+
+      selectedPatient = { id: d.id, ...p };
+
+      phone.value = p.telefono || "";
+      name.value =
+        `${p.nombre || ""} ${p.apellidos || ""}`.trim();
+
+      const duration =
+        p.patientType === "mutual" ? 30 : 60;
+
+      const [h,m] = start.value.split(":").map(Number);
+      const endDate = new Date(0,0,0,h,m+duration);
+
+      end.value =
+        timeString(endDate.getHours(),endDate.getMinutes());
+
+      if(p.patientType === "mutual"){
+        amount.value = p.mutual?.pricePerSession || 0;
+      }
+
+      suggestions.innerHTML = "";
+    };
+
+    suggestions.appendChild(item);
+  });
+}
+
+phone?.addEventListener("input", e => searchPatients(e.target.value));
+name?.addEventListener("input", e => searchPatients(e.target.value));
+
+document.addEventListener("click", (e)=>{
+  if(!e.target.closest(".autocomplete-wrapper")){
+    suggestions.innerHTML = "";
+  }
+});
+
 /* ================= FACTURACIÓN ================= */
 
 async function getNextInvoiceNumber(therapistId){
@@ -113,6 +190,8 @@ async function getNextInvoiceNumber(therapistId){
 }
 
 async function createInvoice(data, appointmentId) {
+
+  if (data.invoiceId) return;
 
   const num = await getNextInvoiceNumber(data.therapistId);
 
@@ -201,34 +280,8 @@ document.getElementById("save")?.addEventListener("click", async () => {
   const user = auth.currentUser;
   if(!user || !currentSlot) return;
 
-  const [y,m,d] = currentSlot.date.split("-");
-  const monday = mondayOf(new Date(y, m-1, d));
-  const weekStart = formatDate(monday);
-
-  const availRef = doc(db,"availability",`${user.uid}_${weekStart}`);
-  const availSnap = await getDoc(availRef);
-  const availability = availSnap.exists() ? availSnap.data().slots : {};
-
   const startMin = minutesOf(start.value);
   const endMin = minutesOf(end.value);
-
-  const realDate = new Date(y, Number(m)-1, d);
-  const dayNumber = realDate.getDay();
-  const map = {1:"mon",2:"tue",3:"wed",4:"thu",5:"fri"};
-  const dayKey = map[dayNumber];
-
-  if (!dayKey) return alert("Día no permitido");
-
-  for (let minCursor = startMin; minCursor < endMin; minCursor += 30) {
-
-    const h = Math.floor(minCursor / 60);
-    const min = minCursor % 60;
-    const slotKey = `${dayKey}_${h}_${min}`;
-
-    if (!availability[slotKey] && !editingId) {
-      return alert("Horario fuera de disponibilidad");
-    }
-  }
 
   const apptSnap = await getDocs(query(
     collection(db,"appointments"),
@@ -276,9 +329,17 @@ document.getElementById("save")?.addEventListener("click", async () => {
       createdAt: Timestamp.now()
     });
     id = ref.id;
+
+    try {
+      await sendAppointmentNotification({
+        appointmentId: id
+      });
+    } catch (err) {
+      console.error("Error enviando aviso WhatsApp:", err);
+    }
   }
 
-  if (data.completed && data.paid && data.amount > 0) {
+  if (data.completed && data.paid && data.amount) {
     try {
       await createInvoice(data, id);
     } catch (err) {
@@ -362,22 +423,16 @@ async function renderWeek(){
         });
 
         if(appointment){
-
           cell.classList.add(
             appointment.paid ? "paid" :
             appointment.completed ? "done" : "busy"
           );
-
           cell.innerHTML=`<strong>${appointment.name||"—"}</strong>`;
           cell.onclick=()=>openEdit(appointment);
-
         } else if(availability[slotKey]){
-
           cell.classList.add("available");
           cell.onclick=()=>openNew({date,hour,minute});
-
         } else {
-
           cell.classList.add("disabled");
         }
 
@@ -390,25 +445,25 @@ async function renderWeek(){
 
 /* ================= NAV ================= */
 
-prevWeek?.addEventListener("click", ()=>{
-  baseDate.setDate(baseDate.getDate()-7);
-  renderWeek();
-});
-
-nextWeek?.addEventListener("click", ()=>{
-  baseDate.setDate(baseDate.getDate()+7);
-  renderWeek();
-});
-
-todayBtn?.addEventListener("click", ()=>{
-  baseDate = new Date();
-  renderWeek();
-});
-
-/* ================= AUTH INIT ================= */
-
-onAuthStateChanged(auth, (user) => {
-  if (user) {
+if(prevWeek){
+  prevWeek.onclick=()=>{
+    baseDate.setDate(baseDate.getDate()-7);
     renderWeek();
-  }
-});
+  };
+}
+
+if(nextWeek){
+  nextWeek.onclick=()=>{
+    baseDate.setDate(baseDate.getDate()+7);
+    renderWeek();
+  };
+}
+
+if(todayBtn){
+  todayBtn.onclick=()=>{
+    baseDate=new Date();
+    renderWeek();
+  };
+}
+
+renderWeek();
