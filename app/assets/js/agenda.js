@@ -115,15 +115,9 @@ async function getNextInvoiceNumber(therapistId){
   });
 }
 
-async function createInvoice(data, appointmentId){
+async function createInvoice(data, appointmentId) {
 
-  // 🔒 evitar duplicados
-  const existing = await getDocs(query(
-    collection(db,"invoices"),
-    where("appointmentId","==",appointmentId)
-  ));
-
-  if (!existing.empty) return;
+  if (data.invoiceId) return;
 
   const num = await getNextInvoiceNumber(data.therapistId);
 
