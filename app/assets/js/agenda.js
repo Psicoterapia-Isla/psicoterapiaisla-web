@@ -178,6 +178,8 @@ async function getNextInvoiceNumber(therapistId){
 
 async function createInvoice(data, appointmentId) {
 
+  if (data.invoiceId) return;
+
   const num = await getNextInvoiceNumber(data.therapistId);
 
   const invRef = await addDoc(collection(db,"invoices"),{
@@ -260,8 +262,34 @@ document.getElementById("save")?.addEventListener("click", async () => {
   const user = auth.currentUser;
   if(!user || !currentSlot) return;
 
+  const [y,m,d] = currentSlot.date.split("-");
+  const monday = mondayOf(new Date(y, m-1, d));
+  const weekStart = formatDate(monday);
+
+  const availRef = doc(db,"availability",`${user.uid}_${weekStart}`);
+  const availSnap = await getDoc(availRef);
+  const availability = availSnap.exists() ? availSnap.data().slots : {};
+
   const startMin = minutesOf(start.value);
   const endMin = minutesOf(end.value);
+
+  const realDate = new Date(y, m-1, d);
+  const dayNumber = realDate.getDay();
+  const map = {1:"mon",2:"tue",3:"wed",4:"thu",5:"fri"};
+  const dayKey = map[dayNumber];
+
+  if (!dayKey) return alert("Día no permitido");
+
+  for (let minCursor = startMin; minCursor < endMin; minCursor += 30) {
+
+    const h = Math.floor(minCursor / 60);
+    const min = minCursor % 60;
+    const slotKey = `${dayKey}_${h}_${min}`;
+
+    if (!availability[slotKey] && !editingId) {
+      return alert("Horario fuera de disponibilidad");
+    }
+  }
 
   const apptSnap = await getDocs(query(
     collection(db,"appointments"),
@@ -311,11 +339,9 @@ document.getElementById("save")?.addEventListener("click", async () => {
     id = ref.id;
 
     try {
-      await sendAppointmentNotification({
-        appointmentId: id
-      });
+      await sendAppointmentNotification({ appointmentId: id });
     } catch (err) {
-      console.error("Error enviando aviso WhatsApp:", err);
+      console.error("Error enviando aviso:", err);
     }
   }
 
@@ -350,6 +376,10 @@ async function renderWeek(){
   const user = auth.currentUser;
   if(!user) return;
 
+  const availRef = doc(db,"availability",`${user.uid}_${weekStart}`);
+  const availSnap = await getDoc(availRef);
+  const availability = availSnap.exists() ? availSnap.data().slots : {};
+
   const apptSnap = await getDocs(query(
     collection(db,"appointments"),
     where("therapistId","==",user.uid),
@@ -382,6 +412,7 @@ async function renderWeek(){
       DAYS.forEach(day=>{
 
         const date=formatDate(dayFromKey(monday,day));
+        const slotKey = `${day}_${hour}_${minute}`;
         const cell=document.createElement("div");
         cell.className="slot";
 
@@ -391,13 +422,25 @@ async function renderWeek(){
           return cur>=minutesOf(a.start) && cur<minutesOf(a.end);
         });
 
-        if(appointment){
-          cell.classList.add("busy");
-          cell.innerHTML=`<strong>${appointment.name||"—"}</strong>`;
-          cell.onclick=()=>openEdit(appointment);
-        } else {
+        if (appointment) {
+
+          cell.classList.add(
+            appointment.paid ? "paid" :
+            appointment.completed ? "done" : "busy"
+          );
+
+          cell.innerHTML = `<strong>${appointment.name || "—"}</strong>`;
+          cell.onclick = () => openEdit(appointment);
+
+        } else if (availability[slotKey]) {
+
           cell.classList.add("available");
-          cell.onclick=()=>openNew({date,hour,minute});
+          cell.onclick = () => openNew({ date, hour, minute });
+
+        } else {
+
+          cell.classList.add("disabled");
+
         }
 
         grid.appendChild(cell);
