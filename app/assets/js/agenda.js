@@ -223,8 +223,18 @@ function resetModal(){
 function openNew(slot){
   resetModal();
   currentSlot = slot;
+
   start.value = timeString(slot.hour, slot.minute);
-  end.value = timeString(slot.hour, slot.minute + 60);
+
+  // Calcular correctamente +60 minutos
+  const startDate = new Date(0, 0, 0, slot.hour, slot.minute);
+  startDate.setMinutes(startDate.getMinutes() + 60);
+
+  end.value = timeString(
+    startDate.getHours(),
+    startDate.getMinutes()
+  );
+
   modal.classList.add("show");
 }
 
