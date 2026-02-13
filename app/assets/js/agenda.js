@@ -315,10 +315,10 @@ for (let m = startMin; m < endMin; m += 30) {
 
   const slotKey = `${dayKey}_${h}_${min}`;
 
-  if (!availability[slotKey]) {
-    alert("Horario fuera de disponibilidad");
-    return;
-  }
+ if (!availability[slotKey] && !editingId) {
+  alert("Horario fuera de disponibilidad");
+  return;
+}
 }
   /* VALIDAR SOLAPAMIENTO */
 
