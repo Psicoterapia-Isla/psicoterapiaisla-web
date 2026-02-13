@@ -137,19 +137,6 @@ async function searchPatients(term){
       name.value =
         `${p.nombre || ""} ${p.apellidos || ""}`.trim();
 
-      const duration =
-        p.patientType === "mutual" ? 30 : 60;
-
-      const [h,m] = start.value.split(":").map(Number);
-      const endDate = new Date(0,0,0,h,m+duration);
-
-      end.value =
-        timeString(endDate.getHours(),endDate.getMinutes());
-
-      if(p.patientType === "mutual"){
-        amount.value = p.mutual?.pricePerSession || 0;
-      }
-
       suggestions.innerHTML = "";
     };
 
@@ -191,8 +178,6 @@ async function getNextInvoiceNumber(therapistId){
 
 async function createInvoice(data, appointmentId) {
 
-  if (data.invoiceId) return;
-
   const num = await getNextInvoiceNumber(data.therapistId);
 
   const invRef = await addDoc(collection(db,"invoices"),{
@@ -202,12 +187,7 @@ async function createInvoice(data, appointmentId) {
     issueDate: Timestamp.now(),
     patientId: data.patientId || null,
     patientName: data.name || null,
-    patientType: data.patient?.patientType || "private",
-    mutualName: data.patient?.mutual?.name || null,
     concept: data.service,
-    baseAmount: data.amount,
-    vatRate: 0,
-    vatExemptReason: "Exento IVA – Art. 20.3 Ley 37/1992",
     totalAmount: data.amount,
     status: "paid",
     createdAt: Timestamp.now()
@@ -340,12 +320,7 @@ document.getElementById("save")?.addEventListener("click", async () => {
   }
 
   if (data.completed && data.paid && data.amount) {
-    try {
-      await createInvoice(data, id);
-    } catch (err) {
-      console.error("Error creando factura:", err);
-      alert("La cita se guardó pero la factura falló.");
-    }
+    await createInvoice(data, id);
   }
 
   modal.classList.remove("show");
@@ -374,10 +349,6 @@ async function renderWeek(){
 
   const user = auth.currentUser;
   if(!user) return;
-
-  const availRef = doc(db,"availability",`${user.uid}_${weekStart}`);
-  const availSnap = await getDoc(availRef);
-  const availability = availSnap.exists() ? availSnap.data().slots : {};
 
   const apptSnap = await getDocs(query(
     collection(db,"appointments"),
@@ -411,8 +382,6 @@ async function renderWeek(){
       DAYS.forEach(day=>{
 
         const date=formatDate(dayFromKey(monday,day));
-        const slotKey = `${day}_${hour}_${minute}`;
-
         const cell=document.createElement("div");
         cell.className="slot";
 
@@ -423,17 +392,12 @@ async function renderWeek(){
         });
 
         if(appointment){
-          cell.classList.add(
-            appointment.paid ? "paid" :
-            appointment.completed ? "done" : "busy"
-          );
+          cell.classList.add("busy");
           cell.innerHTML=`<strong>${appointment.name||"—"}</strong>`;
           cell.onclick=()=>openEdit(appointment);
-        } else if(availability[slotKey]){
+        } else {
           cell.classList.add("available");
           cell.onclick=()=>openNew({date,hour,minute});
-        } else {
-          cell.classList.add("disabled");
         }
 
         grid.appendChild(cell);
