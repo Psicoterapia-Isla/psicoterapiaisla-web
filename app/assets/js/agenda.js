@@ -134,20 +134,15 @@ async function searchPatients(term){
       selectedPatient = { id: d.id, ...p };
 
       phone.value = p.telefono || "";
-      name.value =
-        `${p.nombre || ""} ${p.apellidos || ""}`.trim();
+      name.value = `${p.nombre || ""} ${p.apellidos || ""}`.trim();
 
-      const duration =
-        p.patientType === "mutual" ? 30 : 60;
+      const duration = p.patientType === "mutual" ? 30 : 60;
 
       if(start.value){
         const [h,m] = start.value.split(":").map(Number);
         const endDate = new Date(0,0,0,h,m);
         endDate.setMinutes(endDate.getMinutes() + duration);
-        end.value = timeString(
-          endDate.getHours(),
-          endDate.getMinutes()
-        );
+        end.value = timeString(endDate.getHours(),endDate.getMinutes());
       }
 
       if(p.patientType === "mutual"){
@@ -216,6 +211,72 @@ async function createInvoice(data, appointmentId) {
     invoiceId: invRef.id
   });
 }
+
+/* ================= MODAL ================= */
+
+function resetModal(){
+  editingId = null;
+  selectedPatient = null;
+  currentSlot = null;
+
+  phone.value = "";
+  name.value = "";
+  service.value = "Sesión de psicología sanitaria";
+  modality.value = "viladecans";
+  start.value = "";
+  end.value = "";
+  completed.checked = false;
+  paid.checked = false;
+  amount.value = "";
+  suggestions.innerHTML = "";
+
+  setFieldsDisabled(false);
+}
+
+function openNew(slot){
+  resetModal();
+  currentSlot = slot;
+
+  start.value = timeString(slot.hour, slot.minute);
+
+  const startDate = new Date(0,0,0,slot.hour,slot.minute);
+  startDate.setMinutes(startDate.getMinutes() + 60);
+
+  end.value = timeString(
+    startDate.getHours(),
+    startDate.getMinutes()
+  );
+
+  modal.classList.add("show");
+}
+
+function openEdit(a){
+  resetModal();
+
+  editingId = a.id;
+  selectedPatient = a.patient || null;
+  currentSlot = { date: a.date };
+
+  phone.value = a.phone || "";
+  name.value = a.name || "";
+  service.value = a.service || "";
+  modality.value = a.modality;
+  start.value = a.start;
+  end.value = a.end;
+  completed.checked = !!a.completed;
+  paid.checked = !!a.paid;
+  amount.value = a.amount || "";
+
+  if(a.invoiceId){
+    setFieldsDisabled(true);
+  }
+
+  modal.classList.add("show");
+}
+
+closeBtn?.addEventListener("click",()=>{
+  modal.classList.remove("show");
+});
 
 /* ================= SAVE ================= */
 
