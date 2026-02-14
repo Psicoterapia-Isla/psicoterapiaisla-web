@@ -1001,3 +1001,7 @@ td {
     display: none;
   }
 }
+.container, .layout {
+  border-left: none !important;
+  border-right: none !important;
+}
