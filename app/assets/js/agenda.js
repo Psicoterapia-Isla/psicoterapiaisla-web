@@ -137,24 +137,18 @@ async function searchPatients(term){
       name.value =
         `${p.nombre || ""} ${p.apellidos || ""}`.trim();
 
-      /* ===== DURACIÓN AUTOMÁTICA ===== */
-
       const duration =
         p.patientType === "mutual" ? 30 : 60;
 
       if(start.value){
         const [h,m] = start.value.split(":").map(Number);
-
         const endDate = new Date(0,0,0,h,m);
         endDate.setMinutes(endDate.getMinutes() + duration);
-
         end.value = timeString(
           endDate.getHours(),
           endDate.getMinutes()
         );
       }
-
-      /* ===== IMPORTE AUTOMÁTICO ===== */
 
       if(p.patientType === "mutual"){
         amount.value = p.mutual?.pricePerSession || 0;
@@ -166,6 +160,15 @@ async function searchPatients(term){
     suggestions.appendChild(item);
   });
 }
+
+phone?.addEventListener("input", e => searchPatients(e.target.value));
+name?.addEventListener("input", e => searchPatients(e.target.value));
+
+document.addEventListener("click", (e)=>{
+  if(!e.target.closest(".autocomplete-wrapper")){
+    suggestions.innerHTML = "";
+  }
+});
 
 /* ================= FACTURACIÓN ================= */
 
@@ -214,71 +217,6 @@ async function createInvoice(data, appointmentId) {
   });
 }
 
-/* ================= MODAL ================= */
-
-function resetModal(){
-  editingId = null;
-  selectedPatient = null;
-  currentSlot = null;
-
-  phone.value = "";
-  name.value = "";
-  service.value = "Sesión de psicología sanitaria";
-  modality.value = "viladecans";
-  start.value = "";
-  end.value = "";
-  completed.checked = false;
-  paid.checked = false;
-  amount.value = "";
-  suggestions.innerHTML = "";
-  setFieldsDisabled(false);
-}
-
-function openNew(slot){
-  resetModal();
-  currentSlot = slot;
-
-  start.value = timeString(slot.hour, slot.minute);
-
-  // Calcular correctamente +60 minutos
-  const startDate = new Date(0, 0, 0, slot.hour, slot.minute);
-  startDate.setMinutes(startDate.getMinutes() + 60);
-
-  end.value = timeString(
-    startDate.getHours(),
-    startDate.getMinutes()
-  );
-
-  modal.classList.add("show");
-}
-
-function openEdit(a){
-  resetModal();
-  editingId = a.id;
-  selectedPatient = a.patient || null;
-  currentSlot = { date: a.date };
-
-  phone.value = a.phone || "";
-  name.value = a.name || "";
-  service.value = a.service || "";
-  modality.value = a.modality;
-  start.value = a.start;
-  end.value = a.end;
-  completed.checked = !!a.completed;
-  paid.checked = !!a.paid;
-  amount.value = a.amount || "";
-
-  if(a.invoiceId){
-    setFieldsDisabled(true);
-  }
-
-  modal.classList.add("show");
-}
-
-closeBtn?.addEventListener("click",()=>{
-  modal.classList.remove("show");
-});
-
 /* ================= SAVE ================= */
 
 document.getElementById("save")?.addEventListener("click", async () => {
@@ -305,7 +243,6 @@ document.getElementById("save")?.addEventListener("click", async () => {
   if (!dayKey) return alert("Día no permitido");
 
   for (let minCursor = startMin; minCursor < endMin; minCursor += 30) {
-
     const h = Math.floor(minCursor / 60);
     const min = minCursor % 60;
     const slotKey = `${dayKey}_${h}_${min}`;
@@ -363,7 +300,14 @@ document.getElementById("save")?.addEventListener("click", async () => {
     id = ref.id;
 
     try {
-      await sendAppointmentNotification({ appointmentId: id });
+      const result = await sendAppointmentNotification({
+        appointmentId: id
+      });
+
+      if(result.data?.whatsappUrl){
+        window.open(result.data.whatsappUrl, "_blank");
+      }
+
     } catch (err) {
       console.error("Error enviando aviso:", err);
     }
