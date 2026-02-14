@@ -1113,3 +1113,22 @@ td {
     box-shadow: none;
   }
 }
+/* ===== FIX GLOBAL BORDES LATERALES ===== */
+
+.app-layout,
+.app-content,
+main {
+  border-left: none !important;
+  border-right: none !important;
+  box-shadow: none !important;
+}
+
+.app-layout::before,
+.app-layout::after,
+.app-content::before,
+.app-content::after,
+main::before,
+main::after {
+  display: none !important;
+  content: none !important;
+}
