@@ -134,7 +134,8 @@ async function searchPatients(term){
       selectedPatient = { id: d.id, ...p };
 
       phone.value = p.telefono || "";
-      name.value = `${p.nombre || ""} ${p.apellidos || ""}`.trim();
+      name.value =
+        `${p.nombre || ""} ${p.apellidos || ""}`.trim();
 
       const duration = p.patientType === "mutual" ? 30 : 60;
 
@@ -142,7 +143,7 @@ async function searchPatients(term){
         const [h,m] = start.value.split(":").map(Number);
         const endDate = new Date(0,0,0,h,m);
         endDate.setMinutes(endDate.getMinutes() + duration);
-        end.value = timeString(endDate.getHours(),endDate.getMinutes());
+        end.value = timeString(endDate.getHours(), endDate.getMinutes());
       }
 
       if(p.patientType === "mutual"){
@@ -229,30 +230,24 @@ function resetModal(){
   paid.checked = false;
   amount.value = "";
   suggestions.innerHTML = "";
-
   setFieldsDisabled(false);
 }
 
 function openNew(slot){
   resetModal();
   currentSlot = slot;
-
   start.value = timeString(slot.hour, slot.minute);
 
   const startDate = new Date(0,0,0,slot.hour,slot.minute);
   startDate.setMinutes(startDate.getMinutes() + 60);
 
-  end.value = timeString(
-    startDate.getHours(),
-    startDate.getMinutes()
-  );
+  end.value = timeString(startDate.getHours(), startDate.getMinutes());
 
   modal.classList.add("show");
 }
 
 function openEdit(a){
   resetModal();
-
   editingId = a.id;
   selectedPatient = a.patient || null;
   currentSlot = { date: a.date };
@@ -291,7 +286,9 @@ document.getElementById("save")?.addEventListener("click", async () => {
 
   const availRef = doc(db,"availability",`${user.uid}_${weekStart}`);
   const availSnap = await getDoc(availRef);
-  const availability = availSnap.exists() ? availSnap.data().slots : {};
+
+  const availability = availSnap.exists() ? availSnap.data().slots || {} : {};
+  const locations = availSnap.exists() ? availSnap.data().locations || {} : {};
 
   const startMin = minutesOf(start.value);
   const endMin = minutesOf(end.value);
@@ -303,7 +300,18 @@ document.getElementById("save")?.addEventListener("click", async () => {
 
   if (!dayKey) return alert("Día no permitido");
 
+  /* VALIDAR SEDE */
+
+  const baseLocation = locations[dayKey]?.base || null;
+
+  if(baseLocation && modality.value !== baseLocation && modality.value !== "online"){
+    return alert("La sede no coincide con la disponibilidad del día");
+  }
+
+  /* VALIDAR SLOT */
+
   for (let minCursor = startMin; minCursor < endMin; minCursor += 30) {
+
     const h = Math.floor(minCursor / 60);
     const min = minCursor % 60;
     const slotKey = `${dayKey}_${h}_${min}`;
@@ -312,6 +320,8 @@ document.getElementById("save")?.addEventListener("click", async () => {
       return alert("Horario fuera de disponibilidad");
     }
   }
+
+  /* VALIDAR SOLAPAMIENTO */
 
   const apptSnap = await getDocs(query(
     collection(db,"appointments"),
@@ -361,14 +371,10 @@ document.getElementById("save")?.addEventListener("click", async () => {
     id = ref.id;
 
     try {
-      const result = await sendAppointmentNotification({
-        appointmentId: id
-      });
-
+      const result = await sendAppointmentNotification({ appointmentId: id });
       if(result.data?.whatsappUrl){
         window.open(result.data.whatsappUrl, "_blank");
       }
-
     } catch (err) {
       console.error("Error enviando aviso:", err);
     }
@@ -407,7 +413,7 @@ async function renderWeek(){
 
   const availRef = doc(db,"availability",`${user.uid}_${weekStart}`);
   const availSnap = await getDoc(availRef);
-  const availability = availSnap.exists() ? availSnap.data().slots : {};
+  const availability = availSnap.exists() ? availSnap.data().slots || {} : {};
 
   const apptSnap = await getDocs(query(
     collection(db,"appointments"),
