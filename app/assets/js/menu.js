@@ -1,82 +1,71 @@
-import { auth } from "./firebase.js";
-import { signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-
 export async function loadMenu() {
 
-  const container = document.getElementById("menu");
-  if (!container) return;
+  const header = document.querySelector(".app-menu");
+  if (!header) return;
 
-  container.innerHTML = `
-    <nav class="pi-navbar">
-      
-      <div class="pi-logo">Psicoterapia Isla</div>
+  header.innerHTML = `
+    <div class="menu-container">
 
-      <div class="pi-menu-toggle" id="menuToggle">
-        ☰
+      <div class="menu-left">
+        <a href="index.html" class="menu-logo">
+          Psicoterapia Isla
+        </a>
+
+        <div class="menu-group">
+          <button class="menu-parent">General</button>
+          <div class="menu-dropdown">
+            <a href="index.html">Inicio</a>
+            <a href="foro.html">Foro</a>
+          </div>
+        </div>
+
+        <div class="menu-group">
+          <button class="menu-parent">Gestión</button>
+          <div class="menu-dropdown">
+            <a href="agenda.html">Agenda</a>
+            <a href="disponibilidad.html">Disponibilidad</a>
+            <a href="pacientes.html">Pacientes</a>
+            <a href="add-patient.html" class="btn-small">
+              + Añadir paciente
+            </a>
+          </div>
+        </div>
+
+        <div class="menu-group">
+          <button class="menu-parent">Administración</button>
+          <div class="menu-dropdown">
+            <a href="facturacion.html">Facturación</a>
+            <a href="diario-terapeuta.html">Diario terapeuta</a>
+            <a href="entradas-paciente.html">Entradas por paciente</a>
+            <a href="entradas-ejercicio.html">Entradas por ejercicio</a>
+            <a href="ejercicios-admin.html">Ejercicios admin</a>
+            <a href="usuarios.html">Usuarios</a>
+          </div>
+        </div>
       </div>
 
-      <ul class="pi-menu" id="mainMenu">
+      <div class="menu-right">
+        <a href="#" id="logoutBtn" class="logout-btn">Salir</a>
+      </div>
 
-        <li><a href="index.html">Inicio</a></li>
-        <li><a href="foro.html">Foro</a></li>
-        <li><a href="agenda.html">Agenda</a></li>
-        <li><a href="disponibilidad.html">Disponibilidad</a></li>
-
-        <li class="dropdown">
-          <span>Gestión clínica ▾</span>
-          <ul class="submenu">
-            <li><a href="patients.html">Pacientes</a></li>
-            <li><a href="add_patient.html">+ Añadir paciente</a></li>
-            <li><a href="diario.html">Diario terapeuta</a></li>
-          </ul>
-        </li>
-
-        <li class="dropdown">
-          <span>Trabajo terapéutico ▾</span>
-          <ul class="submenu">
-            <li><a href="entradas_paciente.html">Entradas por paciente</a></li>
-            <li><a href="entradas_ejercicio.html">Entradas por ejercicio</a></li>
-            <li><a href="ejercicios_admin.html">Ejercicios admin</a></li>
-          </ul>
-        </li>
-
-        <li class="dropdown">
-          <span>Gestión económica ▾</span>
-          <ul class="submenu">
-            <li><a href="facturacion.html">Facturación</a></li>
-          </ul>
-        </li>
-
-        <li class="dropdown right">
-          <span>Sistema ▾</span>
-          <ul class="submenu">
-            <li><a href="usuarios.html">Usuarios</a></li>
-            <li><a href="#" id="logoutBtn">Salir</a></li>
-          </ul>
-        </li>
-
-      </ul>
-    </nav>
+    </div>
   `;
 
-  /* Toggle móvil */
-  const toggle = document.getElementById("menuToggle");
-  const menu = document.getElementById("mainMenu");
-
-  toggle?.addEventListener("click", () => {
-    menu.classList.toggle("open");
-  });
-
-  /* Dropdown comportamiento móvil */
-  document.querySelectorAll(".dropdown > span").forEach(el => {
-    el.addEventListener("click", () => {
-      el.parentElement.classList.toggle("active");
+  // desplegables
+  document.querySelectorAll(".menu-parent").forEach(btn => {
+    btn.addEventListener("click", () => {
+      btn.parentElement.classList.toggle("open");
     });
   });
 
-  /* Logout */
-  document.getElementById("logoutBtn")?.addEventListener("click", async () => {
-    await signOut(auth);
-    window.location.href = "../login.html";
-  });
+  // logout
+  const logoutBtn = document.getElementById("logoutBtn");
+  if (logoutBtn) {
+    logoutBtn.addEventListener("click", async () => {
+      const { getAuth, signOut } = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js");
+      const auth = getAuth();
+      await signOut(auth);
+      window.location.href = "/login.html";
+    });
+  }
 }
