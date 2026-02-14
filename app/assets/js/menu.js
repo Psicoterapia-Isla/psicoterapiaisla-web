@@ -1,67 +1,77 @@
-export async function loadMenu(){
+import { auth } from "./firebase.js";
+import { signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+export async function loadMenu() {
 
   const header = document.querySelector(".app-menu");
-  if(!header) return;
+  if (!header) return;
+
+  const currentPage = window.location.pathname.split("/").pop();
 
   header.innerHTML = `
-    <div class="menu-glass">
-
-      <div class="menu-brand">
-        Psicoterapia Isla
-      </div>
-
-      <nav class="menu-sections">
-
-        <div class="menu-group">
-          <button class="menu-toggle">General</button>
-          <div class="menu-dropdown">
-            <a href="/app/index.html">Inicio</a>
-            <a href="/app/foro.html">Foro</a>
-            <a href="/app/agenda.html">Agenda</a>
-            <a href="/app/disponibilidad.html">Disponibilidad</a>
-          </div>
-        </div>
-
-        <div class="menu-group">
-          <button class="menu-toggle">Gestión</button>
-          <div class="menu-dropdown">
-            <a href="/app/pacientes.html">Pacientes</a>
-            <a href="/app/add-patient.html" class="btn-mini">+ Añadir paciente</a>
-            <a href="/app/facturas.html">Facturas</a>
-            <a href="/app/diario-terapeuta.html">Diario terapeuta</a>
-            <a href="/app/entradas-por-paciente.html">Entradas por paciente</a>
-            <a href="/app/entradas-por-ejercicio.html">Entradas por ejercicio</a>
-          </div>
-        </div>
-
-        <div class="menu-group">
-          <button class="menu-toggle">Administración</button>
-          <div class="menu-dropdown">
-            <a href="/app/ejercicios-admin.html">Ejercicios admin</a>
-            <a href="/app/usuarios.html">Usuarios</a>
-            <a href="#" id="logoutBtn" class="logout">Cerrar sesión</a>
-          </div>
-        </div>
-
-      </nav>
-
+    <div class="menu-brand">
+      Psicoterapia Isla
     </div>
+
+    <nav class="menu-links">
+
+      <a href="agenda.html" 
+         class="menu-link ${currentPage === "agenda.html" ? "active" : ""}">
+         Agenda
+      </a>
+
+      <a href="availability.html" 
+         class="menu-link ${currentPage === "availability.html" ? "active" : ""}">
+         Disponibilidad
+      </a>
+
+      <a href="patients-admin.html" 
+         class="menu-link ${
+           currentPage === "patients-admin.html" ||
+           currentPage === "add-patient.html"
+             ? "active"
+             : ""
+         }">
+         Pacientes
+      </a>
+
+      <a href="invoices.html" 
+         class="menu-link ${currentPage === "invoices.html" ? "active" : ""}">
+         Facturas
+      </a>
+
+      <a href="entries.html" 
+         class="menu-link ${currentPage === "entries.html" ? "active" : ""}">
+         Diario
+      </a>
+
+      <a href="exercises.html" 
+         class="menu-link ${currentPage === "exercises.html" ? "active" : ""}">
+         Ejercicios
+      </a>
+
+      <a href="therapist-notes.html" 
+         class="menu-link ${currentPage === "therapist-notes.html" ? "active" : ""}">
+         Notas
+      </a>
+
+      <a href="forums.html" 
+         class="menu-link ${currentPage === "forums.html" ? "active" : ""}">
+         Foro
+      </a>
+
+      <a href="#" class="menu-link menu-logout" id="logoutBtn">
+         Salir
+      </a>
+
+    </nav>
   `;
 
-  /* Toggle dropdowns */
-  document.querySelectorAll(".menu-toggle").forEach(btn=>{
-    btn.addEventListener("click",()=>{
-      const parent = btn.closest(".menu-group");
-      parent.classList.toggle("open");
-    });
-  });
+  const logoutBtn = document.getElementById("logoutBtn");
 
-  /* Logout */
-  document.getElementById("logoutBtn")?.addEventListener("click", async ()=>{
-    const { signOut } = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js");
-    const { auth } = await import("./firebase.js");
+  logoutBtn.addEventListener("click", async (e) => {
+    e.preventDefault();
     await signOut(auth);
-    window.location.href = "/login.html";
+    window.location.href = "index.html";
   });
-
 }
