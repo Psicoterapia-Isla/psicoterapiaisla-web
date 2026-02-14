@@ -1005,3 +1005,111 @@ td {
   border-left: none !important;
   border-right: none !important;
 }
+/* ===== MENU APPLE STYLE ===== */
+
+.app-menu {
+  background: #ffffff;
+  border-bottom: 1px solid #e5e7eb;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+}
+
+.menu-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 14px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.menu-left {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+}
+
+.menu-logo {
+  font-weight: 600;
+  font-size: 18px;
+  text-decoration: none;
+  color: #111827;
+}
+
+.menu-group {
+  position: relative;
+}
+
+.menu-parent {
+  background: none;
+  border: none;
+  font-size: 15px;
+  cursor: pointer;
+  color: #374151;
+}
+
+.menu-dropdown {
+  display: none;
+  position: absolute;
+  top: 36px;
+  left: 0;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.08);
+  padding: 12px;
+  min-width: 220px;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.menu-dropdown a {
+  text-decoration: none;
+  color: #374151;
+  padding: 8px 12px;
+  border-radius: 8px;
+  display: block;
+}
+
+.menu-dropdown a:hover {
+  background: #f3f4f6;
+}
+
+.menu-group.open .menu-dropdown {
+  display: flex;
+}
+
+.btn-small {
+  background: #1f7a5c;
+  color: white !important;
+  text-align: center;
+  margin-top: 6px;
+}
+
+.logout-btn {
+  text-decoration: none;
+  font-size: 14px;
+  color: #b91c1c;
+  font-weight: 500;
+}
+
+.logout-btn:hover {
+  opacity: 0.7;
+}
+
+/* Responsive */
+
+@media (max-width: 900px) {
+
+  .menu-left {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 14px;
+  }
+
+  .menu-dropdown {
+    position: relative;
+    top: 0;
+    box-shadow: none;
+  }
+}
