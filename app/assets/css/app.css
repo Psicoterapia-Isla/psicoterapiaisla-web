@@ -880,3 +880,124 @@ td {
 .nav-highlight:hover {
   opacity: .9;
 }
+/* ===== NAVBAR BASE ===== */
+
+.pi-navbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #ffffff;
+  padding: 14px 28px;
+  border-bottom: 1px solid #e6e6e6;
+  position: relative;
+  font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.pi-logo {
+  font-weight: 600;
+  font-size: 16px;
+  color: #1f3d36;
+}
+
+.pi-menu {
+  display: flex;
+  list-style: none;
+  gap: 26px;
+  margin: 0;
+  padding: 0;
+}
+
+.pi-menu li {
+  position: relative;
+}
+
+.pi-menu a,
+.pi-menu span {
+  text-decoration: none;
+  font-size: 14px;
+  color: #1f3d36;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.pi-menu a:hover,
+.pi-menu span:hover {
+  color: #3e7d6a;
+}
+
+/* ===== DROPDOWN ===== */
+
+.submenu {
+  display: none;
+  position: absolute;
+  top: 32px;
+  left: 0;
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 12px 0;
+  min-width: 200px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+  list-style: none;
+}
+
+.submenu li {
+  padding: 8px 18px;
+}
+
+.submenu li a {
+  font-size: 14px;
+}
+
+.dropdown:hover .submenu {
+  display: block;
+}
+
+.dropdown.right {
+  margin-left: 40px;
+}
+
+/* ===== MOBILE ===== */
+
+.pi-menu-toggle {
+  display: none;
+  font-size: 22px;
+  cursor: pointer;
+}
+
+@media (max-width: 900px) {
+
+  .pi-menu {
+    display: none;
+    flex-direction: column;
+    gap: 14px;
+    background: #ffffff;
+    position: absolute;
+    top: 60px;
+    right: 20px;
+    padding: 20px;
+    border-radius: 14px;
+    box-shadow: 0 15px 40px rgba(0,0,0,0.1);
+  }
+
+  .pi-menu.open {
+    display: flex;
+  }
+
+  .pi-menu-toggle {
+    display: block;
+  }
+
+  .submenu {
+    position: static;
+    box-shadow: none;
+    padding-left: 10px;
+  }
+
+  .dropdown.active .submenu {
+    display: block;
+  }
+
+  .dropdown:hover .submenu {
+    display: none;
+  }
+}
