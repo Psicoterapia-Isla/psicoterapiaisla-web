@@ -137,21 +137,35 @@ async function searchPatients(term){
       name.value =
         `${p.nombre || ""} ${p.apellidos || ""}`.trim();
 
+      /* ===== DURACIÓN AUTOMÁTICA ===== */
+
+      const duration =
+        p.patientType === "mutual" ? 30 : 60;
+
+      if(start.value){
+        const [h,m] = start.value.split(":").map(Number);
+
+        const endDate = new Date(0,0,0,h,m);
+        endDate.setMinutes(endDate.getMinutes() + duration);
+
+        end.value = timeString(
+          endDate.getHours(),
+          endDate.getMinutes()
+        );
+      }
+
+      /* ===== IMPORTE AUTOMÁTICO ===== */
+
+      if(p.patientType === "mutual"){
+        amount.value = p.mutual?.pricePerSession || 0;
+      }
+
       suggestions.innerHTML = "";
     };
 
     suggestions.appendChild(item);
   });
 }
-
-phone?.addEventListener("input", e => searchPatients(e.target.value));
-name?.addEventListener("input", e => searchPatients(e.target.value));
-
-document.addEventListener("click", (e)=>{
-  if(!e.target.closest(".autocomplete-wrapper")){
-    suggestions.innerHTML = "";
-  }
-});
 
 /* ================= FACTURACIÓN ================= */
 
