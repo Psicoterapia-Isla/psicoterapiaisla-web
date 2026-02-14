@@ -1242,3 +1242,132 @@ main::after {
   color: #b91c1c;
   font-weight: 500;
 }
+/* ================= MENU CONTAINER ================= */
+
+.app-menu {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+
+  background: rgba(76, 115, 97, 0.18);
+  border-bottom: 1px solid rgba(76, 115, 97, 0.25);
+
+  padding: 18px 28px;
+}
+
+/* ================= MENU WRAPPER ================= */
+
+.menu-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 40px;
+  flex-wrap: wrap;
+}
+
+/* ================= BRAND ================= */
+
+.menu-brand {
+  font-size: 20px;
+  font-weight: 600;
+  color: #244a3d;
+}
+
+/* ================= GROUPS ================= */
+
+.menu-groups {
+  display: flex;
+  gap: 40px;
+  flex-wrap: wrap;
+  justify-content: center;
+  flex: 1;
+}
+
+/* ================= GROUP ================= */
+
+.menu-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.menu-group-title {
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #4c7361;
+  opacity: 0.7;
+}
+
+.menu-links {
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+
+/* ================= LINKS ================= */
+
+.menu-link {
+  text-decoration: none;
+  color: #244a3d;
+  font-size: 15px;
+  font-weight: 500;
+  padding: 6px 10px;
+  border-radius: 12px;
+  transition: all 0.25s ease;
+}
+
+.menu-link:hover {
+  background: rgba(76, 115, 97, 0.15);
+  backdrop-filter: blur(10px);
+}
+
+.menu-link.active {
+  background: rgba(76, 115, 97, 0.25);
+}
+
+/* ================= LOGOUT ================= */
+
+.menu-logout {
+  color: #b42323;
+  font-weight: 500;
+  text-decoration: none;
+  padding: 6px 12px;
+  border-radius: 12px;
+  transition: 0.25s ease;
+}
+
+.menu-logout:hover {
+  background: rgba(180, 35, 35, 0.1);
+}
+
+/* ================= MOBILE ================= */
+
+@media (max-width: 768px) {
+
+  .menu-wrapper {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 24px;
+  }
+
+  .menu-groups {
+    width: 100%;
+    gap: 24px;
+  }
+
+  .menu-links {
+    gap: 14px;
+  }
+
+  .menu-group {
+    width: 100%;
+  }
+
+  .menu-logout {
+    align-self: flex-start;
+  }
+}
