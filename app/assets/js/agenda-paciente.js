@@ -1,6 +1,5 @@
+import { db } from "./firebase.js";
 import { requireAuth } from "./auth.js";
-import { loadMenu } from "./menu.js";
-import { auth, db } from "./firebase.js";
 
 import {
   collection,
@@ -8,187 +7,137 @@ import {
   where,
   getDocs,
   addDoc,
-  Timestamp
+  serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-/* ================= INIT ================= */
-
 await requireAuth();
-await loadMenu();
 
-/* ================= STATE ================= */
+const THERAPIST_ID = "LOSSPrBskLPpb547zED5hO2zYS62";
 
-let baseDate = new Date();
-const grid = document.getElementById("agendaGrid");
-const weekLabel = document.getElementById("weekLabel");
+const agendaContainer = document.getElementById("agendaGrid");
+const currentWeekLabel = document.getElementById("currentWeek");
 
-/* ================= CONFIG ================= */
-
-const HOURS = Array.from({ length: 12 }, (_, i) => i + 9);
-const MINUTES = [0, 30];
-const DAYS = ["mon","tue","wed","thu","fri"];
-
-/* ================= HELPERS ================= */
-
-const pad = n => String(n).padStart(2,"0");
-
-function formatDate(d){
-  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
-}
-
-function mondayOf(d){
-  const x = new Date(d);
-  const n = (x.getDay()+6)%7;
-  x.setDate(x.getDate()-n);
-  x.setHours(0,0,0,0);
-  return x;
-}
-
-function dayFromKey(monday,key){
-  const d = new Date(monday);
-  d.setDate(d.getDate()+DAYS.indexOf(key));
-  return d;
-}
-
-function timeString(h,m){
-  return `${pad(h)}:${pad(m)}`;
-}
-
-function minutesOf(time){
-  const [h,m] = time.split(":").map(Number);
-  return h*60 + m;
-}
-
-/* ================= CREATE APPOINTMENT ================= */
-
-async function createAppointment(date, hour, minute){
-
-  const user = auth.currentUser;
-  if(!user) return;
-
-  const start = timeString(hour, minute);
-  const endDate = new Date(0,0,0,hour,minute);
-  endDate.setMinutes(endDate.getMinutes() + 60);
-  const end = timeString(endDate.getHours(), endDate.getMinutes());
-
-  await addDoc(collection(db,"appointments"),{
-    therapistId: "THERAPIST_ID_AQUI", // ⚠️ Sustituir por el id real fijo del terapeuta
-    patientId: user.uid,
-    date,
-    start,
-    end,
-    modality: "online",
-    completed: false,
-    paid: false,
-    createdAt: Timestamp.now()
+const user = await new Promise(resolve => {
+  import("./firebase.js").then(mod => {
+    mod.auth.onAuthStateChanged(u => resolve(u));
   });
+});
 
-  await renderWeek();
+if (!user) {
+  window.location.href = "index.html";
 }
 
-/* ================= RENDER ================= */
+/* =============================
+   CONFIGURACIÓN HORARIA
+============================= */
 
-async function renderWeek(){
+const START_HOUR = 9;
+const END_HOUR = 20;
+const SLOT_INTERVAL = 30;
 
-  if(!grid) return;
+/* =============================
+   UTILIDADES FECHA
+============================= */
 
-  grid.innerHTML = "";
+function getMonday(d) {
+  const date = new Date(d);
+  const day = date.getDay();
+  const diff = date.getDate() - day + (day === 0 ? -6 : 1);
+  return new Date(date.setDate(diff));
+}
 
-  const monday = mondayOf(baseDate);
-  const weekStart = formatDate(monday);
-  const weekEnd = formatDate(new Date(monday.getTime()+4*86400000));
+function formatDate(date) {
+  return date.toISOString().split("T")[0];
+}
 
-  if(weekLabel){
-    weekLabel.textContent =
-      monday.toLocaleDateString("es-ES",{day:"numeric",month:"short"}) +
-      " – " +
-      new Date(monday.getTime()+4*86400000)
-        .toLocaleDateString("es-ES",{day:"numeric",month:"short",year:"numeric"});
-  }
+/* =============================
+   RENDER SEMANA
+============================= */
 
-  const user = auth.currentUser;
-  if(!user) return;
+async function renderWeek(date) {
 
-  /* Leer TODAS las citas de la semana */
-  const apptSnap = await getDocs(query(
-    collection(db,"appointments"),
-    where("date",">=",weekStart),
-    where("date","<=",weekEnd)
-  ));
+  agendaContainer.innerHTML = "";
 
-  const appointments = [];
-  apptSnap.forEach(d=>appointments.push(d.data()));
+  const monday = getMonday(date);
 
-  grid.appendChild(document.createElement("div"));
+  currentWeekLabel.textContent =
+    monday.toLocaleDateString("es-ES", { day: "numeric", month: "short" });
 
-  DAYS.forEach((_,i)=>{
-    const d = new Date(monday);
-    d.setDate(d.getDate()+i);
-    const h = document.createElement("div");
-    h.className="day-label";
-    h.textContent = d.toLocaleDateString("es-ES",{weekday:"short",day:"numeric"});
-    grid.appendChild(h);
-  });
+  const appointmentsRef = collection(db, "appointments");
 
-  HOURS.forEach(hour=>{
-    MINUTES.forEach(minute=>{
+  const q = query(
+    appointmentsRef,
+    where("therapistId", "==", THERAPIST_ID)
+  );
 
-      const label=document.createElement("div");
-      label.className="hour-label";
-      label.textContent=timeString(hour,minute);
-      grid.appendChild(label);
+  const snapshot = await getDocs(q);
 
-      DAYS.forEach(day=>{
+  const appointments = snapshot.docs.map(doc => doc.data());
 
-        const date=formatDate(dayFromKey(monday,day));
-        const cell=document.createElement("div");
-        cell.className="slot";
+  for (let i = 0; i < 5; i++) {
 
-        const appointment = appointments.find(a=>{
-          if(a.date !== date) return false;
-          const cur=hour*60+minute;
-          return cur>=minutesOf(a.start) && cur<minutesOf(a.end);
-        });
+    const day = new Date(monday);
+    day.setDate(monday.getDate() + i);
 
-        if(appointment){
+    const dateStr = formatDate(day);
 
-          if(appointment.patientId === user.uid){
-            cell.classList.add("busy");
-            cell.innerHTML = `<strong>Tu cita</strong>`;
-          } else {
-            cell.classList.add("busy");
-            cell.innerHTML = `<span>Ocupado</span>`;
-          }
+    for (let hour = START_HOUR; hour < END_HOUR; hour++) {
 
+      for (let min = 0; min < 60; min += SLOT_INTERVAL) {
+
+        const start = `${hour.toString().padStart(2,"0")}:${min === 0 ? "00" : "30"}`;
+
+        const slot = document.createElement("div");
+        slot.className = "slot";
+
+        const isBusy = appointments.some(a =>
+          a.date === dateStr && a.start === start
+        );
+
+        if (isBusy) {
+          slot.classList.add("busy");
         } else {
+          slot.classList.add("available");
 
-          cell.classList.add("available");
-          cell.innerHTML = `<span>Disponible</span>`;
-          cell.onclick = () => createAppointment(date,hour,minute);
+          slot.addEventListener("click", async () => {
+
+            await addDoc(collection(db, "appointments"), {
+              therapistId: THERAPIST_ID,
+              patientId: user.uid,
+              date: dateStr,
+              start,
+              end: calculateEnd(start),
+              modality: "online",
+              createdAt: serverTimestamp()
+            });
+
+            renderWeek(date);
+          });
         }
 
-        grid.appendChild(cell);
-      });
-
-    });
-  });
+        agendaContainer.appendChild(slot);
+      }
+    }
+  }
 }
 
-/* ================= NAV ================= */
+/* =============================
+   CALCULAR FIN
+============================= */
 
-document.getElementById("prevWeek")?.addEventListener("click",()=>{
-  baseDate.setDate(baseDate.getDate()-7);
-  renderWeek();
-});
+function calculateEnd(start) {
 
-document.getElementById("nextWeek")?.addEventListener("click",()=>{
-  baseDate.setDate(baseDate.getDate()+7);
-  renderWeek();
-});
+  const [h,m] = start.split(":").map(Number);
 
-document.getElementById("today")?.addEventListener("click",()=>{
-  baseDate=new Date();
-  renderWeek();
-});
+  const date = new Date();
+  date.setHours(h);
+  date.setMinutes(m + SLOT_INTERVAL);
 
-renderWeek();
+  return date.toTimeString().slice(0,5);
+}
+
+/* =============================
+   INIT
+============================= */
+
+renderWeek(new Date());
