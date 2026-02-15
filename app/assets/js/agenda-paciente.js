@@ -1,6 +1,5 @@
 import { db } from "./firebase.js";
 import { requireAuth } from "./auth.js";
-
 import {
   collection,
   query,
@@ -10,34 +9,20 @@ import {
   serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-await requireAuth();
-
 const THERAPIST_ID = "LOSSPrBskLPpb547zED5hO2zYS62";
-
-const agendaContainer = document.getElementById("agendaGrid");
-const currentWeekLabel = document.getElementById("currentWeek");
-
-const user = await new Promise(resolve => {
-  import("./firebase.js").then(mod => {
-    mod.auth.onAuthStateChanged(u => resolve(u));
-  });
-});
-
-if (!user) {
-  window.location.href = "index.html";
-}
-
-/* =============================
-   CONFIGURACIÓN HORARIA
-============================= */
 
 const START_HOUR = 9;
 const END_HOUR = 20;
 const SLOT_INTERVAL = 30;
 
-/* =============================
-   UTILIDADES FECHA
-============================= */
+let baseDate = new Date();
+
+const agendaContainer = document.getElementById("agendaGrid");
+const currentWeekLabel = document.getElementById("currentWeek");
+
+const user = await requireAuth();
+
+/* ===================== UTILIDADES ===================== */
 
 function getMonday(d) {
   const date = new Date(d);
@@ -50,9 +35,15 @@ function formatDate(date) {
   return date.toISOString().split("T")[0];
 }
 
-/* =============================
-   RENDER SEMANA
-============================= */
+function calculateEnd(start) {
+  const [h,m] = start.split(":").map(Number);
+  const date = new Date();
+  date.setHours(h);
+  date.setMinutes(m + SLOT_INTERVAL);
+  return date.toTimeString().slice(0,5);
+}
+
+/* ===================== RENDER ===================== */
 
 async function renderWeek(date) {
 
@@ -61,47 +52,65 @@ async function renderWeek(date) {
   const monday = getMonday(date);
 
   currentWeekLabel.textContent =
-    monday.toLocaleDateString("es-ES", { day: "numeric", month: "short" });
+    monday.toLocaleDateString("es-ES",{day:"numeric",month:"short"}) +
+    " - " +
+    new Date(monday.getTime() + 4*86400000)
+      .toLocaleDateString("es-ES",{day:"numeric",month:"short"});
 
-  const appointmentsRef = collection(db, "appointments");
+  const weekStart = formatDate(monday);
+  const weekEnd = formatDate(new Date(monday.getTime()+4*86400000));
 
-  const q = query(
-    appointmentsRef,
-    where("therapistId", "==", THERAPIST_ID)
-  );
+  const snapshot = await getDocs(query(
+    collection(db,"appointments"),
+    where("therapistId","==",THERAPIST_ID),
+    where("date",">=",weekStart),
+    where("date","<=",weekEnd)
+  ));
 
-  const snapshot = await getDocs(q);
+  const appointments = snapshot.docs.map(d=>d.data());
 
-  const appointments = snapshot.docs.map(doc => doc.data());
+  /* HEADER */
 
-  for (let i = 0; i < 5; i++) {
+  agendaContainer.appendChild(document.createElement("div"));
 
-    const day = new Date(monday);
-    day.setDate(monday.getDate() + i);
+  const days = ["L","M","X","J","V"];
 
-    const dateStr = formatDate(day);
+  days.forEach((day,i)=>{
+    const label = document.createElement("div");
+    label.className="day-label";
+    label.textContent=day;
+    agendaContainer.appendChild(label);
+  });
 
-    for (let hour = START_HOUR; hour < END_HOUR; hour++) {
+  /* SLOTS */
 
-      for (let min = 0; min < 60; min += SLOT_INTERVAL) {
+  for(let hour=START_HOUR; hour<END_HOUR; hour++){
+    for(let min=0; min<60; min+=SLOT_INTERVAL){
 
-        const start = `${hour.toString().padStart(2,"0")}:${min === 0 ? "00" : "30"}`;
+      const hourLabel=document.createElement("div");
+      hourLabel.className="hour-label";
+      hourLabel.textContent=`${hour.toString().padStart(2,"0")}:${min===0?"00":"30"}`;
+      agendaContainer.appendChild(hourLabel);
 
-        const slot = document.createElement("div");
-        slot.className = "slot";
+      for(let i=0;i<5;i++){
 
-        const isBusy = appointments.some(a =>
-          a.date === dateStr && a.start === start
-        );
+        const day = new Date(monday);
+        day.setDate(monday.getDate()+i);
+        const dateStr=formatDate(day);
+        const start=`${hour.toString().padStart(2,"0")}:${min===0?"00":"30"}`;
 
-        if (isBusy) {
+        const slot=document.createElement("div");
+        slot.className="slot";
+
+        const isBusy=appointments.some(a=>a.date===dateStr && a.start===start);
+
+        if(isBusy){
           slot.classList.add("busy");
-        } else {
+        }else{
           slot.classList.add("available");
 
-          slot.addEventListener("click", async () => {
-
-            await addDoc(collection(db, "appointments"), {
+          slot.addEventListener("click", async ()=>{
+            await addDoc(collection(db,"appointments"),{
               therapistId: THERAPIST_ID,
               patientId: user.uid,
               date: dateStr,
@@ -111,7 +120,7 @@ async function renderWeek(date) {
               createdAt: serverTimestamp()
             });
 
-            renderWeek(date);
+            renderWeek(baseDate);
           });
         }
 
@@ -121,23 +130,16 @@ async function renderWeek(date) {
   }
 }
 
-/* =============================
-   CALCULAR FIN
-============================= */
+/* ===================== NAV ===================== */
 
-function calculateEnd(start) {
+document.getElementById("prev-week").onclick = ()=>{
+  baseDate.setDate(baseDate.getDate()-7);
+  renderWeek(baseDate);
+};
 
-  const [h,m] = start.split(":").map(Number);
+document.getElementById("next-week").onclick = ()=>{
+  baseDate.setDate(baseDate.getDate()+7);
+  renderWeek(baseDate);
+};
 
-  const date = new Date();
-  date.setHours(h);
-  date.setMinutes(m + SLOT_INTERVAL);
-
-  return date.toTimeString().slice(0,5);
-}
-
-/* =============================
-   INIT
-============================= */
-
-renderWeek(new Date());
+renderWeek(baseDate);
