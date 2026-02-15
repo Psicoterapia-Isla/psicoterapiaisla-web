@@ -167,5 +167,14 @@ export async function loadMenu() {
     await signOut(auth);
     window.location.href = "index.html";
   });
+window.addEventListener("scroll", () => {
+  const menu = document.querySelector(".app-menu");
+  if (!menu) return;
 
+  if (window.scrollY > 10) {
+    menu.classList.add("scrolled");
+  } else {
+    menu.classList.remove("scrolled");
+  }
+});
 }
