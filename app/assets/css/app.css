@@ -454,3 +454,230 @@ td {
   }
 
 }
+/* =====================================================
+   PSICOTERAPIA ISLA — GLASS SYSTEM 2.0 (iOS Safari)
+===================================================== */
+
+
+/* ================= GLASS VARIABLES ================= */
+
+:root {
+
+  --glass-bg: rgba(255,255,255,0.35);
+  --glass-strong: rgba(255,255,255,0.55);
+  --glass-green: rgba(46,95,79,0.25);
+
+  --glass-border: rgba(255,255,255,0.6);
+  --glass-border-green: rgba(46,95,79,0.35);
+
+  --glass-shadow-soft: 0 8px 32px rgba(0,0,0,0.08);
+  --glass-shadow-strong: 0 20px 50px rgba(0,0,0,0.15);
+
+  --green-main: #2e5f4f;
+  --green-light: #3f8f78;
+}
+
+
+/* =====================================================
+   GLASS BASE CLASS (usable anywhere)
+===================================================== */
+
+.glass {
+  backdrop-filter: blur(24px) saturate(140%);
+  -webkit-backdrop-filter: blur(24px) saturate(140%);
+
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+
+  border-radius: 24px;
+  box-shadow: var(--glass-shadow-soft);
+}
+
+
+/* =====================================================
+   MENU — SAFARI STYLE
+===================================================== */
+
+.app-menu {
+  backdrop-filter: blur(30px) saturate(160%);
+  -webkit-backdrop-filter: blur(30px) saturate(160%);
+
+  background: linear-gradient(
+    135deg,
+    rgba(46,95,79,0.28),
+    rgba(46,95,79,0.12)
+  );
+
+  border-bottom: 1px solid rgba(255,255,255,0.4);
+}
+
+
+/* =====================================================
+   BOTONES TIPO SAFARI
+===================================================== */
+
+button,
+.menu-link,
+.btn-primary,
+.btn-secondary {
+
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+
+  background: var(--glass-strong);
+  border: 1px solid rgba(255,255,255,0.6);
+
+  border-radius: 22px;
+  box-shadow: var(--glass-shadow-soft);
+
+  transition: all 0.25s ease;
+}
+
+
+/* Hover elegante */
+
+button:hover,
+.menu-link:hover,
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--glass-shadow-strong);
+}
+
+
+/* Botón principal verde sólido elegante */
+
+.btn-primary {
+  background: linear-gradient(
+    135deg,
+    var(--green-main),
+    var(--green-light)
+  );
+  border: none;
+  color: white;
+}
+
+
+/* =====================================================
+   CARDS GLASS
+===================================================== */
+
+.card {
+  backdrop-filter: blur(26px);
+  -webkit-backdrop-filter: blur(26px);
+
+  background: rgba(255,255,255,0.55);
+  border: 1px solid rgba(255,255,255,0.6);
+
+  border-radius: 28px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.08);
+}
+
+
+/* =====================================================
+   INPUTS ESTILO iOS
+===================================================== */
+
+input,
+select,
+textarea {
+
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+
+  background: rgba(255,255,255,0.75);
+  border: 1px solid rgba(255,255,255,0.7);
+
+  border-radius: 20px;
+  box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+
+  border: 1px solid var(--green-main);
+  box-shadow:
+    0 0 0 4px rgba(46,95,79,0.18),
+    inset 0 1px 2px rgba(0,0,0,0.05);
+}
+
+
+/* =====================================================
+   DROPDOWN GLASS PREMIUM
+===================================================== */
+
+.menu-dropdown {
+  backdrop-filter: blur(30px) saturate(150%);
+  -webkit-backdrop-filter: blur(30px) saturate(150%);
+
+  background: rgba(255,255,255,0.75);
+  border: 1px solid rgba(255,255,255,0.6);
+
+  border-radius: 26px;
+  box-shadow: 0 30px 80px rgba(0,0,0,0.15);
+}
+
+
+/* =====================================================
+   MODAL ESTILO iOS
+===================================================== */
+
+#modal {
+  backdrop-filter: blur(8px);
+  background: rgba(0,0,0,0.25);
+}
+
+#modal .modal-content {
+
+  backdrop-filter: blur(30px);
+  -webkit-backdrop-filter: blur(30px);
+
+  background: rgba(255,255,255,0.85);
+  border: 1px solid rgba(255,255,255,0.7);
+
+  border-radius: 32px;
+  box-shadow: 0 40px 100px rgba(0,0,0,0.2);
+}
+
+
+/* =====================================================
+   AGENDA SLOTS ESTILO APPLE
+===================================================== */
+
+.slot {
+  border-radius: 30px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+
+.slot.available {
+  background: linear-gradient(
+    135deg,
+    #2e6f5e,
+    #4da088
+  );
+  color: white;
+  box-shadow: 0 6px 20px rgba(46,95,79,0.4);
+}
+
+.slot.available:hover {
+  transform: scale(1.05);
+}
+
+
+/* =====================================================
+   EFECTO BRILLO SUPERIOR iOS
+===================================================== */
+
+.glass::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(
+    180deg,
+    rgba(255,255,255,0.5),
+    rgba(255,255,255,0.05)
+  );
+  pointer-events: none;
+}
