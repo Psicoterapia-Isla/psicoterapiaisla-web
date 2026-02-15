@@ -60,14 +60,15 @@ async function renderWeek(date) {
   const weekStart = formatDate(monday);
   const weekEnd = formatDate(new Date(monday.getTime()+4*86400000));
 
+  /* 🔒 SOLO LEEMOS CITAS DEL PACIENTE */
   const snapshot = await getDocs(query(
     collection(db,"appointments"),
-    where("therapistId","==",THERAPIST_ID),
+    where("patientId","==",user.uid),
     where("date",">=",weekStart),
     where("date","<=",weekEnd)
   ));
 
-  const appointments = snapshot.docs.map(d=>d.data());
+  const myAppointments = snapshot.docs.map(d=>d.data());
 
   /* HEADER */
 
@@ -75,7 +76,7 @@ async function renderWeek(date) {
 
   const days = ["L","M","X","J","V"];
 
-  days.forEach((day,i)=>{
+  days.forEach((day)=>{
     const label = document.createElement("div");
     label.className="day-label";
     label.textContent=day;
@@ -102,14 +103,19 @@ async function renderWeek(date) {
         const slot=document.createElement("div");
         slot.className="slot";
 
-        const isBusy=appointments.some(a=>a.date===dateStr && a.start===start);
+        /* 🔎 SOLO MIRAMOS SI ESA CITA ES MÍA */
+        const isMine=myAppointments.some(a=>a.date===dateStr && a.start===start);
 
-        if(isBusy){
+        if(isMine){
           slot.classList.add("busy");
         }else{
           slot.classList.add("available");
 
           slot.addEventListener("click", async ()=>{
+
+            /* Evita doble click */
+            slot.style.pointerEvents = "none";
+
             await addDoc(collection(db,"appointments"),{
               therapistId: THERAPIST_ID,
               patientId: user.uid,
