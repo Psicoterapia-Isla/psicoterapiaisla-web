@@ -1,214 +1,194 @@
-import { db } from "./firebase.js";
+import { requireAuth } from "./auth.js";
+import { loadMenu } from "./menu.js";
+import { auth, db } from "./firebase.js";
+
 import {
-  doc,
-  setDoc,
-  getDoc,
   collection,
   query,
   where,
-  getDocs
+  getDocs,
+  addDoc,
+  Timestamp
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-/* =========================
-   ESTADO GLOBAL
-========================= */
-let currentDate = new Date();
-let currentUser = null;
-let patientProfile = null;
+/* ================= INIT ================= */
 
-function formatDate(date) {
-  return date.toISOString().split("T")[0];
+await requireAuth();
+await loadMenu();
+
+/* ================= STATE ================= */
+
+let baseDate = new Date();
+const grid = document.getElementById("agendaGrid");
+const weekLabel = document.getElementById("weekLabel");
+
+/* ================= CONFIG ================= */
+
+const HOURS = Array.from({ length: 12 }, (_, i) => i + 9);
+const MINUTES = [0, 30];
+const DAYS = ["mon","tue","wed","thu","fri"];
+
+/* ================= HELPERS ================= */
+
+const pad = n => String(n).padStart(2,"0");
+
+function formatDate(d){
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
 }
 
-/* =========================
-   INICIALIZACIÓN
-========================= */
-export async function initAgendaPaciente(user) {
+function mondayOf(d){
+  const x = new Date(d);
+  const n = (x.getDay()+6)%7;
+  x.setDate(x.getDate()-n);
+  x.setHours(0,0,0,0);
+  return x;
+}
 
-  if (!user) throw new Error("Usuario no inicializado");
+function dayFromKey(monday,key){
+  const d = new Date(monday);
+  d.setDate(d.getDate()+DAYS.indexOf(key));
+  return d;
+}
 
-  currentUser = user;
+function timeString(h,m){
+  return `${pad(h)}:${pad(m)}`;
+}
 
-  // 🔒 Obtener perfil real de paciente
-  const snap = await getDocs(
-    query(
-      collection(db, "patients_normalized"),
-      where("userId", "==", user.uid)
-    )
-  );
+function minutesOf(time){
+  const [h,m] = time.split(":").map(Number);
+  return h*60 + m;
+}
 
-  if (snap.empty) {
-    alert("Perfil de paciente no encontrado");
-    return;
+/* ================= CREATE APPOINTMENT ================= */
+
+async function createAppointment(date, hour, minute){
+
+  const user = auth.currentUser;
+  if(!user) return;
+
+  const start = timeString(hour, minute);
+  const endDate = new Date(0,0,0,hour,minute);
+  endDate.setMinutes(endDate.getMinutes() + 60);
+  const end = timeString(endDate.getHours(), endDate.getMinutes());
+
+  await addDoc(collection(db,"appointments"),{
+    therapistId: "THERAPIST_ID_AQUI", // ⚠️ Sustituir por el id real fijo del terapeuta
+    patientId: user.uid,
+    date,
+    start,
+    end,
+    modality: "online",
+    completed: false,
+    paid: false,
+    createdAt: Timestamp.now()
+  });
+
+  await renderWeek();
+}
+
+/* ================= RENDER ================= */
+
+async function renderWeek(){
+
+  if(!grid) return;
+
+  grid.innerHTML = "";
+
+  const monday = mondayOf(baseDate);
+  const weekStart = formatDate(monday);
+  const weekEnd = formatDate(new Date(monday.getTime()+4*86400000));
+
+  if(weekLabel){
+    weekLabel.textContent =
+      monday.toLocaleDateString("es-ES",{day:"numeric",month:"short"}) +
+      " – " +
+      new Date(monday.getTime()+4*86400000)
+        .toLocaleDateString("es-ES",{day:"numeric",month:"short",year:"numeric"});
   }
 
-  const docData = snap.docs[0];
-  patientProfile = { id: docData.id, ...docData.data() };
+  const user = auth.currentUser;
+  if(!user) return;
 
-  renderDate();
-  bindDayNavigation();
-  await loadAgendaPaciente();
-}
+  /* Leer TODAS las citas de la semana */
+  const apptSnap = await getDocs(query(
+    collection(db,"appointments"),
+    where("date",">=",weekStart),
+    where("date","<=",weekEnd)
+  ));
 
-/* =========================
-   NAVEGACIÓN DE DÍAS
-========================= */
-function bindDayNavigation() {
+  const appointments = [];
+  apptSnap.forEach(d=>appointments.push(d.data()));
 
-  document.getElementById("prev-day")?.addEventListener("click", async () => {
-    currentDate.setDate(currentDate.getDate() - 1);
-    renderDate();
-    await loadAgendaPaciente();
+  grid.appendChild(document.createElement("div"));
+
+  DAYS.forEach((_,i)=>{
+    const d = new Date(monday);
+    d.setDate(d.getDate()+i);
+    const h = document.createElement("div");
+    h.className="day-label";
+    h.textContent = d.toLocaleDateString("es-ES",{weekday:"short",day:"numeric"});
+    grid.appendChild(h);
   });
 
-  document.getElementById("next-day")?.addEventListener("click", async () => {
-    currentDate.setDate(currentDate.getDate() + 1);
-    renderDate();
-    await loadAgendaPaciente();
-  });
-}
+  HOURS.forEach(hour=>{
+    MINUTES.forEach(minute=>{
 
-/* =========================
-   FECHA
-========================= */
-function renderDate() {
+      const label=document.createElement("div");
+      label.className="hour-label";
+      label.textContent=timeString(hour,minute);
+      grid.appendChild(label);
 
-  const el = document.getElementById("current-day");
-  if (!el) return;
+      DAYS.forEach(day=>{
 
-  el.textContent = currentDate.toLocaleDateString("es-ES", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    year: "numeric"
-  });
-}
+        const date=formatDate(dayFromKey(monday,day));
+        const cell=document.createElement("div");
+        cell.className="slot";
 
-/* =========================
-   CITA DEL DÍA (MODALIDAD COMPLETA)
-========================= */
-async function loadAppointmentForDay() {
+        const appointment = appointments.find(a=>{
+          if(a.date !== date) return false;
+          const cur=hour*60+minute;
+          return cur>=minutesOf(a.start) && cur<minutesOf(a.end);
+        });
 
-  const box = document.getElementById("appointment-today");
-  const content = document.getElementById("appointment-content");
+        if(appointment){
 
-  if (!box || !content || !patientProfile) return;
+          if(appointment.patientId === user.uid){
+            cell.classList.add("busy");
+            cell.innerHTML = `<strong>Tu cita</strong>`;
+          } else {
+            cell.classList.add("busy");
+            cell.innerHTML = `<span>Ocupado</span>`;
+          }
 
-  box.style.display = "none";
-  content.innerHTML = "";
+        } else {
 
-  const dateKey = formatDate(currentDate);
+          cell.classList.add("available");
+          cell.innerHTML = `<span>Disponible</span>`;
+          cell.onclick = () => createAppointment(date,hour,minute);
+        }
 
-  const q = query(
-    collection(db, "appointments"),
-    where("patientId", "==", patientProfile.id),
-    where("date", "==", dateKey)
-  );
+        grid.appendChild(cell);
+      });
 
-  const snap = await getDocs(q);
-  if (snap.empty) return;
-
-  const a = snap.docs[0].data();
-
-  /* 🔥 Mostrar modalidad real */
-  let modalityLabel = "Presencial";
-
-  if (a.modality === "online") {
-    modalityLabel = "Online";
-  } else if (a.modality === "viladecans") {
-    modalityLabel = "Presencial · Viladecans";
-  } else if (a.modality === "badalona") {
-    modalityLabel = "Presencial · Badalona";
-  }
-
-  content.innerHTML = `
-    <p><strong>${a.service || "Sesión terapéutica"}</strong></p>
-    <p>${a.start} – ${a.end}</p>
-    <p>${modalityLabel}</p>
-    <p>${a.completed ? "✅ Sesión realizada" : "🕒 Sesión pendiente"}</p>
-  `;
-
-  box.style.display = "block";
-}
-
-/* =========================
-   CARGAR AGENDA PERSONAL
-========================= */
-export async function loadAgendaPaciente() {
-
-  if (!currentUser) return;
-
-  const dateKey = formatDate(currentDate);
-
-  const ref = doc(db, "agendaPaciente", `${currentUser.uid}_${dateKey}`);
-  const snap = await getDoc(ref);
-
-  /* LIMPIAR CAMPOS */
-
-  document.querySelectorAll("[data-hour]").forEach(t => t.value = "");
-  document.getElementById("reto-diario").value = "";
-  document.getElementById("notas-contactos").value = "";
-  document.getElementById("tiempo-fuera").value = "";
-  document
-    .querySelectorAll('input[name="emocion"]')
-    .forEach(r => r.checked = false);
-
-  /* RELLENAR SI EXISTE */
-
-  if (snap.exists()) {
-
-    const data = snap.data();
-
-    Object.entries(data.plan || {}).forEach(([hour, value]) => {
-      const field = document.querySelector(`[data-hour="${hour}"]`);
-      if (field) field.value = value;
     });
-
-    if (data.emocion) {
-      const radio = document.querySelector(
-        `input[name="emocion"][value="${data.emocion}"]`
-      );
-      if (radio) radio.checked = true;
-    }
-
-    document.getElementById("reto-diario").value = data.reto || "";
-    document.getElementById("notas-contactos").value = data.notas || "";
-    document.getElementById("tiempo-fuera").value = data.tiempoFuera || "";
-  }
-
-  await loadAppointmentForDay();
-}
-
-/* =========================
-   GUARDAR AGENDA PERSONAL
-========================= */
-export async function saveAgendaPaciente() {
-
-  if (!currentUser) return;
-
-  const dateKey = formatDate(currentDate);
-  const plan = {};
-
-  document.querySelectorAll("[data-hour]").forEach(t => {
-    plan[t.dataset.hour] = t.value || "";
   });
-
-  const emocion =
-    document.querySelector('input[name="emocion"]:checked')?.value || null;
-
-  await setDoc(
-    doc(db, "agendaPaciente", `${currentUser.uid}_${dateKey}`),
-    {
-      uid: currentUser.uid,
-      date: dateKey,
-      plan,
-      emocion,
-      reto: document.getElementById("reto-diario").value || "",
-      notas: document.getElementById("notas-contactos").value || "",
-      tiempoFuera: document.getElementById("tiempo-fuera").value || "",
-      updatedAt: new Date()
-    }
-  );
-
-  alert("Planificador guardado correctamente");
 }
+
+/* ================= NAV ================= */
+
+document.getElementById("prevWeek")?.addEventListener("click",()=>{
+  baseDate.setDate(baseDate.getDate()-7);
+  renderWeek();
+});
+
+document.getElementById("nextWeek")?.addEventListener("click",()=>{
+  baseDate.setDate(baseDate.getDate()+7);
+  renderWeek();
+});
+
+document.getElementById("today")?.addEventListener("click",()=>{
+  baseDate=new Date();
+  renderWeek();
+});
+
+renderWeek();
