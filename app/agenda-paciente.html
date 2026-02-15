@@ -15,96 +15,21 @@
 
 <main class="app-content">
 
-  <!-- TÍTULO -->
-  <h1>Planificador diario</h1>
-  <!-- ======================
-     CITA DEL DÍA
-====================== -->
-<section id="appointment-today" class="card" style="display:none;">
-  <h2>Tu cita</h2>
-  <div id="appointment-content"></div>
-</section>
-  <!-- NAVEGACIÓN DÍA -->
-  <div class="day-nav card">
-    <button id="prev-day">◀️</button>
-    <span id="current-day"></span>
-    <button id="next-day">▶️</button>
+  <h1>Reservar cita</h1>
+
+  <div class="card">
+
+    <div class="week-nav">
+      <button id="prev-week">◀</button>
+      <span id="currentWeek"></span>
+      <button id="next-week">▶</button>
+    </div>
+
+    <div id="agendaGrid" class="agenda-grid"></div>
+
   </div>
 
-  <!-- EMOCIÓN PREDOMINANTE -->
-  <section class="card block-green light">
-    <h2>¿Qué emoción ha predominado hoy?</h2>
-
-    <div class="emotion-grid">
-      <label><input type="radio" name="emocion" value="alegría"> Alegría</label>
-      <label><input type="radio" name="emocion" value="asco"> Asco</label>
-      <label><input type="radio" name="emocion" value="enfado"> Enfado</label>
-      <label><input type="radio" name="emocion" value="miedo"> Miedo</label>
-      <label><input type="radio" name="emocion" value="ira"> Ira</label>
-      <label><input type="radio" name="emocion" value="sorpresa"> Sorpresa</label>
-      <label><input type="radio" name="emocion" value="tristeza"> Tristeza</label>
-    </div>
-  </section>
-
-  <!-- CONTENIDO PRINCIPAL -->
-  <section class="card">
-
-    <div class="grid-2">
-
-      <!-- PLAN DEL DÍA -->
-      <section class="block">
-        <h2>Plan del día</h2>
-
-        <div class="list">
-          <div class="hour-line"><span>06:00</span><textarea data-hour="06:00"></textarea></div>
-          <div class="hour-line"><span>07:00</span><textarea data-hour="07:00"></textarea></div>
-          <div class="hour-line"><span>08:00</span><textarea data-hour="08:00"></textarea></div>
-          <div class="hour-line"><span>09:00</span><textarea data-hour="09:00"></textarea></div>
-          <div class="hour-line"><span>10:00</span><textarea data-hour="10:00"></textarea></div>
-          <div class="hour-line"><span>11:00</span><textarea data-hour="11:00"></textarea></div>
-          <div class="hour-line"><span>12:00</span><textarea data-hour="12:00"></textarea></div>
-          <div class="hour-line"><span>13:00</span><textarea data-hour="13:00"></textarea></div>
-          <div class="hour-line"><span>14:00</span><textarea data-hour="14:00"></textarea></div>
-          <div class="hour-line"><span>15:00</span><textarea data-hour="15:00"></textarea></div>
-          <div class="hour-line"><span>16:00</span><textarea data-hour="16:00"></textarea></div>
-          <div class="hour-line"><span>17:00</span><textarea data-hour="17:00"></textarea></div>
-          <div class="hour-line"><span>18:00</span><textarea data-hour="18:00"></textarea></div>
-          <div class="hour-line"><span>19:00</span><textarea data-hour="19:00"></textarea></div>
-          <div class="hour-line"><span>20:00</span><textarea data-hour="20:00"></textarea></div>
-          <div class="hour-line"><span>21:00</span><textarea data-hour="21:00"></textarea></div>
-          <div class="hour-line"><span>22:00</span><textarea data-hour="22:00"></textarea></div>
-          <div class="hour-line"><span>23:00</span><textarea data-hour="23:00"></textarea></div>
-        </div>
-      </section>
-
-      <!-- RETO DIARIO -->
-      <section class="block">
-        <h2>Reto diario</h2>
-        <textarea id="reto-diario"></textarea>
-      </section>
-
-    </div>
-
-    <!-- NOTAS -->
-    <section class="block" style="margin-top:2rem;">
-      <h2>Notas</h2>
-
-      <label>¿Con quién he hablado hoy?</label>
-      <textarea id="notas-contactos"></textarea>
-
-      <label style="margin-top:1rem;">Tiempo fuera de casa</label>
-      <input id="tiempo-fuera" type="text">
-    </section>
-
-    <!-- GUARDAR -->
-    <button id="guardar-agenda" class="btn-primary">
-      Guardar
-    </button>
-
-  </section>
-
 </main>
-
 <script type="module">
   import { requireAuth } from "./assets/js/auth.js";
   import { loadMenu } from "./assets/js/menu.js";
