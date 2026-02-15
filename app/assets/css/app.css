@@ -681,3 +681,188 @@ textarea:focus {
   );
   pointer-events: none;
 }
+/* =====================================================
+   PSICOTERAPIA ISLA — GLASS SYSTEM 3.0
+   Motion + Depth + Native iOS Feel
+===================================================== */
+
+
+/* ================= FONDO DINÁMICO SUTIL ================= */
+
+body {
+  background: radial-gradient(
+      circle at 20% 20%,
+      rgba(46,95,79,0.06),
+      transparent 40%
+    ),
+    radial-gradient(
+      circle at 80% 30%,
+      rgba(46,95,79,0.05),
+      transparent 45%
+    ),
+    #f6faf8;
+  background-attachment: fixed;
+}
+
+
+/* ================= MENÚ CON PROFUNDIDAD DINÁMICA ================= */
+
+.app-menu {
+  transition: all 0.35s ease;
+}
+
+/* Estado con scroll */
+.app-menu.scrolled {
+  backdrop-filter: blur(40px) saturate(180%);
+  -webkit-backdrop-filter: blur(40px) saturate(180%);
+
+  background: linear-gradient(
+    135deg,
+    rgba(46,95,79,0.35),
+    rgba(46,95,79,0.15)
+  );
+
+  box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+}
+
+
+/* ================= BOTONES CON PROFUNDIDAD REAL ================= */
+
+button,
+.menu-link,
+.btn-primary {
+
+  transform: translateZ(0);
+  transition:
+    transform 0.25s ease,
+    box-shadow 0.25s ease,
+    background 0.25s ease;
+}
+
+button:hover,
+.menu-link:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 35px rgba(0,0,0,0.18);
+}
+
+button:active {
+  transform: scale(0.97);
+}
+
+
+/* ================= DROPDOWN iOS REAL ================= */
+
+.menu-dropdown {
+
+  opacity: 0;
+  transform: translateY(10px) scale(0.98);
+  pointer-events: none;
+
+  transition:
+    opacity 0.25s ease,
+    transform 0.25s cubic-bezier(.34,1.56,.64,1);
+}
+
+.menu-group.open .menu-dropdown {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+}
+
+
+/* ================= TARJETAS CON ELEVACIÓN SUAVE ================= */
+
+.card {
+  transition: transform 0.35s ease, box-shadow 0.35s ease;
+}
+
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 30px 80px rgba(0,0,0,0.15);
+}
+
+
+/* ================= INPUTS MÁS NATIVOS ================= */
+
+input,
+select,
+textarea {
+  transition:
+    border 0.25s ease,
+    box-shadow 0.25s ease,
+    background 0.25s ease;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  background: rgba(255,255,255,0.95);
+}
+
+
+/* ================= AGENDA CON EFECTO PULSO SUTIL ================= */
+
+.slot.available {
+  animation: subtlePulse 3.5s infinite ease-in-out;
+}
+
+@keyframes subtlePulse {
+  0%   { box-shadow: 0 6px 20px rgba(46,95,79,0.35); }
+  50%  { box-shadow: 0 6px 28px rgba(46,95,79,0.55); }
+  100% { box-shadow: 0 6px 20px rgba(46,95,79,0.35); }
+}
+
+
+/* ================= MICRO ANIMACIÓN EN LINKS ================= */
+
+.menu-link {
+  position: relative;
+  overflow: hidden;
+}
+
+.menu-link::after {
+  content: "";
+  position: absolute;
+  left: 20%;
+  right: 20%;
+  bottom: 6px;
+  height: 2px;
+  background: var(--green-main);
+  opacity: 0;
+  transform: scaleX(0);
+  transition: all 0.25s ease;
+}
+
+.menu-link:hover::after {
+  opacity: 1;
+  transform: scaleX(1);
+}
+
+
+/* ================= SCROLL SUAVE ================= */
+
+html {
+  scroll-behavior: smooth;
+}
+
+
+/* ================= HOVER EN TABLAS ================= */
+
+tr:hover {
+  background: rgba(46,95,79,0.05);
+  transition: background 0.2s ease;
+}
+
+
+/* ================= MODAL CON APERTURA iOS ================= */
+
+#modal .modal-content {
+  transform: scale(0.95);
+  opacity: 0;
+  transition: all 0.25s cubic-bezier(.34,1.56,.64,1);
+}
+
+#modal.show .modal-content {
+  transform: scale(1);
+  opacity: 1;
+}
