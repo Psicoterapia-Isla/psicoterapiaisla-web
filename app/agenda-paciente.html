@@ -33,21 +33,11 @@
 <script type="module">
   import { requireAuth } from "./assets/js/auth.js";
   import { loadMenu } from "./assets/js/menu.js";
-  import {
-    initAgendaPaciente,
-    loadAgendaPaciente,
-    saveAgendaPaciente
-  } from "./assets/js/agenda-paciente.js";
 
-  const user = await requireAuth();
+  await requireAuth();
   await loadMenu();
 
-  initAgendaPaciente(user);
-  await loadAgendaPaciente();
-
-  document
-    .getElementById("guardar-agenda")
-    .addEventListener("click", saveAgendaPaciente);
+  await import("./assets/js/agenda-paciente.js");
 </script>
 
 </body>
