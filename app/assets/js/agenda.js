@@ -253,7 +253,7 @@ async function renderWeek(){
     cell.style.visibility = "hidden";
 
   }
-}
+
         } else if (availability[slotKey]) {
 
           cell.classList.add("available");
