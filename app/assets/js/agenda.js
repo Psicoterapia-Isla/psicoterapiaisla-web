@@ -298,12 +298,15 @@ closeBtn?.addEventListener("click",()=>{
 
 document.getElementById("save")?.addEventListener("click", async () => {
 
+  document.getElementById("save")?.addEventListener("click", async () => {
+
   const user = auth.currentUser;
-  if(!user || !currentSlot) return;
+  if (!user || !currentSlot) return;
 
-  if(editingId){
+  /* ===== EDITAR CITA ===== */
+  if (editingId) {
 
-    await updateDoc(doc(db,"appointments",editingId),{
+    await updateDoc(doc(db, "appointments", editingId), {
       phone: phone.value,
       name: name.value,
       service: service.value,
@@ -316,11 +319,12 @@ document.getElementById("save")?.addEventListener("click", async () => {
       updatedAt: Timestamp.now()
     });
 
-    if(completed.checked && paid.checked){
-      try{
+    // Generar factura si procede
+    if (completed.checked && paid.checked) {
+      try {
         await emitInvoiceCF({ appointmentId: editingId });
-      }catch(err){
-        console.error(err);
+      } catch (err) {
+        console.error("Error emitiendo factura:", err);
       }
     }
 
@@ -328,6 +332,8 @@ document.getElementById("save")?.addEventListener("click", async () => {
     await renderWeek();
     return;
   }
+
+  /* ===== CREAR CITA ===== */
 
   const result = await createAppointmentCF({
     therapistId: user.uid,
@@ -343,39 +349,34 @@ document.getElementById("save")?.addEventListener("click", async () => {
     paid: paid.checked
   });
 
-  if(!result.data?.ok){
+  if (!result.data?.ok) {
     alert("Error creando cita");
     return;
   }
 
-  const snap = await getDocs(query(
-    collection(db,"appointments"),
-    where("therapistId","==",user.uid),
-    where("date","==",currentSlot.date),
-    where("start","==",start.value)
-  ));
+  // El ID viene en result (si lo ajustas en backend)
+  const appointmentId = result.data.appointmentId;
 
-  const newAppointment = snap.docs[0];
-
-  if(newAppointment){
-
-    try{
+  /* ===== WHATSAPP ===== */
+  if (appointmentId) {
+    try {
       const wa = await sendAppointmentNotification({
-        appointmentId: newAppointment.id
+        appointmentId
       });
 
-      if(wa.data?.whatsappUrl){
+      if (wa.data?.whatsappUrl) {
         window.open(wa.data.whatsappUrl, "_blank");
       }
-    }catch(err){
-      console.error(err);
+    } catch (err) {
+      console.error("Error enviando aviso:", err);
     }
 
-    if(completed.checked && paid.checked){
-      try{
-        await emitInvoiceCF({ appointmentId: newAppointment.id });
-      }catch(err){
-        console.error(err);
+    /* ===== FACTURA AUTOMÁTICA ===== */
+    if (completed.checked && paid.checked) {
+      try {
+        await emitInvoiceCF({ appointmentId });
+      } catch (err) {
+        console.error("Error emitiendo factura:", err);
       }
     }
   }
@@ -383,7 +384,6 @@ document.getElementById("save")?.addEventListener("click", async () => {
   modal.classList.remove("show");
   await renderWeek();
 });
-
 /* ================= NAV ================= */
 
 prevWeek?.addEventListener("click",()=>{
