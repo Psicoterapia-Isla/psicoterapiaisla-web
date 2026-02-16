@@ -10,9 +10,7 @@ import {
   getDoc,
   updateDoc,
   doc,
-  addDoc,
-  Timestamp,
-  runTransaction
+  Timestamp
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 import {
@@ -30,6 +28,7 @@ await loadMenu();
 const functions = getFunctions(undefined, "us-central1");
 const createAppointmentCF = httpsCallable(functions, "createAppointment");
 const sendAppointmentNotification = httpsCallable(functions, "sendAppointmentNotification");
+const emitInvoiceCF = httpsCallable(functions, "emitInvoice");
 
 /* ================= STATE ================= */
 
@@ -97,6 +96,7 @@ function minutesOf(time){
   const [h,m] = time.split(":").map(Number);
   return h*60 + m;
 }
+
 /* ================= AUTOCOMPLETE ================= */
 
 async function searchPatients(term){
@@ -125,8 +125,7 @@ async function searchPatients(term){
       selectedPatient = { id: d.id, ...p };
 
       phone.value = p.telefono || "";
-      name.value =
-        `${p.nombre || ""} ${p.apellidos || ""}`.trim();
+      name.value = `${p.nombre || ""} ${p.apellidos || ""}`.trim();
 
       const duration = p.patientType === "mutual" ? 30 : 60;
 
@@ -156,12 +155,12 @@ document.addEventListener("click", (e)=>{
     suggestions.innerHTML = "";
   }
 });
+
 /* ================= RENDER ================= */
 
 async function renderWeek(){
 
   if(!grid) return;
-
   grid.innerHTML = "";
 
   const monday = mondayOf(baseDate);
@@ -179,8 +178,7 @@ async function renderWeek(){
   const user = auth.currentUser;
   if(!user) return;
 
-  const availRef = doc(db,"availability",`${user.uid}_${weekStart}`);
-  const availSnap = await getDoc(availRef);
+  const availSnap = await getDoc(doc(db,"availability",`${user.uid}_${weekStart}`));
   const availability = availSnap.exists() ? availSnap.data().slots || {} : {};
 
   const apptSnap = await getDocs(query(
@@ -193,7 +191,6 @@ async function renderWeek(){
   const appointments = [];
   apptSnap.forEach(d => appointments.push({ id:d.id, ...d.data() }));
 
-  // ===== HEADER DÍAS =====
   grid.appendChild(document.createElement("div"));
 
   DAYS.forEach((_,i)=>{
@@ -205,7 +202,6 @@ async function renderWeek(){
     grid.appendChild(h);
   });
 
-  // ===== GRID HORARIO =====
   HOURS.forEach(hour=>{
     MINUTES.forEach(minute=>{
 
@@ -228,18 +224,15 @@ async function renderWeek(){
           return cur >= minutesOf(a.start) && cur < minutesOf(a.end);
         });
 
-        // ===== SI HAY CITA =====
         if (appointment) {
 
           const startMinutes = minutesOf(appointment.start);
           const endMinutes = minutesOf(appointment.end);
-          const currentMinutes = hour * 60 + minute;
+          const currentMinutes = hour*60+minute;
 
-          if (currentMinutes === startMinutes) {
+          if(currentMinutes === startMinutes){
 
-            const duration = endMinutes - startMinutes;
-            const blocks = duration / 30;
-
+            const blocks = (endMinutes - startMinutes)/30;
             cell.style.gridRow = `span ${blocks}`;
 
             cell.classList.add(
@@ -251,24 +244,15 @@ async function renderWeek(){
             cell.onclick = () => openEdit(appointment);
 
           } else {
-
-            // Bloques internos de la cita → ocultar
             cell.style.display = "none";
-
           }
 
-        }
-
-        // ===== DISPONIBILIDAD =====
-        else if (availability[slotKey]) {
+        } else if (availability[slotKey]) {
 
           cell.classList.add("available");
           cell.onclick = () => openNew({ date, hour, minute });
 
-        }
-
-        // ===== BLOQUE INACTIVO =====
-        else {
+        } else {
 
           cell.classList.add("disabled");
 
@@ -276,11 +260,10 @@ async function renderWeek(){
 
         grid.appendChild(cell);
 
-      }); // cierre DAYS
+      });
 
-    }); // cierre MINUTES
-  }); // cierre HOURS
-
+    });
+  });
 }
 
 /* ================= MODAL ================= */
@@ -322,14 +305,10 @@ closeBtn?.addEventListener("click",()=>{
 
 /* ================= SAVE ================= */
 
-/* ================= SAVE ================= */
-
 document.getElementById("save")?.addEventListener("click", async () => {
 
   const user = auth.currentUser;
   if(!user || !currentSlot) return;
-
-  /* ===== EDITAR CITA ===== */
 
   if(editingId){
 
@@ -346,15 +325,11 @@ document.getElementById("save")?.addEventListener("click", async () => {
       updatedAt: Timestamp.now()
     });
 
-    // ===== GENERAR FACTURA AUTOMÁTICA =====
-    if (completed.checked && paid.checked) {
-      try {
-        const emitInvoiceCF = httpsCallable(functions, "emitInvoice");
-        await emitInvoiceCF({
-          appointmentId: editingId
-        });
-      } catch (err) {
-        console.error("Error emitiendo factura:", err);
+    if(completed.checked && paid.checked){
+      try{
+        await emitInvoiceCF({ appointmentId: editingId });
+      }catch(err){
+        console.error(err);
       }
     }
 
@@ -362,8 +337,6 @@ document.getElementById("save")?.addEventListener("click", async () => {
     await renderWeek();
     return;
   }
-
-  /* ===== CREAR CITA ===== */
 
   const result = await createAppointmentCF({
     therapistId: user.uid,
@@ -384,8 +357,6 @@ document.getElementById("save")?.addEventListener("click", async () => {
     return;
   }
 
-  /* ===== BUSCAR CITA RECIÉN CREADA ===== */
-
   const snap = await getDocs(query(
     collection(db,"appointments"),
     where("therapistId","==",user.uid),
@@ -397,8 +368,7 @@ document.getElementById("save")?.addEventListener("click", async () => {
 
   if(newAppointment){
 
-    // ===== WHATSAPP =====
-    try {
+    try{
       const wa = await sendAppointmentNotification({
         appointmentId: newAppointment.id
       });
@@ -406,67 +376,16 @@ document.getElementById("save")?.addEventListener("click", async () => {
       if(wa.data?.whatsappUrl){
         window.open(wa.data.whatsappUrl, "_blank");
       }
-    } catch (err) {
-      console.error("Error enviando aviso:", err);
+    }catch(err){
+      console.error(err);
     }
 
-    // ===== FACTURA SI YA ESTÁ PAGADA Y COMPLETADA =====
-    if (completed.checked && paid.checked) {
-      try {
-        const emitInvoiceCF = httpsCallable(functions, "emitInvoice");
-        await emitInvoiceCF({
-          appointmentId: newAppointment.id
-        });
-      } catch (err) {
-        console.error("Error emitiendo factura:", err);
+    if(completed.checked && paid.checked){
+      try{
+        await emitInvoiceCF({ appointmentId: newAppointment.id });
+      }catch(err){
+        console.error(err);
       }
-    }
-  }
-
-  modal.classList.remove("show");
-  await renderWeek();
-
-});
-
-  /* === CREACIÓN DESDE CLOUD FUNCTION === */
-
-  const result = await createAppointmentCF({
-  therapistId: user.uid,
-  date: currentSlot.date,
-  start: start.value,
-  modality: modality.value,
-  patientId: selectedPatient?.id || null,
-  name: name.value,
-  phone: phone.value,
-  service: service.value,
-  amount: Number(amount.value || 0),
-  completed: completed.checked,
-  paid: paid.checked
-});
-
-  if(!result.data?.ok){
-    alert("Error creando cita");
-    return;
-  }
-
-  /* === Buscar cita recién creada === */
-
-  const snap = await getDocs(query(
-    collection(db,"appointments"),
-    where("therapistId","==",user.uid),
-    where("date","==",currentSlot.date),
-    where("start","==",start.value)
-  ));
-
-  const newAppointment = snap.docs[0];
-
-  if(newAppointment){
-    const wa = await sendAppointmentNotification({
-      appointmentId: newAppointment.id
-    });
-
-    if(wa.data?.whatsappUrl){
-      window.open(wa.data.whatsappUrl, "_blank");
     }
   }
 
