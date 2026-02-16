@@ -191,7 +191,6 @@ async function renderWeek(){
   const appointments = [];
   apptSnap.forEach(d => appointments.push({ id:d.id, ...d.data() }));
 
-  // HEADER
   grid.appendChild(document.createElement("div"));
 
   DAYS.forEach((_,i)=>{
@@ -203,7 +202,6 @@ async function renderWeek(){
     grid.appendChild(h);
   });
 
-  // GRID
   HOURS.forEach(hour=>{
     MINUTES.forEach(minute=>{
 
@@ -218,7 +216,7 @@ async function renderWeek(){
         const slotKey = `${day}_${hour}_${minute}`;
 
         const cell = document.createElement("div");
-        cell.className="slot";
+        cell.className = "slot";
 
         const appointment = appointments.find(a=>{
           if(a.date !== date) return false;
@@ -226,48 +224,15 @@ async function renderWeek(){
           return cur >= minutesOf(a.start) && cur < minutesOf(a.end);
         });
 
-        // RESET VISUAL SIEMPRE
-        cell.style.gridRow = "";
-        cell.style.display = "";
-        cell.innerHTML = "";
-        cell.onclick = null;
-
-        
-
-        // ===== DISPONIBLE =====
-        else if (availability[slotKey]) {
-
-          cell.classList.add("available");
-          cell.onclick = () => openNew({ date, hour, minute });
-
-        }
-
-        // ===== BLOQUE INACTIVO =====
-        else {
-
-          cell.classList.add("disabled");
-
-        }
-
-        grid.appendChild(cell);
-
-      });
-
-    });
-  });
-}
-// ===== SI HAY CITA =====
         if (appointment) {
 
           const startMinutes = minutesOf(appointment.start);
           const endMinutes = minutesOf(appointment.end);
-          const currentMinutes = hour * 60 + minute;
+          const currentMinutes = hour*60 + minute;
 
           if (currentMinutes === startMinutes) {
 
-            const duration = endMinutes - startMinutes;
-            const blocks = duration / 30;
-
+            const blocks = (endMinutes - startMinutes) / 30;
             cell.style.gridRow = `span ${blocks}`;
 
             cell.classList.add(
@@ -279,19 +244,15 @@ async function renderWeek(){
             cell.onclick = () => openEdit(appointment);
 
           } else {
-
             cell.style.display = "none";
-
           }
 
-        }
-        else if (availability[slotKey]) {
+        } else if (availability[slotKey]) {
 
           cell.classList.add("available");
           cell.onclick = () => openNew({ date, hour, minute });
 
-        }
-        else {
+        } else {
 
           cell.classList.add("disabled");
 
@@ -304,6 +265,7 @@ async function renderWeek(){
     });
   });
 }
+
 /* ================= MODAL ================= */
 
 function openNew(slot){
@@ -348,7 +310,6 @@ document.getElementById("save")?.addEventListener("click", async () => {
   const user = auth.currentUser;
   if (!user || !currentSlot) return;
 
-  /* ===== EDITAR CITA ===== */
   if (editingId) {
 
     await updateDoc(doc(db, "appointments", editingId), {
@@ -364,21 +325,15 @@ document.getElementById("save")?.addEventListener("click", async () => {
       updatedAt: Timestamp.now()
     });
 
-    // Generar factura si procede
     if (completed.checked && paid.checked) {
-      try {
-        await emitInvoiceCF({ appointmentId: editingId });
-      } catch (err) {
-        console.error("Error emitiendo factura:", err);
-      }
+      try { await emitInvoiceCF({ appointmentId: editingId }); }
+      catch (err) { console.error(err); }
     }
 
     modal.classList.remove("show");
     await renderWeek();
     return;
   }
-
-  /* ===== CREAR CITA ===== */
 
   const result = await createAppointmentCF({
     therapistId: user.uid,
@@ -399,36 +354,25 @@ document.getElementById("save")?.addEventListener("click", async () => {
     return;
   }
 
-  // El ID viene en result (si lo ajustas en backend)
   const appointmentId = result.data.appointmentId;
 
-  /* ===== WHATSAPP ===== */
   if (appointmentId) {
+
     try {
-      const wa = await sendAppointmentNotification({
-        appointmentId
-      });
+      const wa = await sendAppointmentNotification({ appointmentId });
+      if (wa.data?.whatsappUrl) window.open(wa.data.whatsappUrl, "_blank");
+    } catch (err) { console.error(err); }
 
-      if (wa.data?.whatsappUrl) {
-        window.open(wa.data.whatsappUrl, "_blank");
-      }
-    } catch (err) {
-      console.error("Error enviando aviso:", err);
-    }
-
-    /* ===== FACTURA AUTOMÁTICA ===== */
     if (completed.checked && paid.checked) {
-      try {
-        await emitInvoiceCF({ appointmentId });
-      } catch (err) {
-        console.error("Error emitiendo factura:", err);
-      }
+      try { await emitInvoiceCF({ appointmentId }); }
+      catch (err) { console.error(err); }
     }
   }
 
   modal.classList.remove("show");
   await renderWeek();
 });
+
 /* ================= NAV ================= */
 
 prevWeek?.addEventListener("click",()=>{
@@ -442,7 +386,7 @@ nextWeek?.addEventListener("click",()=>{
 });
 
 todayBtn?.addEventListener("click",()=>{
-  baseDate=new Date();
+  baseDate = new Date();
   renderWeek();
 });
 
