@@ -81,9 +81,6 @@ document.getElementById("save")?.addEventListener("click", async () => {
   const user = auth.currentUser;
   if(!user || !currentSlot) return;
 
-  const monday = mondayOf(baseDate);
-const weekStart = formatDate(monday);
-
 const [y,m,d] = currentSlot.date.split("-");
   const monday = mondayOf(baseDate);
   const weekStart = formatDate(monday);
