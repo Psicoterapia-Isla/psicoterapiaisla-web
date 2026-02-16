@@ -85,6 +85,9 @@ document.getElementById("save")?.addEventListener("click", async () => {
   const monday = mondayOf(new Date(y, m-1, d));
   const weekStart = formatDate(monday);
 
+  const monday = mondayOf(baseDate);
+  const weekStart = formatDate(monday);
+
   const availRef = doc(db,"availability",`${user.uid}_${weekStart}`);
   const availSnap = await getDoc(availRef);
 
