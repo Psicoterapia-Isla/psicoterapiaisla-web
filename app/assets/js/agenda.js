@@ -254,7 +254,7 @@ async function renderWeek(){
 
   }
 
-        } else if (availability[slotKey]) {
+   else if (availability[slotKey]) {
 
           cell.classList.add("available");
           cell.onclick = () => openNew({ date, hour, minute });
