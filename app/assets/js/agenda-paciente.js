@@ -5,15 +5,19 @@ import {
   collection,
   query,
   where,
-  getDocs
+  getDocs,
+  getDoc,
+  doc
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-import { getFunctions, httpsCallable } 
-  from "https://www.gstatic.com/firebasejs/10.7.1/firebase-functions.js";
+import {
+  getFunctions,
+  httpsCallable
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-functions.js";
 
 /* ================= CONFIG ================= */
 
-const THERAPIST_ID = "LOSSPrBskLPpb547zED5hO2zYS62";
+const THERAPIST_ID = "LOSSPrBskLPpb547zED5hO2zYS62"; // fijo
 const START_HOUR = 9;
 const END_HOUR = 20;
 const SLOT_INTERVAL = 30;
@@ -25,35 +29,36 @@ const currentWeekLabel = document.getElementById("currentWeek");
 
 const user = await requireAuth();
 
-/* ================= CLOUD FUNCTION ================= */
+/* ================= FUNCTIONS ================= */
 
-const functions = getFunctions();
+const functions = getFunctions(undefined, "us-central1");
 const createAppointment = httpsCallable(functions, "createAppointment");
 
-/* ================= UTILIDADES ================= */
+/* ================= HELPERS ================= */
 
-function getMonday(d) {
+function getMonday(d){
   const date = new Date(d);
   const day = date.getDay();
   const diff = date.getDate() - day + (day === 0 ? -6 : 1);
   return new Date(date.setDate(diff));
 }
 
-function formatDate(date) {
+function formatDate(date){
   return date.toISOString().split("T")[0];
 }
 
-function calculateEnd(start) {
-  const [h, m] = start.split(":").map(Number);
-  const date = new Date();
-  date.setHours(h);
-  date.setMinutes(m + SLOT_INTERVAL);
-  return date.toTimeString().slice(0, 5);
+function minutesOf(time){
+  const [h,m] = time.split(":").map(Number);
+  return h*60 + m;
+}
+
+function timeString(h,m){
+  return `${String(h).padStart(2,"0")}:${m===0?"00":"30"}`;
 }
 
 /* ================= RENDER ================= */
 
-async function renderWeek(date) {
+async function renderWeek(date){
 
   agendaContainer.innerHTML = "";
 
@@ -62,21 +67,32 @@ async function renderWeek(date) {
   currentWeekLabel.textContent =
     monday.toLocaleDateString("es-ES",{day:"numeric",month:"short"}) +
     " - " +
-    new Date(monday.getTime() + 4*86400000)
+    new Date(monday.getTime()+4*86400000)
       .toLocaleDateString("es-ES",{day:"numeric",month:"short"});
 
   const weekStart = formatDate(monday);
   const weekEnd = formatDate(new Date(monday.getTime()+4*86400000));
 
-  /* 🔒 Solo citas del paciente */
+  /* 🔹 DISPONIBILIDAD TERAPEUTA */
+
+  const availabilitySnap = await getDoc(
+    doc(db,"availability",`${THERAPIST_ID}_${weekStart}`)
+  );
+
+  const availability = availabilitySnap.exists()
+    ? availabilitySnap.data().slots || {}
+    : {};
+
+  /* 🔹 CITAS YA OCUPADAS (DE TODOS) */
+
   const snapshot = await getDocs(query(
     collection(db,"appointments"),
-    where("patientId","==",user.uid),
+    where("therapistId","==",THERAPIST_ID),
     where("date",">=",weekStart),
     where("date","<=",weekEnd)
   ));
 
-  const myAppointments = snapshot.docs.map(d=>d.data());
+  const appointments = snapshot.docs.map(d=>d.data());
 
   /* HEADER */
 
@@ -85,61 +101,73 @@ async function renderWeek(date) {
   const days = ["L","M","X","J","V"];
 
   days.forEach(day=>{
-    const label = document.createElement("div");
+    const label=document.createElement("div");
     label.className="day-label";
     label.textContent=day;
     agendaContainer.appendChild(label);
   });
 
-  /* SLOTS */
+  /* GRID */
 
   for(let hour=START_HOUR; hour<END_HOUR; hour++){
     for(let min=0; min<60; min+=SLOT_INTERVAL){
 
       const hourLabel=document.createElement("div");
       hourLabel.className="hour-label";
-      hourLabel.textContent=
-        `${hour.toString().padStart(2,"0")}:${min===0?"00":"30"}`;
+      hourLabel.textContent=timeString(hour,min);
       agendaContainer.appendChild(hourLabel);
 
       for(let i=0;i<5;i++){
 
-        const day = new Date(monday);
-        day.setDate(monday.getDate()+i);
+        const dayDate=new Date(monday);
+        dayDate.setDate(monday.getDate()+i);
 
-        const dateStr=formatDate(day);
-        const start=`${hour.toString().padStart(2,"0")}:${min===0?"00":"30"}`;
+        const dateStr=formatDate(dayDate);
+        const start=timeString(hour,min);
+        const slotKey=`${["mon","tue","wed","thu","fri"][i]}_${hour}_${min}`;
 
         const slot=document.createElement("div");
         slot.className="slot";
 
-        const isMine=myAppointments.some(a=>a.date===dateStr && a.start===start);
+        const isAvailable=availability[slotKey]===true;
 
-        if(isMine){
+        const isBusy=appointments.some(a=>{
+          if(a.date!==dateStr) return false;
+          const cur=hour*60+min;
+          return cur>=minutesOf(a.start) && cur<minutesOf(a.end);
+        });
 
+        if(!isAvailable){
+          slot.classList.add("disabled");
+        }
+        else if(isBusy){
           slot.classList.add("busy");
-
-        } else {
+        }
+        else{
 
           slot.classList.add("available");
 
           slot.addEventListener("click", async ()=>{
 
-            try {
+            try{
 
-              slot.style.pointerEvents = "none";
+              slot.style.pointerEvents="none";
               slot.classList.add("loading");
+
+              const endDate=new Date(0,0,0,hour,min);
+              endDate.setMinutes(endDate.getMinutes()+30);
 
               await createAppointment({
                 therapistId: THERAPIST_ID,
                 date: dateStr,
                 start,
+                end: endDate.toTimeString().slice(0,5),
                 modality: "online"
               });
 
-              renderWeek(baseDate);
+              await renderWeek(baseDate);
 
-            } catch (error) {
+            }catch(error){
 
               console.error("Error creando cita:", error);
 
@@ -148,10 +176,9 @@ async function renderWeek(date) {
                 "No se ha podido reservar el horario."
               );
 
-              slot.style.pointerEvents = "auto";
+              slot.style.pointerEvents="auto";
               slot.classList.remove("loading");
             }
-
           });
         }
 
@@ -163,14 +190,16 @@ async function renderWeek(date) {
 
 /* ================= NAV ================= */
 
-document.getElementById("prev-week").onclick = ()=>{
+document.getElementById("prev-week").onclick=()=>{
   baseDate.setDate(baseDate.getDate()-7);
   renderWeek(baseDate);
 };
 
-document.getElementById("next-week").onclick = ()=>{
+document.getElementById("next-week").onclick=()=>{
   baseDate.setDate(baseDate.getDate()+7);
   renderWeek(baseDate);
 };
+
+/* ================= START ================= */
 
 renderWeek(baseDate);
