@@ -1,16 +1,19 @@
 import { db } from "./firebase.js";
 import { requireAuth } from "./auth.js";
+
 import {
   collection,
   query,
   where,
-  getDocs,
-  addDoc,
-  serverTimestamp
+  getDocs
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-const THERAPIST_ID = "LOSSPrBskLPpb547zED5hO2zYS62";
+import { getFunctions, httpsCallable } 
+  from "https://www.gstatic.com/firebasejs/10.7.1/firebase-functions.js";
 
+/* ================= CONFIG ================= */
+
+const THERAPIST_ID = "LOSSPrBskLPpb547zED5hO2zYS62";
 const START_HOUR = 9;
 const END_HOUR = 20;
 const SLOT_INTERVAL = 30;
@@ -22,7 +25,12 @@ const currentWeekLabel = document.getElementById("currentWeek");
 
 const user = await requireAuth();
 
-/* ===================== UTILIDADES ===================== */
+/* ================= CLOUD FUNCTION ================= */
+
+const functions = getFunctions();
+const createAppointment = httpsCallable(functions, "createAppointment");
+
+/* ================= UTILIDADES ================= */
 
 function getMonday(d) {
   const date = new Date(d);
@@ -36,14 +44,14 @@ function formatDate(date) {
 }
 
 function calculateEnd(start) {
-  const [h,m] = start.split(":").map(Number);
+  const [h, m] = start.split(":").map(Number);
   const date = new Date();
   date.setHours(h);
   date.setMinutes(m + SLOT_INTERVAL);
-  return date.toTimeString().slice(0,5);
+  return date.toTimeString().slice(0, 5);
 }
 
-/* ===================== RENDER ===================== */
+/* ================= RENDER ================= */
 
 async function renderWeek(date) {
 
@@ -60,7 +68,7 @@ async function renderWeek(date) {
   const weekStart = formatDate(monday);
   const weekEnd = formatDate(new Date(monday.getTime()+4*86400000));
 
-  /* 🔒 SOLO LEEMOS CITAS DEL PACIENTE */
+  /* 🔒 Solo citas del paciente */
   const snapshot = await getDocs(query(
     collection(db,"appointments"),
     where("patientId","==",user.uid),
@@ -76,7 +84,7 @@ async function renderWeek(date) {
 
   const days = ["L","M","X","J","V"];
 
-  days.forEach((day)=>{
+  days.forEach(day=>{
     const label = document.createElement("div");
     label.className="day-label";
     label.textContent=day;
@@ -90,43 +98,60 @@ async function renderWeek(date) {
 
       const hourLabel=document.createElement("div");
       hourLabel.className="hour-label";
-      hourLabel.textContent=`${hour.toString().padStart(2,"0")}:${min===0?"00":"30"}`;
+      hourLabel.textContent=
+        `${hour.toString().padStart(2,"0")}:${min===0?"00":"30"}`;
       agendaContainer.appendChild(hourLabel);
 
       for(let i=0;i<5;i++){
 
         const day = new Date(monday);
         day.setDate(monday.getDate()+i);
+
         const dateStr=formatDate(day);
         const start=`${hour.toString().padStart(2,"0")}:${min===0?"00":"30"}`;
 
         const slot=document.createElement("div");
         slot.className="slot";
 
-        /* 🔎 SOLO MIRAMOS SI ESA CITA ES MÍA */
         const isMine=myAppointments.some(a=>a.date===dateStr && a.start===start);
 
         if(isMine){
+
           slot.classList.add("busy");
-        }else{
+
+        } else {
+
           slot.classList.add("available");
 
           slot.addEventListener("click", async ()=>{
 
-            /* Evita doble click */
-            slot.style.pointerEvents = "none";
+            try {
 
-            await addDoc(collection(db,"appointments"),{
-              therapistId: THERAPIST_ID,
-              patientId: user.uid,
-              date: dateStr,
-              start,
-              end: calculateEnd(start),
-              modality: "online",
-              createdAt: serverTimestamp()
-            });
+              slot.style.pointerEvents = "none";
+              slot.classList.add("loading");
 
-            renderWeek(baseDate);
+              await createAppointment({
+                therapistId: THERAPIST_ID,
+                date: dateStr,
+                start,
+                modality: "online"
+              });
+
+              renderWeek(baseDate);
+
+            } catch (error) {
+
+              console.error("Error creando cita:", error);
+
+              alert(
+                error?.message ||
+                "No se ha podido reservar el horario."
+              );
+
+              slot.style.pointerEvents = "auto";
+              slot.classList.remove("loading");
+            }
+
           });
         }
 
@@ -136,7 +161,7 @@ async function renderWeek(date) {
   }
 }
 
-/* ===================== NAV ===================== */
+/* ================= NAV ================= */
 
 document.getElementById("prev-week").onclick = ()=>{
   baseDate.setDate(baseDate.getDate()-7);
