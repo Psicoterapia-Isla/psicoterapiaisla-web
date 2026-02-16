@@ -260,7 +260,7 @@ if (appointment) {
   }
 }
 
-        } else {
+        } else {)
 
           cell.classList.add("disabled");
 
