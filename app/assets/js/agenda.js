@@ -322,10 +322,14 @@ closeBtn?.addEventListener("click",()=>{
 
 /* ================= SAVE ================= */
 
+/* ================= SAVE ================= */
+
 document.getElementById("save")?.addEventListener("click", async () => {
 
   const user = auth.currentUser;
   if(!user || !currentSlot) return;
+
+  /* ===== EDITAR CITA ===== */
 
   if(editingId){
 
@@ -342,10 +346,87 @@ document.getElementById("save")?.addEventListener("click", async () => {
       updatedAt: Timestamp.now()
     });
 
+    // ===== GENERAR FACTURA AUTOMÁTICA =====
+    if (completed.checked && paid.checked) {
+      try {
+        const emitInvoiceCF = httpsCallable(functions, "emitInvoice");
+        await emitInvoiceCF({
+          appointmentId: editingId
+        });
+      } catch (err) {
+        console.error("Error emitiendo factura:", err);
+      }
+    }
+
     modal.classList.remove("show");
     await renderWeek();
     return;
   }
+
+  /* ===== CREAR CITA ===== */
+
+  const result = await createAppointmentCF({
+    therapistId: user.uid,
+    date: currentSlot.date,
+    start: start.value,
+    modality: modality.value,
+    patientId: selectedPatient?.id || null,
+    name: name.value,
+    phone: phone.value,
+    service: service.value,
+    amount: Number(amount.value || 0),
+    completed: completed.checked,
+    paid: paid.checked
+  });
+
+  if(!result.data?.ok){
+    alert("Error creando cita");
+    return;
+  }
+
+  /* ===== BUSCAR CITA RECIÉN CREADA ===== */
+
+  const snap = await getDocs(query(
+    collection(db,"appointments"),
+    where("therapistId","==",user.uid),
+    where("date","==",currentSlot.date),
+    where("start","==",start.value)
+  ));
+
+  const newAppointment = snap.docs[0];
+
+  if(newAppointment){
+
+    // ===== WHATSAPP =====
+    try {
+      const wa = await sendAppointmentNotification({
+        appointmentId: newAppointment.id
+      });
+
+      if(wa.data?.whatsappUrl){
+        window.open(wa.data.whatsappUrl, "_blank");
+      }
+    } catch (err) {
+      console.error("Error enviando aviso:", err);
+    }
+
+    // ===== FACTURA SI YA ESTÁ PAGADA Y COMPLETADA =====
+    if (completed.checked && paid.checked) {
+      try {
+        const emitInvoiceCF = httpsCallable(functions, "emitInvoice");
+        await emitInvoiceCF({
+          appointmentId: newAppointment.id
+        });
+      } catch (err) {
+        console.error("Error emitiendo factura:", err);
+      }
+    }
+  }
+
+  modal.classList.remove("show");
+  await renderWeek();
+
+});
 
   /* === CREACIÓN DESDE CLOUD FUNCTION === */
 
