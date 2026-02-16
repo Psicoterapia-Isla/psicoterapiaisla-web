@@ -331,8 +331,6 @@ closeBtn?.addEventListener("click",()=>{
 
 document.getElementById("save")?.addEventListener("click", async () => {
 
-  document.getElementById("save")?.addEventListener("click", async () => {
-
   const user = auth.currentUser;
   if (!user || !currentSlot) return;
 
