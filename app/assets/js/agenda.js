@@ -256,40 +256,54 @@ async function renderWeek(){
     });
   });
 }
+// ===== SI HAY CITA =====
+        if (appointment) {
 
-        // ===== SI HAY CITA =====
-if (appointment) {
+          const startMinutes = minutesOf(appointment.start);
+          const endMinutes = minutesOf(appointment.end);
+          const currentMinutes = hour * 60 + minute;
 
-  const startMinutes = minutesOf(appointment.start);
-  const endMinutes = minutesOf(appointment.end);
-  const currentMinutes = hour * 60 + minute;
+          if (currentMinutes === startMinutes) {
 
-  // Reset visual siempre
-  cell.style.gridRow = "";
-  cell.innerHTML = "";
-  cell.style.display = "";
+            const duration = endMinutes - startMinutes;
+            const blocks = duration / 30;
 
-  if (currentMinutes === startMinutes) {
+            cell.style.gridRow = `span ${blocks}`;
 
-    const duration = endMinutes - startMinutes;
-    const blocks = duration / 30;
+            cell.classList.add(
+              appointment.paid ? "paid" :
+              appointment.completed ? "done" : "busy"
+            );
 
-    cell.style.gridRow = `span ${blocks}`;
+            cell.innerHTML = `<strong>${appointment.name || "—"}</strong>`;
+            cell.onclick = () => openEdit(appointment);
 
-    cell.classList.add(
-      appointment.paid ? "paid" :
-      appointment.completed ? "done" : "busy"
-    );
+          } else {
 
-    cell.innerHTML = `<strong>${appointment.name || "—"}</strong>`;
-    cell.onclick = () => openEdit(appointment);
+            cell.style.display = "none";
 
-  } else {
-    cell.style.display = "none";
-  }
+          }
 
+        }
+        else if (availability[slotKey]) {
+
+          cell.classList.add("available");
+          cell.onclick = () => openNew({ date, hour, minute });
+
+        }
+        else {
+
+          cell.classList.add("disabled");
+
+        }
+
+        grid.appendChild(cell);
+
+      });
+
+    });
+  });
 }
-
 /* ================= MODAL ================= */
 
 function openNew(slot){
