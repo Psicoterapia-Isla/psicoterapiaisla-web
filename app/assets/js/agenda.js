@@ -254,7 +254,7 @@ async function renderWeek(){
         grid.appendChild(cell);
       });
 
-    });
+    };
   });
 }
 
