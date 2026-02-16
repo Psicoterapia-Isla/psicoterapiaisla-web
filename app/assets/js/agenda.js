@@ -227,14 +227,33 @@ async function renderWeek(){
 
         if (appointment) {
 
-          cell.classList.add(
-            appointment.paid ? "paid" :
-            appointment.completed ? "done" : "busy"
-          );
+  const startMinutes = minutesOf(appointment.start);
+  const currentMinutes = hour * 60 + minute;
 
-          cell.innerHTML = `<strong>${appointment.name || "—"}</strong>`;
-          cell.onclick = () => openEdit(appointment);
+  // Solo pintar nombre en el primer bloque
+  if (currentMinutes === startMinutes) {
 
+    const duration =
+      minutesOf(appointment.end) - minutesOf(appointment.start);
+
+    const blocks = duration / 30;
+
+    cell.style.gridRow = `span ${blocks}`;
+
+    cell.classList.add(
+      appointment.paid ? "paid" :
+      appointment.completed ? "done" : "busy"
+    );
+
+    cell.innerHTML = `<strong>${appointment.name || "—"}</strong>`;
+    cell.onclick = () => openEdit(appointment);
+
+  } else {
+
+    cell.style.visibility = "hidden";
+
+  }
+}
         } else if (availability[slotKey]) {
 
           cell.classList.add("available");
