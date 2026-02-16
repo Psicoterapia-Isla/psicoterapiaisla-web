@@ -224,33 +224,41 @@ async function renderWeek(){
           return cur >= minutesOf(a.start) && cur < minutesOf(a.end);
         });
 
-        if (appointment) {
+        // ===== SI HAY CITA =====
+if (appointment) {
 
-          const startMinutes = minutesOf(appointment.start);
-          const endMinutes = minutesOf(appointment.end);
-          const currentMinutes = hour*60+minute;
+  const startMinutes = minutesOf(appointment.start);
+  const endMinutes = minutesOf(appointment.end);
+  const currentMinutes = hour * 60 + minute;
 
-          if(currentMinutes === startMinutes){
+  const isStart = currentMinutes === startMinutes;
+  const isInside =
+    currentMinutes > startMinutes &&
+    currentMinutes < endMinutes;
 
-            const blocks = (endMinutes - startMinutes)/30;
-            cell.style.gridRow = `span ${blocks}`;
+  if (isStart) {
 
-            cell.classList.add(
-              appointment.paid ? "paid" :
-              appointment.completed ? "done" : "busy"
-            );
+    const duration = endMinutes - startMinutes;
+    const blocks = duration / 30;
 
-            cell.innerHTML = `<strong>${appointment.name || "—"}</strong>`;
-            cell.onclick = () => openEdit(appointment);
+    cell.style.gridRow = `span ${blocks}`;
 
-          } else {
-            cell.style.display = "none";
-          }
+    cell.classList.add(
+      appointment.paid ? "paid" :
+      appointment.completed ? "done" : "busy"
+    );
 
-        } else if (availability[slotKey]) {
+    cell.innerHTML = `<strong>${appointment.name || "—"}</strong>`;
+    cell.onclick = () => openEdit(appointment);
 
-          cell.classList.add("available");
-          cell.onclick = () => openNew({ date, hour, minute });
+  } else if (isInside) {
+
+    // NO ocultar
+    // SOLO marcar como parte de cita
+    cell.classList.add("occupied");
+
+  }
+}
 
         } else {
 
