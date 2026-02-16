@@ -231,12 +231,12 @@ if (appointment) {
   const endMinutes = minutesOf(appointment.end);
   const currentMinutes = hour * 60 + minute;
 
-  const isStart = currentMinutes === startMinutes;
-  const isInside =
-    currentMinutes > startMinutes &&
-    currentMinutes < endMinutes;
+  // Reset visual siempre
+  cell.style.gridRow = "";
+  cell.innerHTML = "";
+  cell.style.display = "";
 
-  if (isStart) {
+  if (currentMinutes === startMinutes) {
 
     const duration = endMinutes - startMinutes;
     const blocks = duration / 30;
@@ -251,27 +251,10 @@ if (appointment) {
     cell.innerHTML = `<strong>${appointment.name || "—"}</strong>`;
     cell.onclick = () => openEdit(appointment);
 
-  } else if (isInside) {
-
-    // NO ocultar
-    // SOLO marcar como parte de cita
-    cell.classList.add("occupied");
-
+  } else {
+    cell.style.display = "none";
   }
-}
 
-        } else {)
-
-          cell.classList.add("disabled");
-
-        }
-
-        grid.appendChild(cell);
-
-      });
-
-    });
-  });
 }
 
 /* ================= MODAL ================= */
