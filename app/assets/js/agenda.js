@@ -191,8 +191,9 @@ async function renderWeek(){
   ));
 
   const appointments = [];
-  apptSnap.forEach(d=>appointments.push({ id:d.id, ...d.data() }));
+  apptSnap.forEach(d => appointments.push({ id:d.id, ...d.data() }));
 
+  // ===== HEADER DÍAS =====
   grid.appendChild(document.createElement("div"));
 
   DAYS.forEach((_,i)=>{
@@ -204,59 +205,82 @@ async function renderWeek(){
     grid.appendChild(h);
   });
 
+  // ===== GRID HORARIO =====
   HOURS.forEach(hour=>{
     MINUTES.forEach(minute=>{
 
-      const label=document.createElement("div");
+      const label = document.createElement("div");
       label.className="hour-label";
-      label.textContent=timeString(hour,minute);
+      label.textContent = timeString(hour,minute);
       grid.appendChild(label);
 
       DAYS.forEach(day=>{
 
-        const date=formatDate(dayFromKey(monday,day));
+        const date = formatDate(dayFromKey(monday,day));
         const slotKey = `${day}_${hour}_${minute}`;
-        const cell=document.createElement("div");
+
+        const cell = document.createElement("div");
         cell.className="slot";
 
         const appointment = appointments.find(a=>{
           if(a.date !== date) return false;
-          const cur=hour*60+minute;
-          return cur>=minutesOf(a.start) && cur<minutesOf(a.end);
+          const cur = hour*60+minute;
+          return cur >= minutesOf(a.start) && cur < minutesOf(a.end);
         });
 
+        // ===== SI HAY CITA =====
         if (appointment) {
 
-  const startMinutes = minutesOf(appointment.start);
-  const endMinutes = minutesOf(appointment.end);
-  const currentMinutes = hour * 60 + minute;
+          const startMinutes = minutesOf(appointment.start);
+          const endMinutes = minutesOf(appointment.end);
+          const currentMinutes = hour * 60 + minute;
 
-  if (currentMinutes === startMinutes) {
+          if (currentMinutes === startMinutes) {
 
-    const duration = endMinutes - startMinutes;
-    const blocks = duration / 30;
+            const duration = endMinutes - startMinutes;
+            const blocks = duration / 30;
 
-    cell.style.gridRow = `span ${blocks}`;
+            cell.style.gridRow = `span ${blocks}`;
 
-    cell.classList.add(
-      appointment.paid ? "paid" :
-      appointment.completed ? "done" : "busy"
-    );
+            cell.classList.add(
+              appointment.paid ? "paid" :
+              appointment.completed ? "done" : "busy"
+            );
 
-    cell.innerHTML = `<strong>${appointment.name || "—"}</strong>`;
-    cell.onclick = () => openEdit(appointment);
+            cell.innerHTML = `<strong>${appointment.name || "—"}</strong>`;
+            cell.onclick = () => openEdit(appointment);
 
-  } else {
-    cell.style.display = "none";
-  }
+          } else {
 
-}
+            // Bloques internos de la cita → ocultar
+            cell.style.display = "none";
+
+          }
+
+        }
+
+        // ===== DISPONIBILIDAD =====
+        else if (availability[slotKey]) {
+
+          cell.classList.add("available");
+          cell.onclick = () => openNew({ date, hour, minute });
+
+        }
+
+        // ===== BLOQUE INACTIVO =====
+        else {
+
+          cell.classList.add("disabled");
+
+        }
 
         grid.appendChild(cell);
-      });
 
-    );
-  });
+      }); // cierre DAYS
+
+    }); // cierre MINUTES
+  }); // cierre HOURS
+
 }
 
 /* ================= MODAL ================= */
