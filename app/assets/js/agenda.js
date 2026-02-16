@@ -364,11 +364,23 @@ document.getElementById("save")?.addEventListener("click", async () => {
     await updateDoc(doc(db,"appointments",editingId),data);
     id = editingId;
   }else{
-    const ref = await addDoc(collection(db,"appointments"),{
-      ...data,
-      createdAt: Timestamp.now()
-    });
-    id = ref.id;
+
+  const result = await createAppointmentCF({
+    therapistId: user.uid,
+    date: currentSlot.date,
+    start: start.value,
+    modality: modality.value
+  });
+
+  if(!result.data?.ok){
+    return alert("Error creando cita");
+  }
+
+  // volver a cargar citas después
+  await renderWeek();
+  modal.classList.remove("show");
+  return;
+}
 
     try {
       const result = await sendAppointmentNotification({ appointmentId: id });
