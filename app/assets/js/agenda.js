@@ -232,35 +232,7 @@ async function renderWeek(){
         cell.innerHTML = "";
         cell.onclick = null;
 
-        // ===== SI HAY CITA =====
-        if (appointment) {
-
-          const startMinutes = minutesOf(appointment.start);
-          const endMinutes = minutesOf(appointment.end);
-          const currentMinutes = hour * 60 + minute;
-
-          if (currentMinutes === startMinutes) {
-
-            const duration = endMinutes - startMinutes;
-            const blocks = duration / 30;
-
-            cell.style.gridRow = `span ${blocks}`;
-
-            cell.classList.add(
-              appointment.paid ? "paid" :
-              appointment.completed ? "done" : "busy"
-            );
-
-            cell.innerHTML = `<strong>${appointment.name || "—"}</strong>`;
-            cell.onclick = () => openEdit(appointment);
-
-          } else {
-
-            cell.style.display = "none";
-
-          }
-
-        }
+        
 
         // ===== DISPONIBLE =====
         else if (availability[slotKey]) {
