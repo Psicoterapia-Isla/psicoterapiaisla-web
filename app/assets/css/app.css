@@ -866,3 +866,28 @@ tr:hover {
   transform: scale(1);
   opacity: 1;
 }
+/* =====================================================
+   FIX TABLA FACTURAS EN MÓVIL (SIN TOCAR HTML)
+===================================================== */
+
+@media (max-width: 768px) {
+
+  /* Permitir scroll horizontal solo en tablas */
+  table {
+    display: block;
+    overflow-x: auto;
+    width: 100%;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  thead, tbody {
+    display: table;
+    width: 100%;
+    min-width: 720px; /* ancho mínimo real para que no corte el PDF */
+  }
+
+  th, td {
+    white-space: nowrap;
+  }
+
+}
