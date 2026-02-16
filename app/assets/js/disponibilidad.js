@@ -30,13 +30,13 @@ const weekLabel = document.getElementById("weekLabel");
 
 /* ================= STATE ================= */
 
+let currentUser = null;
 let baseDate = new Date();
 let currentMonday = mondayOf(baseDate);
 let weekKey = formatDate(currentMonday);
 
 let state = {};
 let locations = {};
-let currentUser = null;
 
 /* ================= FECHAS ================= */
 
@@ -49,10 +49,7 @@ function mondayOf(d){
 }
 
 function formatDate(d){
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2,"0");
-  const day = String(d.getDate()).padStart(2,"0");
-  return `${year}-${month}-${day}`;
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
 }
 
 function pad(n){
@@ -61,7 +58,7 @@ function pad(n){
 
 function formatWeekLabel(monday){
   const end = new Date(monday);
-  end.setDate(end.getDate() + 4); // 🔥 SOLO HASTA VIERNES
+  end.setDate(end.getDate() + 4);
   return `${monday.toLocaleDateString("es-ES",{day:"numeric",month:"short"})}
    – ${end.toLocaleDateString("es-ES",{day:"numeric",month:"short",year:"numeric"})}`;
 }
@@ -79,11 +76,19 @@ function toggleSlot(key, cell){
   }
 }
 
-/* ================= CAMBIAR SEDE POR DÍA ================= */
+/* ================= SEDE ================= */
+
+function ensureLocation(day){
+  if(!locations[day]){
+    locations[day] = { base: "viladecans" };
+  }
+}
 
 function cycleLocation(day){
 
-  const current = locations[day]?.base || "viladecans";
+  ensureLocation(day);
+
+  const current = locations[day].base;
 
   const next =
     current === "viladecans"
@@ -92,7 +97,6 @@ function cycleLocation(day){
         ? "online"
         : "viladecans";
 
-  if(!locations[day]) locations[day] = {};
   locations[day].base = next;
 
   render();
@@ -115,7 +119,10 @@ function render(){
   LABELS.forEach((label,i)=>{
 
     const dayKey = DAYS[i];
-    const base = locations[dayKey]?.base || "viladecans";
+
+    ensureLocation(dayKey);
+
+    const base = locations[dayKey].base;
 
     const dayCell = document.createElement("div");
     dayCell.className = "day-label";
@@ -161,13 +168,14 @@ function render(){
   });
 }
 
-/* ================= LOAD / SAVE ================= */
+/* ================= LOAD ================= */
 
 async function loadWeek(){
 
   if(!currentUser) return;
 
   weekKey = formatDate(currentMonday);
+
   state = {};
   locations = {};
 
@@ -176,12 +184,18 @@ async function loadWeek(){
 
   if(snap.exists()){
     const data = snap.data();
-    if(data.slots) state = data.slots;
-    if(data.locations) locations = data.locations;
+    state = data.slots || {};
+    locations = data.locations || {};
   }
+
+  /* Garantizar que todos los días tengan sede */
+
+  DAYS.forEach(day => ensureLocation(day));
 
   render();
 }
+
+/* ================= SAVE ================= */
 
 async function saveWeek(){
 
