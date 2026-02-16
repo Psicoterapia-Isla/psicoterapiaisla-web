@@ -320,11 +320,18 @@ document.getElementById("save")?.addEventListener("click", async () => {
   /* === CREACIÓN DESDE CLOUD FUNCTION === */
 
   const result = await createAppointmentCF({
-    therapistId: user.uid,
-    date: currentSlot.date,
-    start: start.value,
-    modality: modality.value
-  });
+  therapistId: user.uid,
+  date: currentSlot.date,
+  start: start.value,
+  modality: modality.value,
+  patientId: selectedPatient?.id || null,
+  name: name.value,
+  phone: phone.value,
+  service: service.value,
+  amount: Number(amount.value || 0),
+  completed: completed.checked,
+  paid: paid.checked
+});
 
   if(!result.data?.ok){
     alert("Error creando cita");
