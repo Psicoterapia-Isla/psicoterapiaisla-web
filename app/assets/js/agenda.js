@@ -10,7 +10,9 @@ import {
   getDoc,
   updateDoc,
   doc,
-  Timestamp
+  addDoc,
+  Timestamp,
+  runTransaction
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 import {
@@ -26,7 +28,6 @@ await loadMenu();
 /* ================= CLOUD FUNCTIONS ================= */
 
 const functions = getFunctions(undefined, "us-central1");
-
 const createAppointmentCF = httpsCallable(functions, "createAppointment");
 const sendAppointmentNotification = httpsCallable(functions, "sendAppointmentNotification");
 
@@ -42,6 +43,29 @@ let currentSlot = null;
 const HOURS = Array.from({ length: 12 }, (_, i) => i + 9);
 const MINUTES = [0, 30];
 const DAYS = ["mon","tue","wed","thu","fri"];
+
+/* ================= DOM ================= */
+
+const grid = document.getElementById("agendaGrid");
+const weekLabel = document.getElementById("weekLabel");
+
+const modal = document.getElementById("modal");
+const closeBtn = document.getElementById("close");
+
+const phone = document.getElementById("phone");
+const name = document.getElementById("name");
+const service = document.getElementById("service");
+const modality = document.getElementById("modality");
+const start = document.getElementById("start");
+const end = document.getElementById("end");
+const completed = document.getElementById("completed");
+const paid = document.getElementById("paid");
+const amount = document.getElementById("amount");
+const suggestions = document.getElementById("suggestions");
+
+const prevWeek = document.getElementById("prevWeek");
+const nextWeek = document.getElementById("nextWeek");
+const todayBtn = document.getElementById("today");
 
 /* ================= HELPERS ================= */
 
@@ -74,75 +98,146 @@ function minutesOf(time){
   return h*60 + m;
 }
 
+/* ================= RENDER ================= */
+
+async function renderWeek(){
+
+  if(!grid) return;
+
+  grid.innerHTML = "";
+
+  const monday = mondayOf(baseDate);
+  const weekStart = formatDate(monday);
+  const weekEnd = formatDate(new Date(monday.getTime()+4*86400000));
+
+  if(weekLabel){
+    weekLabel.textContent =
+      monday.toLocaleDateString("es-ES",{day:"numeric",month:"short"}) +
+      " – " +
+      new Date(monday.getTime()+4*86400000)
+        .toLocaleDateString("es-ES",{day:"numeric",month:"short",year:"numeric"});
+  }
+
+  const user = auth.currentUser;
+  if(!user) return;
+
+  const availRef = doc(db,"availability",`${user.uid}_${weekStart}`);
+  const availSnap = await getDoc(availRef);
+  const availability = availSnap.exists() ? availSnap.data().slots || {} : {};
+
+  const apptSnap = await getDocs(query(
+    collection(db,"appointments"),
+    where("therapistId","==",user.uid),
+    where("date",">=",weekStart),
+    where("date","<=",weekEnd)
+  ));
+
+  const appointments = [];
+  apptSnap.forEach(d=>appointments.push({ id:d.id, ...d.data() }));
+
+  grid.appendChild(document.createElement("div"));
+
+  DAYS.forEach((_,i)=>{
+    const d = new Date(monday);
+    d.setDate(d.getDate()+i);
+    const h = document.createElement("div");
+    h.className="day-label";
+    h.textContent = d.toLocaleDateString("es-ES",{weekday:"short",day:"numeric"});
+    grid.appendChild(h);
+  });
+
+  HOURS.forEach(hour=>{
+    MINUTES.forEach(minute=>{
+
+      const label=document.createElement("div");
+      label.className="hour-label";
+      label.textContent=timeString(hour,minute);
+      grid.appendChild(label);
+
+      DAYS.forEach(day=>{
+
+        const date=formatDate(dayFromKey(monday,day));
+        const slotKey = `${day}_${hour}_${minute}`;
+        const cell=document.createElement("div");
+        cell.className="slot";
+
+        const appointment = appointments.find(a=>{
+          if(a.date !== date) return false;
+          const cur=hour*60+minute;
+          return cur>=minutesOf(a.start) && cur<minutesOf(a.end);
+        });
+
+        if (appointment) {
+
+          cell.classList.add(
+            appointment.paid ? "paid" :
+            appointment.completed ? "done" : "busy"
+          );
+
+          cell.innerHTML = `<strong>${appointment.name || "—"}</strong>`;
+          cell.onclick = () => openEdit(appointment);
+
+        } else if (availability[slotKey]) {
+
+          cell.classList.add("available");
+          cell.onclick = () => openNew({ date, hour, minute });
+
+        } else {
+
+          cell.classList.add("disabled");
+
+        }
+
+        grid.appendChild(cell);
+      });
+
+    });
+  });
+}
+
+/* ================= MODAL ================= */
+
+function openNew(slot){
+  editingId = null;
+  selectedPatient = null;
+  currentSlot = slot;
+
+  start.value = timeString(slot.hour, slot.minute);
+
+  const endDate = new Date(0,0,0,slot.hour,slot.minute);
+  endDate.setMinutes(endDate.getMinutes()+60);
+  end.value = timeString(endDate.getHours(), endDate.getMinutes());
+
+  modal.classList.add("show");
+}
+
+function openEdit(a){
+  editingId = a.id;
+  currentSlot = { date: a.date };
+
+  phone.value = a.phone || "";
+  name.value = a.name || "";
+  service.value = a.service || "";
+  modality.value = a.modality;
+  start.value = a.start;
+  end.value = a.end;
+  completed.checked = !!a.completed;
+  paid.checked = !!a.paid;
+  amount.value = a.amount || "";
+
+  modal.classList.add("show");
+}
+
+closeBtn?.addEventListener("click",()=>{
+  modal.classList.remove("show");
+});
+
 /* ================= SAVE ================= */
 
 document.getElementById("save")?.addEventListener("click", async () => {
 
   const user = auth.currentUser;
   if(!user || !currentSlot) return;
-
-const [y,m,d] = currentSlot.date.split("-");
-  const monday = mondayOf(baseDate);
-  const weekStart = formatDate(monday);
-
-  const availRef = doc(db,"availability",`${user.uid}_${weekStart}`);
-  const availSnap = await getDoc(availRef);
-
-  const availability = availSnap.exists() ? availSnap.data().slots || {} : {};
-  const locations = availSnap.exists() ? availSnap.data().locations || {} : {};
-
-  const startMin = minutesOf(start.value);
-  const endMin = minutesOf(end.value);
-
-  const realDate = new Date(y, m-1, d);
-  const dayNumber = realDate.getDay();
-  const map = {1:"mon",2:"tue",3:"wed",4:"thu",5:"fri"};
-  const dayKey = map[dayNumber];
-
-  if (!dayKey) return alert("Día no permitido");
-
-  /* VALIDAR SEDE */
-
-  const baseLocation = locations[dayKey]?.base || null;
-
-  if(baseLocation && modality.value !== baseLocation && modality.value !== "online"){
-    return alert("La sede no coincide con la disponibilidad del día");
-  }
-
-  /* VALIDAR SLOT DISPONIBLE */
-
-  for (let minCursor = startMin; minCursor < endMin; minCursor += 30) {
-
-    const h = Math.floor(minCursor / 60);
-    const min = minCursor % 60;
-    const slotKey = `${dayKey}_${h}_${min}`;
-
-    if (!availability[slotKey] && !editingId) {
-      return alert("Horario fuera de disponibilidad");
-    }
-  }
-
-  /* VALIDAR SOLAPAMIENTO */
-
-  const apptSnap = await getDocs(query(
-    collection(db,"appointments"),
-    where("therapistId","==",user.uid),
-    where("date","==",currentSlot.date)
-  ));
-
-  const appointments = [];
-  apptSnap.forEach(d=>appointments.push({ id:d.id, ...d.data() }));
-
-  if(appointments.some(a=>{
-    if(editingId && a.id===editingId) return false;
-    const s=minutesOf(a.start);
-    const e=minutesOf(a.end);
-    return startMin < e && endMin > s;
-  })){
-    return alert("Solapamiento con otra cita");
-  }
-
-  /* ================= CREAR O ACTUALIZAR ================= */
 
   if(editingId){
 
@@ -164,7 +259,7 @@ const [y,m,d] = currentSlot.date.split("-");
     return;
   }
 
-  /* === CREACIÓN SEGURA DESDE CLOUD FUNCTION === */
+  /* === CREACIÓN DESDE CLOUD FUNCTION === */
 
   const result = await createAppointmentCF({
     therapistId: user.uid,
@@ -174,36 +269,52 @@ const [y,m,d] = currentSlot.date.split("-");
   });
 
   if(!result.data?.ok){
-    return alert("Error creando cita");
+    alert("Error creando cita");
+    return;
   }
 
-  /* === ENVIAR WHATSAPP === */
+  /* === Buscar cita recién creada === */
 
-  try {
+  const snap = await getDocs(query(
+    collection(db,"appointments"),
+    where("therapistId","==",user.uid),
+    where("date","==",currentSlot.date),
+    where("start","==",start.value)
+  ));
 
-    const newSnap = await getDocs(query(
-      collection(db,"appointments"),
-      where("therapistId","==",user.uid),
-      where("date","==",currentSlot.date),
-      where("start","==",start.value)
-    ));
+  const newAppointment = snap.docs[0];
 
-    const newAppointment = newSnap.docs[0];
+  if(newAppointment){
+    const wa = await sendAppointmentNotification({
+      appointmentId: newAppointment.id
+    });
 
-    if(newAppointment){
-      const wa = await sendAppointmentNotification({
-        appointmentId: newAppointment.id
-      });
-
-      if(wa.data?.whatsappUrl){
-        window.open(wa.data.whatsappUrl, "_blank");
-      }
+    if(wa.data?.whatsappUrl){
+      window.open(wa.data.whatsappUrl, "_blank");
     }
-
-  } catch (err) {
-    console.error("Error enviando aviso:", err);
   }
 
   modal.classList.remove("show");
   await renderWeek();
 });
+
+/* ================= NAV ================= */
+
+prevWeek?.addEventListener("click",()=>{
+  baseDate.setDate(baseDate.getDate()-7);
+  renderWeek();
+});
+
+nextWeek?.addEventListener("click",()=>{
+  baseDate.setDate(baseDate.getDate()+7);
+  renderWeek();
+});
+
+todayBtn?.addEventListener("click",()=>{
+  baseDate=new Date();
+  renderWeek();
+});
+
+/* ================= START ================= */
+
+renderWeek();
