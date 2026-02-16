@@ -230,28 +230,26 @@ async function renderWeek(){
   const startMinutes = minutesOf(appointment.start);
   const currentMinutes = hour * 60 + minute;
 
-  // Solo pintar nombre en el primer bloque
+  cell.classList.add(
+    appointment.paid ? "paid" :
+    appointment.completed ? "done" : "busy"
+  );
+
   if (currentMinutes === startMinutes) {
+    cell.innerHTML = `<strong>${appointment.name || "—"}</strong>`;
+    cell.onclick = () => openEdit(appointment);
+  }
 
-    cell.classList.add(
-  appointment.paid ? "paid" :
-  appointment.completed ? "done" : "busy"
-);
+} else if (availability[slotKey]) {
 
-if (currentMinutes === startMinutes) {
-  cell.innerHTML = `<strong>${appointment.name || "—"}</strong>`;
-  cell.onclick = () => openEdit(appointment);
+  cell.classList.add("available");
+  cell.onclick = () => openNew({ date, hour, minute });
+
+} else {
+
+  cell.classList.add("disabled");
+
 }
-   else if (availability[slotKey]) {
-
-          cell.classList.add("available");
-          cell.onclick = () => openNew({ date, hour, minute });
-
-        } else {
-
-          cell.classList.add("disabled");
-
-        }
 
         grid.appendChild(cell);
       });
