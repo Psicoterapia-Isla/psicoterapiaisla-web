@@ -18,7 +18,7 @@ const clinicId = await getCurrentClinicId();
 if (!clinicId) throw new Error("No clinic selected");
 
 const grid = document.getElementById("grid");
-const saveBtn = document.getElementById("saveAvailability");
+const saveBtn = document.getElementById("save");
 
 let baseDate = new Date();
 let currentSlots = {};
