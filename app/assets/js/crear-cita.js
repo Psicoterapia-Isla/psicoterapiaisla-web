@@ -1,53 +1,101 @@
-import { auth, db } from "./firebase.js";
+import { getClinicContext } from "./clinic-context.js";
 import {
-  addDoc, collection, serverTimestamp, Timestamp
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+  searchPatients,
+  getPatientByPhone,
+  createPatient
+} from "./patients-service.js";
+import { createAppointment } from "./appointments-service.js";
 
-import { onAuthStateChanged } from
-  "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+document.addEventListener("DOMContentLoaded", async () => {
+  const { clinicId } = await getClinicContext();
 
-let userReady = null;
+  const inputPhone = document.getElementById("patientPhone");
+  const inputName = document.getElementById("patientName");
+  const inputStart = document.getElementById("start");
+  const inputEnd = document.getElementById("end");
+  const form = document.getElementById("createAppointmentForm");
 
-onAuthStateChanged(auth,u=>userReady=u);
+  inputPhone.addEventListener("input", async (e) => {
+    const value = e.target.value.trim();
+    if (value.length < 3) return;
 
-window.openCreateModal = (dateISO, hour) => {
-  window.__selectedDateISO = dateISO;
-  document.getElementById("cStart").value = `${String(hour).padStart(2,"0")}:00`;
-  document.getElementById("cEnd").value   = `${String(hour+1).padStart(2,"0")}:00`;
-  document.getElementById("createModal").style.display = "block";
-};
+    const results = await searchPatients({
+      clinicId,
+      queryText: value
+    });
 
-window.closeCreateModal = () => {
-  document.getElementById("createModal").style.display = "none";
-};
-
-window.createAppointment = async () => {
-  if(!userReady) return alert("No autenticado");
-
-  const phone = cPatientPhone.value.trim();
-  const name  = cPatientName.value.trim();
-  const modality = cModality.value;
-  const [sh] = cStart.value.split(":");
-  const [eh] = cEnd.value.split(":");
-
-  const base = new Date(window.__selectedDateISO);
-  base.setHours(0,0,0,0);
-
-  const start = new Date(base); start.setHours(sh,0,0,0);
-  const end   = new Date(base); end.setHours(eh,0,0,0);
-
-  await addDoc(collection(db,"appointments"),{
-    therapistId: userReady.uid,
-    patientId: phone,
-    patientName: name,
-    modality,
-    start: Timestamp.fromDate(start),
-    end: Timestamp.fromDate(end),
-    status:"scheduled",
-    createdAt: serverTimestamp(),
-    createdBy: userReady.uid
+    renderAutocomplete(results);
   });
 
-  closeCreateModal();
-  location.reload();
-};
+  function renderAutocomplete(results) {
+    let container = document.getElementById("autocomplete-list");
+
+    if (!container) {
+      container = document.createElement("div");
+      container.id = "autocomplete-list";
+      container.style.border = "1px solid #ddd";
+      container.style.background = "#fff";
+      container.style.position = "absolute";
+      container.style.zIndex = "1000";
+      inputPhone.parentNode.appendChild(container);
+    }
+
+    container.innerHTML = "";
+
+    results.forEach(patient => {
+      const item = document.createElement("div");
+      item.style.padding = "8px";
+      item.style.cursor = "pointer";
+      item.textContent = `${patient.fullName} - ${patient.phoneRaw}`;
+
+      item.addEventListener("click", () => {
+        inputPhone.value = patient.phoneRaw;
+        inputName.value = patient.fullName;
+        container.innerHTML = "";
+      });
+
+      container.appendChild(item);
+    });
+  }
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    const phone = inputPhone.value.trim();
+    const name = inputName.value.trim();
+    const start = new Date(inputStart.value);
+    const end = new Date(inputEnd.value);
+
+    let patient = await getPatientByPhone({
+      clinicId,
+      phone
+    });
+
+    if (!patient) {
+      const patientId = await createPatient({
+        clinicId,
+        data: {
+          fullName: name,
+          phoneRaw: phone
+        }
+      });
+
+      patient = { id: patientId };
+    }
+
+    await createAppointment({
+      clinicId,
+      data: {
+        patientId: patient.id,
+        patientName: name,
+        patientPhone: phone,
+        start,
+        end,
+        status: "scheduled"
+      }
+    });
+
+    form.reset();
+    alert("Cita creada correctamente");
+  });
+});
