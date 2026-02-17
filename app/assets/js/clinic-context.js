@@ -1,57 +1,35 @@
 import { auth, db } from "./firebase.js";
-import { doc, getDoc } 
-from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-let activeClinicId = null;
-let clinicData = null;
+/* =====================================================
+   CLINIC CONTEXT - MULTI CLINIC SAFE
+===================================================== */
 
-/* ================= INIT CLINIC CONTEXT ================= */
+let cachedClinicId = null;
 
-export async function loadClinicContext() {
+export async function getCurrentClinicId() {
+
+  if (cachedClinicId) return cachedClinicId;
 
   const user = auth.currentUser;
-  if (!user) throw new Error("Usuario no autenticado");
 
-  const userRef = doc(db, "users", user.uid);
-  const userSnap = await getDoc(userRef);
+  if (!user) {
+    throw new Error("Usuario no autenticado");
+  }
+
+  const userSnap = await getDoc(doc(db, "users", user.uid));
 
   if (!userSnap.exists()) {
-    throw new Error("Usuario sin documento en /users");
+    throw new Error("Usuario no encontrado");
   }
 
   const userData = userSnap.data();
 
-  if (!Array.isArray(userData.clinicIds) || userData.clinicIds.length === 0) {
-    throw new Error("Usuario no vinculado a ninguna clínica");
+  if (!userData.activeClinicId) {
+    throw new Error("Usuario sin clínica activa");
   }
 
-  // MVP: primera clínica como activa
-  activeClinicId = userData.clinicIds[0];
+  cachedClinicId = userData.activeClinicId;
 
-  const clinicRef = doc(db, "clinics", activeClinicId);
-  const clinicSnap = await getDoc(clinicRef);
-
-  if (!clinicSnap.exists()) {
-    throw new Error("Clínica no encontrada");
-  }
-
-  clinicData = clinicSnap.data();
-
-  return {
-    clinicId: activeClinicId,
-    clinic: clinicData
-  };
-}
-
-/* ================= GETTERS ================= */
-
-export function getClinicId() {
-  if (!activeClinicId) {
-    throw new Error("Clinic context no cargado");
-  }
-  return activeClinicId;
-}
-
-export function getClinicData() {
-  return clinicData;
+  return cachedClinicId;
 }
