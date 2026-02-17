@@ -1,3 +1,4 @@
+console.log("DB instance:", db);
 import { requireAuth } from "./auth.js";
 import { db } from "./firebase.js";
 import { getClinicContext } from "./clinic-context.js";
