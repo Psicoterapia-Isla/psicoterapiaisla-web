@@ -216,7 +216,7 @@ async function renderWeek(){
   const availability = availabilityRes.data.slots || {};
 
   const snap = await getDocs(query(
-    collection(db,"clinics",clinicId,"appointments"),
+    collection(doc(db,"clinics",clinicId),"appointments"),
     where("therapistId","==",user.uid),
     where("date",">=",weekStart),
     where("date","<=",weekEnd)
