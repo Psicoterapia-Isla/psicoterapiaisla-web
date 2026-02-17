@@ -225,9 +225,29 @@ async function renderWeek(){
 
         } else {
 
-          cell.classList.add("available");
-          cell.onclick=()=>openNew({date,hour,minute});
-        }
+  const slotKey = `${day}_${hour}_${minute}`;
+
+  const availSnap = await getDoc(
+    doc(
+      db,
+      "clinics",
+      clinicId,
+      "availability",
+      `${user.uid}_${weekStart}`
+    )
+  );
+
+  const availability = availSnap.exists()
+    ? availSnap.data().slots || {}
+    : {};
+
+  if(availability[slotKey]){
+    cell.classList.add("available");
+    cell.onclick=()=>openNew({date,hour,minute});
+  } else {
+    cell.classList.add("disabled");
+  }
+}
 
         grid.appendChild(cell);
       });
