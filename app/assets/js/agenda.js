@@ -9,7 +9,8 @@ import {
   getDocs,
   doc,
   updateDoc,
-  Timestamp
+  Timestamp,
+  limit
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 import {
@@ -61,6 +62,41 @@ const completedInput = document.getElementById("completed");
 const paidInput = document.getElementById("paid");
 const amountInput = document.getElementById("amount");
 
+/* ================= AUTOCOMPLETE ================= */
+
+let selectedPatient = null;
+let debounceTimer = null;
+
+nameInput.addEventListener("input", (e) => {
+
+  const text = e.target.value.toLowerCase().trim();
+  selectedPatient = null;
+
+  if (text.length < 2) return;
+
+  clearTimeout(debounceTimer);
+
+  debounceTimer = setTimeout(async () => {
+
+    const q = query(
+      collection(db, "patients_normalized"),
+      where("keywords", "array-contains", text),
+      limit(5)
+    );
+
+    const snap = await getDocs(q);
+
+    if (snap.empty) return;
+
+    const first = snap.docs[0].data();
+    selectedPatient = first;
+
+    phoneInput.value = first.phone || "";
+    nameInput.value = `${first.nombre || ""} ${first.apellidos || ""}`.trim();
+
+  }, 250);
+});
+
 /* ================= HELPERS ================= */
 
 const pad = n => String(n).padStart(2,"0");
@@ -92,7 +128,6 @@ async function renderWeek(){
   const weekStart = formatDate(monday);
   const weekEnd = formatDate(new Date(monday.getTime()+4*86400000));
 
-  /* AVAILABILITY */
   const availabilityRes = await getAvailabilityCF({
     clinicId,
     therapistId: user.uid,
@@ -101,7 +136,6 @@ async function renderWeek(){
 
   const availability = availabilityRes.data.slots || {};
 
-  /* APPOINTMENTS */
   const snap = await getDocs(query(
     collection(db,"clinics",clinicId,"appointments"),
     where("therapistId","==",user.uid),
@@ -111,7 +145,6 @@ async function renderWeek(){
 
   const appointments = snap.docs.map(d=>({id:d.id,...d.data()}));
 
-  /* HEADER */
   grid.appendChild(document.createElement("div"));
 
   DAYS.forEach((_,i)=>{
@@ -123,7 +156,6 @@ async function renderWeek(){
     grid.appendChild(h);
   });
 
-  /* GRID */
   HOURS.forEach(hour=>{
     MINUTES.forEach(minute=>{
 
@@ -195,11 +227,14 @@ function openNew(slot){
   editingId=null;
   currentSlot=slot;
 
+  nameInput.value="";
+  phoneInput.value="";
+  selectedPatient=null;
+
   startInput.value=`${pad(slot.hour)}:${slot.minute===0?"00":"30"}`;
 
-  const defaultDuration=60;
   const endDate=new Date(0,0,0,slot.hour,slot.minute);
-  endDate.setMinutes(endDate.getMinutes()+defaultDuration);
+  endDate.setMinutes(endDate.getMinutes()+60);
 
   endInput.value=`${pad(endDate.getHours())}:${pad(endDate.getMinutes())}`;
 
