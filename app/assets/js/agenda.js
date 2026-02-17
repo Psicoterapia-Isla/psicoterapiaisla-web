@@ -71,6 +71,7 @@ nameInput.addEventListener("input", (e) => {
 
   const text = e.target.value.toLowerCase().trim();
   selectedPatient = null;
+  phoneInput.value = "";
 
   if (text.length < 2) return;
 
@@ -80,6 +81,7 @@ nameInput.addEventListener("input", (e) => {
 
     const q = query(
       collection(db, "patients_normalized"),
+      where("clinicId", "==", clinicId),
       where("keywords", "array-contains", text),
       limit(5)
     );
@@ -88,18 +90,21 @@ nameInput.addEventListener("input", (e) => {
 
     if (snap.empty) return;
 
-    const docSnap = snap.docs[0];
+    const patientDoc = snap.docs[0];
 
     selectedPatient = {
-      id: docSnap.id,
-      ...docSnap.data()
+      id: patientDoc.id,
+      ...patientDoc.data()
     };
 
-    phoneInput.value = selectedPatient.phone || "";
-    nameInput.value = `${selectedPatient.nombre || ""} ${selectedPatient.apellidos || ""}`.trim();
+    nameInput.value =
+      `${selectedPatient.nombre || ""} ${selectedPatient.apellidos || ""}`.trim();
 
-  }, 250);
+    phoneInput.value = selectedPatient.phone || "";
+
+  }, 300);
 });
+
 /* ================= HELPERS ================= */
 
 const pad = n => String(n).padStart(2,"0");
@@ -200,7 +205,7 @@ async function renderWeek(){
               appointment.completed ? "done" : "busy"
             );
 
-            cell.innerHTML=`<strong>${appointment.name||"—"}</strong>`;
+            cell.innerHTML=`<strong>${appointment.patientName||"—"}</strong>`;
             cell.onclick=()=>openEdit(appointment);
 
           } else {
@@ -245,10 +250,16 @@ function openNew(slot){
 }
 
 function openEdit(a){
+
+  if(a.invoiceId){
+    alert("Cita facturada. No editable.");
+    return;
+  }
+
   editingId=a.id;
   currentSlot={date:a.date};
 
-  nameInput.value=a.name||"";
+  nameInput.value=a.patientName||"";
   phoneInput.value=a.phone||"";
   serviceInput.value=a.service||"";
   modalityInput.value=a.modality||"";
@@ -269,21 +280,24 @@ saveBtn.onclick=async()=>{
 
   if(!currentSlot) return;
 
+  if(!selectedPatient && !editingId){
+    alert("Debes seleccionar un paciente existente");
+    return;
+  }
+
   const payload={
-  clinicId,
-  therapistId:user.uid,
-  patientId: selectedPatient?.id || null,
-  date:currentSlot.date,
-  start:startInput.value,
-  end:endInput.value,
-  modality:modalityInput.value,
-  name:nameInput.value,
-  phone:phoneInput.value,
-  service:serviceInput.value,
-  amount:Number(amountInput.value||0),
-  completed:completedInput.checked,
-  paid:paidInput.checked
-};
+    clinicId,
+    therapistId:user.uid,
+    patientId:selectedPatient?.id,
+    date:currentSlot.date,
+    start:startInput.value,
+    end:endInput.value,
+    modality:modalityInput.value,
+    service:serviceInput.value,
+    amount:Number(amountInput.value||0),
+    completed:completedInput.checked,
+    paid:paidInput.checked
+  };
 
   try{
 
@@ -304,7 +318,13 @@ saveBtn.onclick=async()=>{
       const appointmentId=result.data.appointmentId;
 
       if(appointmentId){
-        await sendAppointmentNotificationCF({clinicId,appointmentId});
+
+        const wa = await sendAppointmentNotificationCF({clinicId,appointmentId});
+
+        if(wa.data?.whatsappUrl){
+          window.open(wa.data.whatsappUrl,"_blank");
+        }
+
         if(payload.completed && payload.paid){
           await emitInvoiceCF({clinicId,appointmentId});
         }
@@ -318,7 +338,5 @@ saveBtn.onclick=async()=>{
     alert(err.message||"Error guardando cita");
   }
 };
-
-/* ================= START ================= */
 
 renderWeek();
