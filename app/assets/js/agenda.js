@@ -62,44 +62,130 @@ const completedInput = document.getElementById("completed");
 const paidInput = document.getElementById("paid");
 const amountInput = document.getElementById("amount");
 
-/* ================= AUTOCOMPLETE ================= */
+/* ================= AUTOCOMPLETE CORREGIDO ================= */
 
 let selectedPatient = null;
 let debounceTimer = null;
 
+const autocompleteBox = document.createElement("div");
+autocompleteBox.className = "autocomplete-box";
+autocompleteBox.style.position = "absolute";
+autocompleteBox.style.background = "#fff";
+autocompleteBox.style.border = "1px solid #ddd";
+autocompleteBox.style.borderRadius = "8px";
+autocompleteBox.style.maxHeight = "200px";
+autocompleteBox.style.overflowY = "auto";
+autocompleteBox.style.zIndex = "9999";
+autocompleteBox.style.display = "none";
+
+nameInput.parentElement.appendChild(autocompleteBox);
+
+function clearAutocomplete(){
+  autocompleteBox.innerHTML = "";
+  autocompleteBox.style.display = "none";
+}
+
+function selectPatient(patient){
+
+  selectedPatient = patient;
+
+  const fullName = `${patient.nombre || patient.name || ""} ${patient.apellidos || ""}`.trim();
+
+  nameInput.value = fullName;
+  phoneInput.value = patient.phone || patient.telefono || "";
+
+  clearAutocomplete();
+}
+
 nameInput.addEventListener("input", (e) => {
 
-  const text = e.target.value.toLowerCase().trim();
-  selectedPatient = null;
+  const text = e.target.value.trim().toLowerCase();
 
-  if (text.length < 2) return;
+  selectedPatient = null;
 
   clearTimeout(debounceTimer);
 
+  if (text.length < 2){
+    clearAutocomplete();
+    return;
+  }
+
   debounceTimer = setTimeout(async () => {
 
-    const q = query(
-      collection(db, "patients_normalized"),
-      where("keywords", "array-contains", text),
-      limit(5)
-    );
+    try {
 
-    const snap = await getDocs(q);
+      const snap = await getDocs(
+        query(
+          collection(db, "patients_normalized"),
+          limit(50)
+        )
+      );
 
-    if (snap.empty) return;
+      const results = snap.docs
+        .map(d => ({ id: d.id, ...d.data() }))
+        .filter(p => {
 
-    const docSnap = snap.docs[0];
-    const data = docSnap.data();
+          const name =
+            `${p.nombre || p.name || ""} ${p.apellidos || ""}`
+            .toLowerCase();
 
-    selectedPatient = {
-      id: docSnap.id,
-      ...data
-    };
+          const phone =
+            `${p.phone || p.telefono || ""}`;
 
-    phoneInput.value = data.phone || "";
-    nameInput.value = `${data.nombre || ""} ${data.apellidos || ""}`.trim();
+          return (
+            name.includes(text) ||
+            phone.includes(text)
+          );
+        })
+        .slice(0, 8);
 
-  }, 250);
+      if (!results.length){
+        clearAutocomplete();
+        return;
+      }
+
+      autocompleteBox.innerHTML = "";
+
+      results.forEach(patient => {
+
+        const item = document.createElement("div");
+
+        item.style.padding = "8px";
+        item.style.cursor = "pointer";
+        item.style.borderBottom = "1px solid #eee";
+
+        const name =
+          `${patient.nombre || patient.name || ""} ${patient.apellidos || ""}`.trim();
+
+        const phone =
+          patient.phone || patient.telefono || "";
+
+        item.innerHTML =
+          `<strong>${name}</strong><br><small>${phone}</small>`;
+
+        item.onclick = () => selectPatient(patient);
+
+        autocompleteBox.appendChild(item);
+
+      });
+
+      autocompleteBox.style.display = "block";
+
+    }
+    catch(e){
+      console.error(e);
+    }
+
+  }, 200);
+
+});
+
+document.addEventListener("click", (e) => {
+
+  if (!autocompleteBox.contains(e.target) && e.target !== nameInput){
+    clearAutocomplete();
+  }
+
 });
 
 /* ================= HELPERS ================= */
