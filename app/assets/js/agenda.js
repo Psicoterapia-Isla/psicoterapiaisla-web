@@ -88,15 +88,18 @@ nameInput.addEventListener("input", (e) => {
 
     if (snap.empty) return;
 
-    const first = snap.docs[0].data();
-    selectedPatient = first;
+    const docSnap = snap.docs[0];
 
-    phoneInput.value = first.phone || "";
-    nameInput.value = `${first.nombre || ""} ${first.apellidos || ""}`.trim();
+    selectedPatient = {
+      id: docSnap.id,
+      ...docSnap.data()
+    };
+
+    phoneInput.value = selectedPatient.phone || "";
+    nameInput.value = `${selectedPatient.nombre || ""} ${selectedPatient.apellidos || ""}`.trim();
 
   }, 250);
 });
-
 /* ================= HELPERS ================= */
 
 const pad = n => String(n).padStart(2,"0");
@@ -267,19 +270,20 @@ saveBtn.onclick=async()=>{
   if(!currentSlot) return;
 
   const payload={
-    clinicId,
-    therapistId:user.uid,
-    date:currentSlot.date,
-    start:startInput.value,
-    end:endInput.value,
-    modality:modalityInput.value,
-    name:nameInput.value,
-    phone:phoneInput.value,
-    service:serviceInput.value,
-    amount:Number(amountInput.value||0),
-    completed:completedInput.checked,
-    paid:paidInput.checked
-  };
+  clinicId,
+  therapistId:user.uid,
+  patientId: selectedPatient?.id || null,
+  date:currentSlot.date,
+  start:startInput.value,
+  end:endInput.value,
+  modality:modalityInput.value,
+  name:nameInput.value,
+  phone:phoneInput.value,
+  service:serviceInput.value,
+  amount:Number(amountInput.value||0),
+  completed:completedInput.checked,
+  paid:paidInput.checked
+};
 
   try{
 
