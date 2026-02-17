@@ -1,35 +1,25 @@
-import { auth, db } from "./firebase.js";
-import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { requireAuth } from "./auth.js";
 
-/* =====================================================
-   CLINIC CONTEXT - MULTI CLINIC SAFE
-===================================================== */
+let contextCache = null;
 
-let cachedClinicId = null;
+export async function getClinicContext() {
+  if (contextCache) return contextCache;
 
-export async function getCurrentClinicId() {
-
-  if (cachedClinicId) return cachedClinicId;
-
-  const user = auth.currentUser;
+  const user = await requireAuth();
 
   if (!user) {
     throw new Error("Usuario no autenticado");
   }
 
-  const userSnap = await getDoc(doc(db, "users", user.uid));
+  const clinicId =
+    user.clinicId ||
+    user?.claims?.clinicId ||
+    user?.customClaims?.clinicId;
 
-  if (!userSnap.exists()) {
-    throw new Error("Usuario no encontrado");
+  if (!clinicId) {
+    throw new Error("ClinicId no disponible en el usuario");
   }
 
-  const userData = userSnap.data();
-
-  if (!userData.activeClinicId) {
-    throw new Error("Usuario sin clínica activa");
-  }
-
-  cachedClinicId = userData.activeClinicId;
-
-  return cachedClinicId;
+  contextCache = { clinicId, user };
+  return contextCache;
 }
