@@ -1,14 +1,14 @@
 import { requireAuth } from "./auth.js";
 import { loadMenu } from "./menu.js";
 import { auth, db } from "./firebase.js";
-import { getClinicId } from "./clinic-context.js";
-import { loadAvailability } from "./availability.js";
+import { getCurrentClinicId } from "./clinic-context.js";
 
 import {
   collection,
   query,
   where,
   getDocs,
+  getDoc,
   updateDoc,
   doc,
   Timestamp
@@ -24,9 +24,13 @@ import {
 await requireAuth();
 await loadMenu();
 
-/* ================= CLOUD FUNCTIONS ================= */
+const clinicId = await getCurrentClinicId();
+if (!clinicId) throw new Error("No clinic selected");
+
+/* ================= CLOUD ================= */
 
 const functions = getFunctions(undefined, "us-central1");
+
 const createAppointmentCF = httpsCallable(functions, "createAppointment");
 const sendAppointmentNotification = httpsCallable(functions, "sendAppointmentNotification");
 const emitInvoiceCF = httpsCallable(functions, "emitInvoice");
@@ -37,8 +41,6 @@ let baseDate = new Date();
 let editingId = null;
 let selectedPatient = null;
 let currentSlot = null;
-let availability = {};
-let clinicId = null;
 
 /* ================= CONFIG ================= */
 
@@ -49,7 +51,19 @@ const DAYS = ["mon","tue","wed","thu","fri"];
 /* ================= DOM ================= */
 
 const grid = document.getElementById("agendaGrid");
+const weekLabel = document.getElementById("weekLabel");
 const modal = document.getElementById("modal");
+
+const phone = document.getElementById("phone");
+const name = document.getElementById("name");
+const service = document.getElementById("service");
+const modality = document.getElementById("modality");
+const start = document.getElementById("start");
+const end = document.getElementById("end");
+const completed = document.getElementById("completed");
+const paid = document.getElementById("paid");
+const amount = document.getElementById("amount");
+const suggestions = document.getElementById("suggestions");
 
 /* ================= HELPERS ================= */
 
@@ -67,32 +81,77 @@ function mondayOf(d){
   return x;
 }
 
-function timeString(h,m){
-  return `${pad(h)}:${pad(m)}`;
-}
-
-function minutesOf(time){
-  const [h,m] = time.split(":").map(Number);
-  return h*60+m;
-}
-
 function dayFromKey(monday,key){
-  const d=new Date(monday);
+  const d = new Date(monday);
   d.setDate(d.getDate()+DAYS.indexOf(key));
   return d;
 }
 
-/* =====================================================
-   RENDER WEEK
-===================================================== */
+function timeString(h,m){
+  return `${pad(h)}:${pad(m)}`;
+}
+
+function minutesOf(t){
+  const [h,m] = t.split(":").map(Number);
+  return h*60 + m;
+}
+
+/* ================= AUTOCOMPLETE ================= */
+
+async function searchPatients(term){
+
+  if(!term || term.length < 2){
+    suggestions.innerHTML = "";
+    return;
+  }
+
+  const snap = await getDocs(query(
+    collection(db, "patients_normalized"),
+    where("keywords", "array-contains", term.toLowerCase())
+  ));
+
+  suggestions.innerHTML = "";
+
+  snap.forEach(d=>{
+    const p = d.data();
+
+    const item = document.createElement("div");
+    item.textContent =
+      `${p.nombre || ""} ${p.apellidos || ""} · ${p.telefono || ""}`;
+
+    item.onclick = () => {
+
+      selectedPatient = { id: d.id, ...p };
+
+      phone.value = p.telefono || "";
+      name.value = `${p.nombre || ""} ${p.apellidos || ""}`.trim();
+
+      const duration = p.patientType === "mutual" ? 30 : 60;
+
+      if(start.value){
+        const [h,m] = start.value.split(":").map(Number);
+        const dEnd = new Date(0,0,0,h,m);
+        dEnd.setMinutes(dEnd.getMinutes()+duration);
+        end.value = timeString(dEnd.getHours(), dEnd.getMinutes());
+      }
+
+      if(p.patientType === "mutual"){
+        amount.value = p.mutual?.pricePerSession || 0;
+      }
+
+      suggestions.innerHTML="";
+    };
+
+    suggestions.appendChild(item);
+  });
+}
+
+phone?.addEventListener("input", e => searchPatients(e.target.value));
+name?.addEventListener("input", e => searchPatients(e.target.value));
+
+/* ================= RENDER ================= */
 
 async function renderWeek(){
-
-  const user = auth.currentUser;
-  if(!user) return;
-
-  clinicId = await getClinicId();
-  if(!clinicId) return;
 
   grid.innerHTML = "";
 
@@ -100,7 +159,7 @@ async function renderWeek(){
   const weekStart = formatDate(monday);
   const weekEnd = formatDate(new Date(monday.getTime()+4*86400000));
 
-  availability = await loadAvailability(weekStart);
+  const user = auth.currentUser;
 
   const apptSnap = await getDocs(query(
     collection(db,"clinics",clinicId,"appointments"),
@@ -109,17 +168,16 @@ async function renderWeek(){
     where("date","<=",weekEnd)
   ));
 
-  const appointments = [];
-  apptSnap.forEach(d=>appointments.push({id:d.id,...d.data()}));
+  const appointments = apptSnap.docs.map(d=>({ id:d.id, ...d.data() }));
 
   grid.appendChild(document.createElement("div"));
 
   DAYS.forEach((_,i)=>{
-    const d=new Date(monday);
+    const d = new Date(monday);
     d.setDate(d.getDate()+i);
-    const h=document.createElement("div");
+    const h = document.createElement("div");
     h.className="day-label";
-    h.textContent=d.toLocaleDateString("es-ES",{weekday:"short",day:"numeric"});
+    h.textContent = d.toLocaleDateString("es-ES",{weekday:"short",day:"numeric"});
     grid.appendChild(h);
   });
 
@@ -134,28 +192,23 @@ async function renderWeek(){
       DAYS.forEach(day=>{
 
         const date=formatDate(dayFromKey(monday,day));
-        const slotKey=`${day}_${hour}_${minute}`;
-
         const cell=document.createElement("div");
         cell.className="slot";
 
-        const appointment=appointments.find(a=>{
-          if(a.date!==date) return false;
-          const cur=hour*60+minute;
+        const appointment = appointments.find(a=>{
+          if(a.date !== date) return false;
+          const cur = hour*60+minute;
           return cur>=minutesOf(a.start) && cur<minutesOf(a.end);
         });
 
-        /* ===== SI HAY CITA ===== */
-
         if(appointment){
 
-          const startM=minutesOf(appointment.start);
-          const endM=minutesOf(appointment.end);
-          const curM=hour*60+minute;
+          const startMin = minutesOf(appointment.start);
+          const curMin = hour*60+minute;
 
-          if(curM===startM){
+          if(curMin === startMin){
 
-            const blocks=(endM-startM)/30;
+            const blocks=(minutesOf(appointment.end)-startMin)/30;
             cell.style.gridRow=`span ${blocks}`;
 
             cell.classList.add(
@@ -170,21 +223,10 @@ async function renderWeek(){
             cell.style.display="none";
           }
 
-        }
-
-        /* ===== DISPONIBLE SEGÚN AVAILABILITY ===== */
-
-        else if(availability[slotKey]){
+        } else {
 
           cell.classList.add("available");
           cell.onclick=()=>openNew({date,hour,minute});
-
-        }
-
-        /* ===== NO DISPONIBLE ===== */
-
-        else{
-          cell.classList.add("disabled");
         }
 
         grid.appendChild(cell);
@@ -193,65 +235,26 @@ async function renderWeek(){
   });
 }
 
-/* =====================================================
-   MODAL
-===================================================== */
+/* ================= SAVE ================= */
 
-function openNew(slot){
-  editingId=null;
-  selectedPatient=null;
-  currentSlot=slot;
+document.getElementById("save")?.addEventListener("click", async () => {
 
-  document.getElementById("start").value=timeString(slot.hour,slot.minute);
+  const user = auth.currentUser;
 
-  const endDate=new Date(0,0,0,slot.hour,slot.minute);
-  endDate.setMinutes(endDate.getMinutes()+60);
-  document.getElementById("end").value=timeString(endDate.getHours(),endDate.getMinutes());
-
-  modal.classList.add("show");
-}
-
-function openEdit(a){
-
-  editingId=a.id;
-  currentSlot={date:a.date};
-
-  document.getElementById("phone").value=a.phone||"";
-  document.getElementById("name").value=a.name||"";
-  document.getElementById("service").value=a.service||"";
-  document.getElementById("modality").value=a.modality;
-  document.getElementById("start").value=a.start;
-  document.getElementById("end").value=a.end;
-  document.getElementById("completed").checked=!!a.completed;
-  document.getElementById("paid").checked=!!a.paid;
-  document.getElementById("amount").value=a.amount||"";
-
-  modal.classList.add("show");
-}
-
-/* =====================================================
-   SAVE
-===================================================== */
-
-document.getElementById("save")?.addEventListener("click",async()=>{
-
-  const user=auth.currentUser;
-  if(!user||!currentSlot) return;
-
-  const payload={
-    therapistId:user.uid,
+  const payload = {
     clinicId,
-    date:currentSlot.date,
-    start:document.getElementById("start").value,
-    end:document.getElementById("end").value,
-    modality:document.getElementById("modality").value,
-    patientId:selectedPatient?.id||null,
-    name:document.getElementById("name").value,
-    phone:document.getElementById("phone").value,
-    service:document.getElementById("service").value,
-    amount:Number(document.getElementById("amount").value||0),
-    completed:document.getElementById("completed").checked,
-    paid:document.getElementById("paid").checked
+    therapistId: user.uid,
+    date: currentSlot.date,
+    start: start.value,
+    end: end.value,
+    modality: modality.value,
+    patientId: selectedPatient?.id || null,
+    name: name.value,
+    phone: phone.value,
+    service: service.value,
+    amount: Number(amount.value||0),
+    completed: completed.checked,
+    paid: paid.checked
   };
 
   if(editingId){
@@ -261,19 +264,25 @@ document.getElementById("save")?.addEventListener("click",async()=>{
       {...payload,updatedAt:Timestamp.now()}
     );
 
-    if(payload.completed&&payload.paid){
-      await emitInvoiceCF({appointmentId:editingId,clinicId});
+    if(completed.checked && paid.checked){
+      await emitInvoiceCF({clinicId,appointmentId:editingId});
     }
 
-  }else{
+  } else {
 
-    const result=await createAppointmentCF(payload);
-    const appointmentId=result.data.appointmentId;
+    const result = await createAppointmentCF(payload);
 
-    await sendAppointmentNotification({appointmentId,clinicId});
+    if(!result.data?.ok){
+      alert("Error creando cita");
+      return;
+    }
 
-    if(payload.completed&&payload.paid){
-      await emitInvoiceCF({appointmentId,clinicId});
+    const appointmentId = result.data.appointmentId;
+
+    await sendAppointmentNotification({clinicId,appointmentId});
+
+    if(completed.checked && paid.checked){
+      await emitInvoiceCF({clinicId,appointmentId});
     }
   }
 
