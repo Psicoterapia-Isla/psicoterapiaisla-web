@@ -8,16 +8,82 @@ admin.initializeApp();
 const db = admin.firestore();
 
 /* =====================================================
+   GET CLINIC STATS (Callable)
+   Usado por dashboard-clinic.js
+===================================================== */
+
+exports.getClinicStats = functions.https.onCall(async (data, context) => {
+
+  try {
+
+    if (!context.auth) {
+      throw new functions.https.HttpsError(
+        "unauthenticated",
+        "Usuario no autenticado"
+      );
+    }
+
+    const therapistId = context.auth.uid;
+
+    const snap = await db
+      .collection("appointments")
+      .where("therapistId", "==", therapistId)
+      .get();
+
+    let totalRevenue = 0;
+    let paidRevenue = 0;
+    let pendingRevenue = 0;
+    let noShows = 0;
+    let cancellations = 0;
+
+    snap.forEach(doc => {
+      const data = doc.data();
+      const amount = Number(data.amount || 0);
+
+      totalRevenue += amount;
+
+      if (data.paid) {
+        paidRevenue += amount;
+      } else {
+        pendingRevenue += amount;
+      }
+
+      if (data.status === "no-show") noShows++;
+      if (data.status === "cancelled") cancellations++;
+    });
+
+    return {
+      totalRevenue,
+      paidRevenue,
+      pendingRevenue,
+      noShows,
+      cancellations,
+      totalAppointments: snap.size
+    };
+
+  } catch (err) {
+
+    console.error("getClinicStats error:", err);
+
+    if (err instanceof functions.https.HttpsError) {
+      throw err;
+    }
+
+    throw new functions.https.HttpsError(
+      "internal",
+      "Error obteniendo estadísticas"
+    );
+  }
+});
+
+
+/* =====================================================
    EMITIR FACTURA (Callable)
 ===================================================== */
 
 exports.emitInvoice = functions.https.onCall(async (data, context) => {
 
   try {
-
-    /* =========================
-       SEGURIDAD
-    ========================= */
 
     if (!context.auth) {
       throw new functions.https.HttpsError(
@@ -35,10 +101,6 @@ exports.emitInvoice = functions.https.onCall(async (data, context) => {
         "Falta appointmentId"
       );
     }
-
-    /* =========================
-       OBTENER CITA
-    ========================= */
 
     const appRef = db.collection("appointments").doc(appointmentId);
     const appSnap = await appRef.get();
@@ -59,10 +121,6 @@ exports.emitInvoice = functions.https.onCall(async (data, context) => {
       );
     }
 
-    /* =========================
-       EVITAR DUPLICADOS
-    ========================= */
-
     if (app.invoiceId) {
       return {
         ok: true,
@@ -71,13 +129,9 @@ exports.emitInvoice = functions.https.onCall(async (data, context) => {
       };
     }
 
-    /* =========================
-       CREAR FACTURA
-    ========================= */
-
     const invoiceRef = await db.collection("invoices").add({
-      therapistId: therapistId,
-      appointmentId: appointmentId,
+      therapistId,
+      appointmentId,
       patientId: app.patientId || null,
       patientName: app.name || null,
       phone: app.phone || null,
@@ -90,21 +144,10 @@ exports.emitInvoice = functions.https.onCall(async (data, context) => {
 
     const invoiceId = invoiceRef.id;
 
-    /* =========================
-       GENERAR PDF
-    ========================= */
-
     const pdfBuffer = await generateInvoicePDF({
       invoiceId,
-      invoiceData: {
-        ...app,
-        invoiceId
-      }
+      invoiceData: { ...app, invoiceId }
     });
-
-    /* =========================
-       ENVIAR WHATSAPP
-    ========================= */
 
     if (app.phone && pdfBuffer) {
       await sendWhatsApp({
@@ -114,19 +157,11 @@ exports.emitInvoice = functions.https.onCall(async (data, context) => {
       });
     }
 
-    /* =========================
-       ACTUALIZAR CITA
-    ========================= */
-
     await appRef.update({
       invoiceId,
       status: "invoiced",
       updatedAt: admin.firestore.FieldValue.serverTimestamp()
     });
-
-    /* =========================
-       RESPUESTA
-    ========================= */
 
     return {
       ok: true,
@@ -135,7 +170,7 @@ exports.emitInvoice = functions.https.onCall(async (data, context) => {
 
   } catch (err) {
 
-    console.error("EmitInvoice error:", err);
+    console.error("emitInvoice error:", err);
 
     if (err instanceof functions.https.HttpsError) {
       throw err;
@@ -151,7 +186,6 @@ exports.emitInvoice = functions.https.onCall(async (data, context) => {
 
 /* =====================================================
    GENERAR PDF DESDE FACTURAS.HTML (Callable)
-   Compatible con httpsCallable("generateInvoicePdf")
 ===================================================== */
 
 exports.generateInvoicePdf = functions.https.onCall(async (data, context) => {
@@ -206,17 +240,14 @@ exports.generateInvoicePdf = functions.https.onCall(async (data, context) => {
       );
     }
 
-    // Aquí deberías subir el PDF a Storage y devolver URL pública
-    // Por ahora asumimos que generateInvoicePDF ya devuelve URL
-
     return {
       ok: true,
-      url: `https://storage.googleapis.com/YOUR_BUCKET/invoices/${invoiceId}.pdf`
+      message: "PDF generado correctamente"
     };
 
   } catch (err) {
 
-    console.error("GenerateInvoicePdf error:", err);
+    console.error("generateInvoicePdf error:", err);
 
     if (err instanceof functions.https.HttpsError) {
       throw err;
