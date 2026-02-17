@@ -1,33 +1,57 @@
-import { db, auth } from "./firebase.js";
-import { getClinicId } from "./clinic-context.js";
+import { requireAuth } from "./auth.js";
+import { loadMenu } from "./menu.js";
+import { auth, db } from "./firebase.js";
+import { getCurrentClinicId } from "./clinic-context.js";
 
 import {
   doc,
   getDoc,
-  setDoc,
-  updateDoc
+  setDoc
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-/* =====================================================
-   FORMATO KEY DISPONIBILIDAD
-   mon_9_0
-   tue_10_30
-===================================================== */
+/* ================= INIT ================= */
 
-export function buildSlotKey(dayKey, hour, minute) {
-  return `${dayKey}_${hour}_${minute}`;
+await requireAuth();
+await loadMenu();
+
+const clinicId = await getCurrentClinicId();
+if (!clinicId) throw new Error("No clinic selected");
+
+const grid = document.getElementById("availabilityGrid");
+const saveBtn = document.getElementById("saveAvailability");
+
+let baseDate = new Date();
+let currentSlots = {};
+
+const DAYS = ["mon","tue","wed","thu","fri"];
+const HOURS = Array.from({ length: 12 }, (_, i) => i + 9);
+const MINUTES = [0,30];
+
+const pad = n => String(n).padStart(2,"0");
+
+function formatDate(d){
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
 }
 
-/* =====================================================
-   CARGAR DISPONIBILIDAD SEMANA
-===================================================== */
+function mondayOf(d){
+  const x = new Date(d);
+  const n = (x.getDay()+6)%7;
+  x.setDate(x.getDate()-n);
+  x.setHours(0,0,0,0);
+  return x;
+}
 
-export async function loadAvailability(weekStart) {
+function timeString(h,m){
+  return `${pad(h)}:${pad(m)}`;
+}
+
+/* ================= LOAD ================= */
+
+async function loadAvailability(){
 
   const user = auth.currentUser;
-  if (!user) return {};
-
-  const clinicId = await getClinicId();
+  const monday = mondayOf(baseDate);
+  const weekStart = formatDate(monday);
 
   const ref = doc(
     db,
@@ -39,21 +63,63 @@ export async function loadAvailability(weekStart) {
 
   const snap = await getDoc(ref);
 
-  if (!snap.exists()) return {};
+  currentSlots = snap.exists() ? snap.data().slots || {} : {};
 
-  return snap.data().slots || {};
+  renderGrid();
 }
 
-/* =====================================================
-   GUARDAR DISPONIBILIDAD COMPLETA
-===================================================== */
+/* ================= RENDER ================= */
 
-export async function saveAvailability(weekStart, slotsObject) {
+function renderGrid(){
+
+  grid.innerHTML = "";
+
+  grid.appendChild(document.createElement("div"));
+
+  DAYS.forEach(day=>{
+    const h=document.createElement("div");
+    h.className="day-label";
+    h.textContent=day.toUpperCase();
+    grid.appendChild(h);
+  });
+
+  HOURS.forEach(hour=>{
+    MINUTES.forEach(minute=>{
+
+      const label=document.createElement("div");
+      label.className="hour-label";
+      label.textContent=timeString(hour,minute);
+      grid.appendChild(label);
+
+      DAYS.forEach(day=>{
+
+        const slotKey=`${day}_${hour}_${minute}`;
+
+        const cell=document.createElement("div");
+        cell.className="slot";
+
+        if(currentSlots[slotKey]){
+          cell.classList.add("available");
+        }
+
+        cell.onclick=()=>{
+          currentSlots[slotKey]=!currentSlots[slotKey];
+          renderGrid();
+        };
+
+        grid.appendChild(cell);
+      });
+    });
+  });
+}
+
+/* ================= SAVE ================= */
+
+saveBtn?.addEventListener("click", async ()=>{
 
   const user = auth.currentUser;
-  if (!user) return;
-
-  const clinicId = await getClinicId();
+  const monday = mondayOf(baseDate);
+  const weekStart = formatDate(monday);
 
   const ref = doc(
     db,
@@ -63,49 +129,15 @@ export async function saveAvailability(weekStart, slotsObject) {
     `${user.uid}_${weekStart}`
   );
 
-  await setDoc(ref, {
-    therapistId: user.uid,
+  await setDoc(ref,{
+    therapistId:user.uid,
     weekStart,
-    slots: slotsObject,
-    updatedAt: new Date()
+    slots:currentSlots
   });
-}
 
-/* =====================================================
-   TOGGLE SLOT INDIVIDUAL
-===================================================== */
+  alert("Disponibilidad guardada correctamente");
+});
 
-export async function toggleSlot(weekStart, slotKey, isAvailable) {
+/* ================= START ================= */
 
-  const user = auth.currentUser;
-  if (!user) return;
-
-  const clinicId = await getClinicId();
-
-  const ref = doc(
-    db,
-    "clinics",
-    clinicId,
-    "availability",
-    `${user.uid}_${weekStart}`
-  );
-
-  const snap = await getDoc(ref);
-
-  let slots = {};
-
-  if (snap.exists()) {
-    slots = snap.data().slots || {};
-  }
-
-  if (isAvailable) {
-    slots[slotKey] = true;
-  } else {
-    delete slots[slotKey];
-  }
-
-  await updateDoc(ref, {
-    slots,
-    updatedAt: new Date()
-  });
-}
+loadAvailability();
