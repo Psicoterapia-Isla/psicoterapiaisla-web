@@ -1,6 +1,8 @@
 // app/assets/js/agendaFirestore.js
 
 import { db } from "./firebase.js";
+import { getCurrentClinicId } from "./clinic-context.js";
+
 import {
   collection,
   query,
@@ -10,14 +12,15 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 /**
- * Devuelve la agenda completa de un terapeuta para un día:
- * - disponibilidad (agenda_slots)
- * - citas reales (appointments)
+ * Devuelve la agenda completa de un terapeuta para un día
+ * dentro de la clínica activa
  */
 export async function getAgendaForDay({
   therapistId,
   date // YYYY-MM-DD
 }) {
+
+  const clinicId = await getCurrentClinicId();
 
   const dayStart = Timestamp.fromDate(new Date(`${date}T00:00:00`));
   const dayEnd   = Timestamp.fromDate(new Date(`${date}T23:59:59`));
@@ -26,7 +29,7 @@ export async function getAgendaForDay({
      DISPONIBILIDAD
   ====================== */
   const slotsQuery = query(
-    collection(db, "agenda_slots"),
+    collection(db, "clinics", clinicId, "availability"),
     where("therapistId", "==", therapistId),
     where("start", ">=", dayStart),
     where("start", "<=", dayEnd)
@@ -42,7 +45,7 @@ export async function getAgendaForDay({
      CITAS
   ====================== */
   const appointmentsQuery = query(
-    collection(db, "appointments"),
+    collection(db, "clinics", clinicId, "appointments"),
     where("therapistId", "==", therapistId),
     where("start", ">=", dayStart),
     where("start", "<=", dayEnd)
