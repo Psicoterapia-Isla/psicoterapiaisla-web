@@ -33,13 +33,3 @@ export async function getCurrentClinicId() {
 
   return cachedClinicId;
 }
-/* =====================================================
-   GET CURRENT CLINIC ID
-===================================================== */
-
-export async function getCurrentClinicId() {
-  if (!activeClinicId) {
-    await loadClinicContext();
-  }
-  return activeClinicId;
-}
