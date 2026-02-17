@@ -71,7 +71,6 @@ nameInput.addEventListener("input", (e) => {
 
   const text = e.target.value.toLowerCase().trim();
   selectedPatient = null;
-  phoneInput.value = "";
 
   if (text.length < 2) return;
 
@@ -81,7 +80,6 @@ nameInput.addEventListener("input", (e) => {
 
     const q = query(
       collection(db, "patients_normalized"),
-      where("clinicId", "==", clinicId),
       where("keywords", "array-contains", text),
       limit(5)
     );
@@ -90,19 +88,18 @@ nameInput.addEventListener("input", (e) => {
 
     if (snap.empty) return;
 
-    const patientDoc = snap.docs[0];
+    const docSnap = snap.docs[0];
+    const data = docSnap.data();
 
     selectedPatient = {
-      id: patientDoc.id,
-      ...patientDoc.data()
+      id: docSnap.id,
+      ...data
     };
 
-    nameInput.value =
-      `${selectedPatient.nombre || ""} ${selectedPatient.apellidos || ""}`.trim();
+    phoneInput.value = data.phone || "";
+    nameInput.value = `${data.nombre || ""} ${data.apellidos || ""}`.trim();
 
-    phoneInput.value = selectedPatient.phone || "";
-
-  }, 300);
+  }, 250);
 });
 
 /* ================= HELPERS ================= */
