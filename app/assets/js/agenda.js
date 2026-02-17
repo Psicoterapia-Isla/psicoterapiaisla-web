@@ -344,6 +344,7 @@ function openEdit(a){
 
   nameInput.value=a.patientName||"";
   phoneInput.value=a.phone||"";
+  amountInput.value = "";
   serviceInput.value=a.service||"";
   modalityInput.value=a.modality||"";
   startInput.value=a.start;
