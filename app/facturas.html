@@ -94,6 +94,7 @@
 import { requireAuth } from "./assets/js/auth.js";
 import { loadMenu } from "./assets/js/menu.js";
 import { auth, db } from "./assets/js/firebase.js";
+import { getCurrentClinicId } from "./assets/js/clinic-context.js";
 
 import {
   collection,
@@ -103,11 +104,6 @@ import {
   orderBy
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-import {
-  getFunctions,
-  httpsCallable
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-functions.js";
-
 /* =========================
    INIT
 ========================= */
@@ -115,18 +111,16 @@ await requireAuth();
 await loadMenu();
 
 const user = auth.currentUser;
+const clinicId = await getCurrentClinicId();
 const tbody = document.getElementById("facturasBody");
 
-const functions = getFunctions();
-const generateInvoicePdf =
-  httpsCallable(functions, "generateInvoicePdf");
-
 /* =========================
-   LOAD INVOICES
+   LOAD INVOICES (SaaS SAFE)
 ========================= */
+
 const snap = await getDocs(
   query(
-    collection(db, "invoices"),
+    collection(db, "clinics", clinicId, "invoices"),
     where("therapistId", "==", user.uid),
     orderBy("createdAt", "desc")
   )
@@ -146,6 +140,7 @@ if (snap.empty) {
    RENDER
 ========================= */
 snap.forEach(docSnap => {
+
   const f = docSnap.data();
   const tr = document.createElement("tr");
 
@@ -158,27 +153,22 @@ snap.forEach(docSnap => {
       ? `<span class="status status-paid">Pagada</span>`
       : `<span class="status status-issued">Emitida</span>`;
 
+  const pdfUrl = `https://storage.googleapis.com/${location.hostname.includes("localhost") ? "" : ""}`;
+
   tr.innerHTML = `
-    <td>${f.invoiceNumber || "—"}</td>
+    <td>${docSnap.id}</td>
     <td>${f.patientName || "—"}</td>
     <td>${date}</td>
-    <td>${f.totalAmount?.toFixed(2) || "0.00"} €</td>
+    <td>${Number(f.totalAmount || 0).toFixed(2)} €</td>
     <td>${statusLabel}</td>
     <td>
-      <button class="btn-link" data-id="${docSnap.id}">
-        Descargar PDF
-      </button>
+      <a class="btn-link" 
+         href="https://storage.googleapis.com/${db.app.options.storageBucket}/clinics/${clinicId}/invoices/${docSnap.id}.pdf"
+         target="_blank">
+         Descargar PDF
+      </a>
     </td>
   `;
-
-  tr.querySelector("button").onclick = async () => {
-    const res = await generateInvoicePdf({
-      invoiceId: docSnap.id
-    });
-    if (res.data?.url) {
-      window.open(res.data.url, "_blank");
-    }
-  };
 
   tbody.appendChild(tr);
 });
