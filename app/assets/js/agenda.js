@@ -1,6 +1,6 @@
 import { requireAuth } from "./auth.js";
 import { db } from "./firebase.js";
-import { getCurrentClinicId } from "./clinic-context.js";
+import { getClinicContext } from "./clinic-context.js";
 
 import {
   collection,
@@ -21,7 +21,7 @@ import {
 /* ================= INIT ================= */
 
 const user = await requireAuth();
-const clinicId = await getCurrentClinicId();
+const { clinicId } = await getClinicContext();
 
 if (!clinicId) {
   alert("No hay clínica seleccionada");
