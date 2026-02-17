@@ -1,4 +1,3 @@
-console.log("DB instance:", db);
 import { requireAuth } from "./auth.js";
 import { db } from "./firebase.js";
 import { getClinicContext } from "./clinic-context.js";
@@ -18,6 +17,8 @@ import {
   getFunctions,
   httpsCallable
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-functions.js";
+
+console.log("DB instance:", db);
 
 /* ================= INIT ================= */
 
@@ -50,7 +51,6 @@ let currentSlot = null;
 
 const grid = document.getElementById("agendaGrid");
 const modal = document.getElementById("modal");
-const closeBtn = document.getElementById("close");
 const saveBtn = document.getElementById("save");
 
 const nameInput = document.getElementById("name");
@@ -119,7 +119,10 @@ nameInput.addEventListener("input", (e)=>{
 
     const snap = await getDocs(
       query(
-        collection(db,"patients_normalized"),
+        collection(
+          doc(db,"clinics",clinicId),
+          "patients_normalized"
+        ),
         limit(100)
       )
     );
@@ -133,10 +136,8 @@ nameInput.addEventListener("input", (e)=>{
         const name =
           `${p.nombre || p.name || ""} ${p.apellidos || ""}`.toLowerCase();
 
-        const phoneRaw =
-          p.phone || p.telefono || "";
-
-        const phone = normalizePhone(phoneRaw);
+        const phone =
+          normalizePhone(p.phone || p.telefono || "");
 
         if(isPhoneSearch){
           return phone.includes(normalizePhone(raw));
@@ -189,12 +190,6 @@ nameInput.addEventListener("input", (e)=>{
   },200);
 });
 
-document.addEventListener("click",(e)=>{
-  if(!autocompleteBox.contains(e.target) && e.target!==nameInput){
-    clearAutocomplete();
-  }
-});
-
 /* ================= RENDER ================= */
 
 async function renderWeek(){
@@ -213,10 +208,11 @@ async function renderWeek(){
     weekStart
   });
 
-  const availability = availabilityRes.data.slots || {};
-
   const snap = await getDocs(query(
-    collection(doc(db,"clinics",clinicId),"appointments"),
+    collection(
+      doc(db,"clinics",clinicId),
+      "appointments"
+    ),
     where("therapistId","==",user.uid),
     where("date",">=",weekStart),
     where("date","<=",weekEnd)
@@ -224,7 +220,6 @@ async function renderWeek(){
 
   const appointments = snap.docs.map(d=>({id:d.id,...d.data()}));
 
-  // Render simplified for clarity (estructura intacta)
   console.log("Appointments:", appointments);
 }
 
