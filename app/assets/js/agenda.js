@@ -277,24 +277,26 @@ saveBtn.onclick=async()=>{
 
   if(!currentSlot) return;
 
-  if(!selectedPatient && !editingId){
-    alert("Debes seleccionar un paciente existente");
-    return;
-  }
+  if (!selectedPatient) {
+  alert("Debes seleccionar un paciente existente");
+  return;
+}
 
-  const payload={
-    clinicId,
-    therapistId:user.uid,
-    patientId:selectedPatient?.id,
-    date:currentSlot.date,
-    start:startInput.value,
-    end:endInput.value,
-    modality:modalityInput.value,
-    service:serviceInput.value,
-    amount:Number(amountInput.value||0),
-    completed:completedInput.checked,
-    paid:paidInput.checked
-  };
+const payload = {
+  clinicId,
+  therapistId: user.uid,
+  patientId: selectedPatient.id,
+  date: currentSlot.date,
+  start: startInput.value,
+  end: endInput.value,
+  modality: modalityInput.value,
+  name: `${selectedPatient.nombre || ""} ${selectedPatient.apellidos || ""}`.trim(),
+  phone: selectedPatient.phone || "",
+  service: serviceInput.value,
+  amount: Number(amountInput.value || 0),
+  completed: completedInput.checked,
+  paid: paidInput.checked
+};
 
   try{
 
