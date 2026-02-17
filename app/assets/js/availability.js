@@ -17,7 +17,7 @@ await loadMenu();
 const clinicId = await getCurrentClinicId();
 if (!clinicId) throw new Error("No clinic selected");
 
-const grid = document.getElementById("availabilityGrid");
+const grid = document.getElementById("grid");
 const saveBtn = document.getElementById("saveAvailability");
 
 let baseDate = new Date();
