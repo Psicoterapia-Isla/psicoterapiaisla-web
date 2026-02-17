@@ -1,16 +1,19 @@
 const admin = require("firebase-admin");
 
-admin.initializeApp({
-  credential: admin.credential.applicationDefault()
-});
+admin.initializeApp();
 
 const db = admin.firestore();
 
-const CLINIC_ID = "PON_AQUI_TU_CLINIC_ID";
+const CLINIC_ID = "psicoterapia-isla";
 
 async function migrate() {
 
   const snap = await db.collection("patients_normalized").get();
+
+  if (snap.empty) {
+    console.log("No hay pacientes para migrar");
+    return;
+  }
 
   const batch = db.batch();
 
@@ -22,7 +25,9 @@ async function migrate() {
 
   await batch.commit();
 
-  console.log("Migración completada correctamente");
+  console.log(`Migración completada: ${snap.size} pacientes actualizados`);
 }
 
-migrate();
+migrate().catch(err => {
+  console.error("Error en migración:", err);
+});
