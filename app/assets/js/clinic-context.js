@@ -1,8 +1,9 @@
 import { requireAuth } from "./auth.js";
-import { collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
-import { db } from "./firebase.js";
 
 let contextCache = null;
+
+// 🔹 Clinic fija actual (porque solo tienes una)
+const DEFAULT_CLINIC_ID = "psicoterapia-isla";
 
 export async function getClinicContext() {
   if (contextCache) return contextCache;
@@ -13,20 +14,7 @@ export async function getClinicContext() {
     throw new Error("Usuario no autenticado");
   }
 
-  // Buscar clínica cuyo ownerUid sea el usuario actual
-  const q = query(
-    collection(db, "clinics"),
-    where("ownerUid", "==", user.uid)
-  );
-
-  const snapshot = await getDocs(q);
-
-  if (snapshot.empty) {
-    throw new Error("No existe clínica asociada a este usuario");
-  }
-
-  const clinicDoc = snapshot.docs[0];
-  const clinicId = clinicDoc.id;
+  const clinicId = DEFAULT_CLINIC_ID;
 
   contextCache = { clinicId, user };
   return contextCache;
