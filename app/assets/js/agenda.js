@@ -1,6 +1,6 @@
 import { requireAuth } from "./auth.js";
 import { db } from "./firebase.js";
-import { getCurrentClinicId } from "./clinic-context.js";
+import { getCurrentClinicId } from "./assets/js/clinic-context.js";
 
 import {
   collection,
