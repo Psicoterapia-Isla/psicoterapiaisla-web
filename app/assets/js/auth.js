@@ -15,23 +15,38 @@ export async function login(email, password) {
 
 /**
  * PROTEGE PÁGINAS PRIVADAS
+ * Garantiza que el usuario esté autenticado
+ * y que el ID token esté listo antes de continuar
  */
 export function requireAuth() {
   return new Promise((resolve) => {
-    onAuthStateChanged(auth, (user) => {
+
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+
       if (!user) {
         window.location.href = "/app/login.html";
         return;
       }
 
-      // DEBUG ÚTIL
-      console.log("✅ Usuario autenticado");
-      console.log("UID:", user.uid);
-      console.log("Email:", user.email);
+      try {
+        // 🔥 Fuerza refresco del token para evitar 401 en Cloud Functions
+        await user.getIdToken(true);
 
-      window.__USER__ = user;
+        console.log("✅ Usuario autenticado");
+        console.log("UID:", user.uid);
+        console.log("Email:", user.email);
 
-      resolve(user);
+        window.__USER__ = user;
+
+        unsubscribe(); // Evita múltiples ejecuciones
+        resolve(user);
+
+      } catch (error) {
+        console.error("Error obteniendo token:", error);
+        window.location.href = "/app/login.html";
+      }
+
     });
+
   });
 }
