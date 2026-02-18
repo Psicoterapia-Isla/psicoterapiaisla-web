@@ -30,7 +30,8 @@ if (!clinicId) {
   throw new Error("ClinicId missing");
 }
 
-const functions = getFunctions(undefined, "us-central1");
+import { app } from "./firebase.js";
+const functions = getFunctions(app);
 
 const createAppointmentCF = httpsCallable(functions, "createAppointment");
 const sendAppointmentNotificationCF = httpsCallable(functions, "sendAppointmentNotification");
